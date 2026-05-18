@@ -1,1046 +1,1284 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plantilla de Control de Asistencia - MINEDU Anexos 3 y 4</title>
-    <!-- Tailwind CSS para el diseño responsivo y moderno -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts para una tipografía limpia similar a la de Google Workspace -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Product+Sans:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #f9fbfd;
-        }
-        .google-sans {
-            font-family: 'Product Sans', sans-serif;
-        }
-        /* Estilos para simular la cuadrícula de Google Sheets */
-        .sheet-grid th {
-            background-color: #f8f9fa;
-            color: #5f6368;
-            font-weight: 500;
-            font-size: 11px;
-            text-transform: uppercase;
-            border: 1px solid #dadce0;
-            user-select: none;
-        }
-        .sheet-grid td {
-            border: 1px solid #e0e0e0;
-            font-size: 13px;
-            color: #202124;
-            transition: background-color 0.15s;
-        }
-        .sheet-grid tr:hover td {
-            background-color: #f1f3f4;
-        }
-        .sheet-grid td.active-cell {
-            outline: 2px solid #1a73e8;
-            outline-offset: -2px;
-            background-color: #e8f0fe !important;
-        }
-        .row-header {
-            background-color: #f8f9fa;
-            color: #5f6368;
-            text-align: center;
-            font-weight: bold;
-            font-size: 11px;
-            border: 1px solid #dadce0;
-            width: 40px;
-            user-select: none;
-        }
-        .col-header {
-            height: 25px;
-            min-width: 80px;
-        }
-        /* Ocultar barra de scroll pero mantener funcionalidad */
-        .no-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        .no-scrollbar::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        .no-scrollbar::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 3px;
-        }
-        .no-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
-        }
-    </style>
-</head>
-<body class="h-screen flex flex-col overflow-hidden">
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { 
+  FileSpreadsheet, Users, Save, Printer, LogOut, CheckCircle, 
+  AlertTriangle, Info, Download, Search, FileText, Trash2, 
+  Cloud, Settings, Database, RefreshCw, Link2, Check, UserCheck, Plus, HelpCircle
+} from 'lucide-react';
 
-    <!-- CABECERA PRINCIPAL (Estilo Google Sheets) -->
-    <header class="bg-white border-b border-gray-200 px-4 py-2 flex flex-col md:flex-row justify-between items-center gap-2 shrink-0">
-        <div class="flex items-center gap-3 w-full md:w-auto">
-            <!-- Icono verde simulando Google Sheets -->
-            <div class="bg-[#0f9d58] p-2 rounded-lg text-white shadow-md flex items-center justify-center">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-            </div>
-            <div>
-                <div class="flex items-center gap-2">
-                    <span class="google-sans font-bold text-lg text-gray-800">Sistema de Asistencia MINEDU</span>
-                    <span class="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full font-medium">Anexo 3 & 4</span>
-                </div>
-                <div class="flex items-center gap-4 text-xs text-gray-500 mt-0.5">
-                    <span class="hover:bg-gray-100 px-1.5 py-0.5 rounded cursor-pointer" onclick="toggleSidebar('personal')">👥 Base de Personal</span>
-                    <span class="hover:bg-gray-100 px-1.5 py-0.5 rounded cursor-pointer" onclick="toggleSidebar('ie')">🏫 Base de I.E.</span>
-                    <span class="hover:bg-gray-100 px-1.5 py-0.5 rounded cursor-pointer" onclick="exportarExcel()">📥 Exportar datos</span>
-                </div>
-            </div>
+// --- CONFIGURACIÓN DE BASE DE DATOS INTEGRADA ---
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'minedu-asistencia-app';
+
+// --- CONSTANTES ---
+const LEYENDA = {
+  'A': 'Día laborado',
+  'I': 'Inasistencia injustificada',
+  '3T': 'Tercera tardanza (inasistencia)',
+  'J': 'Inasistencia justificada',
+  'LS': 'Licencia sin goce'
+};
+
+// Base de datos de prueba de Códigos Modulares (Padrón por defecto si no hay Google Sheets)
+const DEFAULT_IE_DB = {
+  '0123456': { dreUgel: 'UGEL 01 - SAN JUAN DE MIRAFLORES', ie: '6004 SANTIAGO ANTÚNEZ DE MAYOLO', lugar: 'VILLA EL SALVADOR', nivel: 'SECUNDARIA', distrito: 'VILLA EL SALVADOR', tipo: 'PÚBLICA DE GESTIÓN DIRECTA', provincia: 'LIMA' },
+  '0987654': { dreUgel: 'UGEL 03 - BREÑA', ie: '10 DE OCTUBRE', lugar: 'BREÑA', nivel: 'PRIMARIA', distrito: 'BREÑA', tipo: 'PÚBLICA DE GESTIÓN DIRECTA', provincia: 'LIMA' },
+  '1122334': { dreUgel: 'DRE CUSCO - UGEL CUSCO', ie: 'CIENCIAS', lugar: 'CUSCO', nivel: 'SECUNDARIA', distrito: 'CUSCO', tipo: 'PÚBLICA DE GESTIÓN DIRECTA', provincia: 'CUSCO' },
+  '1564738': { dreUgel: 'UGEL AQP - AREQUIPA', ie: 'INDEPENDENCIA AMERICANA', lugar: 'AREQUIPA', nivel: 'SECUNDARIA', distrito: 'AREQUIPA', tipo: 'PÚBLICA DE GESTIÓN DIRECTA', provincia: 'AREQUIPA' }
+};
+
+// Base de datos de prueba de Personal por DNI (Padrón por defecto si no hay Google Sheets)
+const DEFAULT_PERSONAL_DB = {
+  '40001122': { nombres: 'QUISPE MENDOZA, JUAN CARLOS', cargo: 'PROFESOR DE AULA', condicion: 'NOMBRADO', jornada: '30' },
+  '40003344': { nombres: 'RODRIGUEZ FLORES, MARIA ELENA', cargo: 'PROFESOR DE EDUCACION FISICA', condicion: 'CONTRATADO', jornada: '30' },
+  '40005566': { nombres: 'HUAMAN MAMANI, LUIS ALBERTO', cargo: 'AUXILIAR DE EDUCACION', condicion: 'NOMBRADO', jornada: '40' },
+  '70112233': { nombres: 'CASTRO ALVAREZ, SOPHIA LUCIANA', cargo: 'PROFESOR DE AULA', condicion: 'CONTRATADO', jornada: '30' }
+};
+
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [role, setRole] = useState(null); // 'DIRECTOR' o 'ADMIN'
+  const [reports, setReports] = useState([]);
+  const [currentView, setCurrentView] = useState('DASHBOARD'); // DASHBOARD, FORM_EDIT, ADMIN_VIEW, SETTINGS
+  const [activeTab, setActiveTab] = useState('ANEXO3'); // 'ANEXO3' o 'ANEXO4'
+  const [printTarget, setPrintTarget] = useState(null); // 'ANEXO3', 'ANEXO4', o null
+  
+  // Foco de celda activa para simular barra de fórmulas de Excel
+  const [activeCellInfo, setActiveCellInfo] = useState({ row: '', col: '', val: '' });
+
+  // Integración de Google Sheets
+  const [sheetUrlIIEE, setSheetUrlIIEE] = useState(() => localStorage.getItem('minedu_sheet_iiee') || '');
+  const [sheetUrlPersonal, setSheetUrlPersonal] = useState(() => localStorage.getItem('minedu_sheet_personal') || '');
+  const [customIeDb, setCustomIeDb] = useState(() => JSON.parse(localStorage.getItem('minedu_db_iiee_parsed')) || {});
+  const [customPersonalDb, setCustomPersonalDb] = useState(() => JSON.parse(localStorage.getItem('minedu_db_personal_parsed')) || {});
+  const [syncLoading, setSyncLoading] = useState(false);
+
+  // Unir bases de datos por defecto con las descargadas de Google Sheets
+  const ieDatabase = useMemo(() => ({ ...DEFAULT_IE_DB, ...customIeDb }), [customIeDb]);
+  const personalDatabase = useMemo(() => ({ ...DEFAULT_PERSONAL_DB, ...customPersonalDb }), [customPersonalDb]);
+
+  // Estado del formulario actual
+  const [formData, setFormData] = useState({
+    id: '',
+    codigoModular: '',
+    dreUgel: '',
+    mesAno: '',
+    ie: '',
+    lugar: '',
+    nivel: '',
+    distrito: '',
+    tipo: '',
+    provincia: '',
+    empleados: []
+  });
+
+  const [notification, setNotification] = useState(null);
+
+  // --- AUTENTICACIÓN Y CONEXIÓN A LA BASE DE DATOS ---
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (error) {
+        console.error("Error de autenticación:", error);
+      }
+    };
+    initAuth();
+
+    const unsubscribe = onAuthStateChanged(auth, setUser);
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const reportsRef = collection(db, 'artifacts', appId, 'public', 'data', 'reportes_minedu');
+    const unsubscribeReports = onSnapshot(reportsRef, (snapshot) => {
+      const loadedReports = [];
+      snapshot.forEach((doc) => {
+        loadedReports.push({ id: doc.id, ...doc.data() });
+      });
+      loadedReports.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      setReports(loadedReports);
+    }, (error) => {
+      console.error("Error cargando base de datos:", error);
+      showNotification("Error de conexión a la base de datos", "error");
+    });
+
+    return () => unsubscribeReports();
+  }, [user]);
+
+  // --- EFECTO PARA DISPARAR LA IMPRESIÓN/PDF AUTOMÁTICA ---
+  useEffect(() => {
+    if (printTarget) {
+      const timer = setTimeout(() => {
+        window.print();
+        setPrintTarget(null);
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [printTarget]);
+
+  // --- PARSERS DE CSV PARA GOOGLE SHEETS ---
+  const parseCSV = (text) => {
+    const lines = text.split('\n');
+    return lines.map(line => {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      result.push(current.trim());
+      return result;
+    });
+  };
+
+  const handleSyncSheets = async () => {
+    setSyncLoading(true);
+    let success = false;
+    let newIeDb = {};
+    let newPersonalDb = {};
+
+    try {
+      if (sheetUrlIIEE) {
+        const iieeUrl = sheetUrlIIEE.includes('/pub?') ? sheetUrlIIEE : `${sheetUrlIIEE.split('/edit')[0]}/pub?output=csv`;
+        const res = await fetch(iieeUrl);
+        const csvText = await res.text();
+        const rows = parseCSV(csvText);
+        
+        if (rows.length > 1) {
+          const headers = rows[0].map(h => h.toLowerCase().trim().replace(/_/g, ""));
+          const idxCod = headers.findIndex(h => h.includes('codigomodular') || h.includes('modular') || h.includes('codigo'));
+          const idxDre = headers.findIndex(h => h.includes('dreugel') || h.includes('dre') || h.includes('ugel'));
+          const idxIe = headers.findIndex(h => h.includes('ie') || h.includes('institucion') || h.includes('colegio'));
+          const idxLugar = headers.findIndex(h => h.includes('lugar'));
+          const idxNivel = headers.findIndex(h => h.includes('nivel'));
+          const idxDistrito = headers.findIndex(h => h.includes('distrito'));
+          const idxTipo = headers.findIndex(h => h.includes('tipo'));
+          const idxProv = headers.findIndex(h => h.includes('provincia'));
+
+          if (idxCod !== -1 && idxIe !== -1) {
+            for (let i = 1; i < rows.length; i++) {
+              const r = rows[i];
+              if (r[idxCod]) {
+                newIeDb[r[idxCod]] = {
+                  dreUgel: r[idxDre] || 'UGEL GENERAL',
+                  ie: r[idxIe],
+                  lugar: r[idxLugar] || '',
+                  nivel: r[idxNivel] || 'SECUNDARIA',
+                  distrito: r[idxDistrito] || '',
+                  tipo: r[idxTipo] || 'POLIDOCENTE',
+                  provincia: r[idxProv] || ''
+                };
+              }
+            }
+            setCustomIeDb(newIeDb);
+            localStorage.setItem('minedu_db_iiee_parsed', JSON.stringify(newIeDb));
+            localStorage.setItem('minedu_sheet_iiee', sheetUrlIIEE);
+            success = true;
+          }
+        }
+      }
+
+      if (sheetUrlPersonal) {
+        const personalUrl = sheetUrlPersonal.includes('/pub?') ? sheetUrlPersonal : `${sheetUrlPersonal.split('/edit')[0]}/pub?output=csv`;
+        const res = await fetch(personalUrl);
+        const csvText = await res.text();
+        const rows = parseCSV(csvText);
+
+        if (rows.length > 1) {
+          const headers = rows[0].map(h => h.toLowerCase().trim().replace(/_/g, ""));
+          const idxDni = headers.findIndex(h => h.includes('dni') || h.includes('documento'));
+          const idxNombres = headers.findIndex(h => h.includes('nombre') || h.includes('apellido'));
+          const idxCargo = headers.findIndex(h => h.includes('cargo') || h.includes('funcion'));
+          const idxCond = headers.findIndex(h => h.includes('condicion') || h.includes('regimen'));
+          const idxJornada = headers.findIndex(h => h.includes('jornada') || h.includes('horas'));
+
+          if (idxDni !== -1 && idxNombres !== -1) {
+            for (let i = 1; i < rows.length; i++) {
+              const r = rows[i];
+              if (r[idxDni]) {
+                newPersonalDb[r[idxDni]] = {
+                  nombres: r[idxNombres],
+                  cargo: r[idxCargo] || 'PROFESOR',
+                  condicion: r[idxCond] || 'NOMBRADO',
+                  jornada: r[idxJornada] || '30'
+                };
+              }
+            }
+            setCustomPersonalDb(newPersonalDb);
+            localStorage.setItem('minedu_db_personal_parsed', JSON.stringify(newPersonalDb));
+            localStorage.setItem('minedu_sheet_personal', sheetUrlPersonal);
+            success = true;
+          }
+        }
+      }
+
+      if (success) {
+        showNotification("Bases de datos sincronizadas con Google Sheets exitosamente");
+      } else {
+        showNotification("Verifique que el formato de columnas coincida con los requerimientos.", "error");
+      }
+    } catch (err) {
+      console.error(err);
+      showNotification("Error al conectar con Google Sheets. Verifique la publicación web.", "error");
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
+  // --- AUTOCOMPLETADO POR DNI EN CUADRÍCULA ---
+  const handleDniLookup = (empId, dniValue) => {
+    updateEmployee(empId, 'dni', dniValue);
+
+    if (dniValue.length === 8) {
+      const match = personalDatabase[dniValue];
+      if (match) {
+        setFormData(prev => ({
+          ...prev,
+          empleados: prev.empleados.map(emp => {
+            if (emp.id === empId) {
+              return {
+                ...emp,
+                nombres: match.nombres,
+                cargo: match.cargo,
+                condicion: match.condicion,
+                jornada: match.jornada
+              };
+            }
+            return emp;
+          })
+        }));
+        showNotification(`¡Personal encontrado! Datos de ${match.nombres} completados.`, "success");
+      } else {
+        showNotification("DNI no registrado en el padrón.", "error");
+      }
+    }
+  };
+
+  // --- AUTOCOMPLETADO DE I.E. POR CÓDIGO MODULAR ---
+  const handleSearchIE = () => {
+    const data = ieDatabase[formData.codigoModular];
+    if (data) {
+      setFormData(prev => ({ ...prev, ...data }));
+      showNotification("Institución Educativa encontrada y cargada.", "success");
+    } else {
+      showNotification("Código modular no registrado en el padrón.", "error");
+    }
+  };
+
+  // --- CONTROL DEL MES Y DÍAS ---
+  const monthDays = useMemo(() => {
+    if (!formData.mesAno) {
+      return Array.from({ length: 31 }, (_, i) => ({ day: i + 1, isWeekend: false, dayName: '' }));
+    }
+    const [year, month] = formData.mesAno.split('-');
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const days = [];
+    for (let i = 1; i <= daysInMonth; i++) {
+      const d = new Date(year, month - 1, i);
+      const dayOfWeek = d.getDay(); 
+      days.push({ 
+        day: i, 
+        isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
+        dayName: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][dayOfWeek]
+      });
+    }
+    return days;
+  }, [formData.mesAno]);
+
+  // --- ACCIONES GENERALES ---
+  const showNotification = (msg, type = 'success') => {
+    setNotification({ msg, type });
+    setTimeout(() => setNotification(null), 4000);
+  };
+
+  const handleLogout = () => {
+    setRole(null);
+    setCurrentView('DASHBOARD');
+  };
+
+  const createNewReport = () => {
+    setFormData({
+      id: Date.now().toString(),
+      codigoModular: '',
+      dreUgel: '',
+      mesAno: new Date().toISOString().slice(0, 7),
+      ie: '',
+      lugar: '',
+      nivel: '',
+      distrito: '',
+      tipo: '',
+      provincia: '',
+      empleados: [
+        { id: Date.now(), dni: '', nombres: '', cargo: '', condicion: '', jornada: '', asistencia: {}, tardanzasH: '', tardanzasM: '', permisosSGH: '', permisosSGM: '', huelgaParoDias: '', observaciones: '' }
+      ]
+    });
+    setActiveTab('ANEXO3');
+    setCurrentView('FORM_EDIT');
+  };
+
+  const addEmployee = () => {
+    setFormData(prev => ({
+      ...prev,
+      empleados: [...prev.empleados, { id: Date.now(), dni: '', nombres: '', cargo: '', condicion: '', jornada: '', asistencia: {}, tardanzasH: '', tardanzasM: '', permisosSGH: '', permisosSGM: '', huelgaParoDias: '', observaciones: '' }]
+    }));
+  };
+
+  const removeEmployee = (id) => {
+    setFormData(prev => ({
+      ...prev,
+      empleados: prev.empleados.filter(emp => emp.id !== id)
+    }));
+  };
+
+  const handleSaveToDatabase = async () => {
+    if (!formData.ie || !formData.mesAno) {
+      showNotification("Complete el Código Modular de la I.E. y el Mes/Año antes de guardar", "error");
+      return;
+    }
+    if (!user) {
+      showNotification("Conectando con la base de datos...", "error");
+      return;
+    }
+
+    try {
+      const reportData = {
+        ...formData,
+        submittedBy: user.uid,
+        updatedAt: new Date().toISOString()
+      };
+
+      const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'reportes_minedu', formData.id);
+      await setDoc(docRef, reportData);
+      
+      showNotification("Sincronización en la Nube exitosa");
+      setCurrentView('DASHBOARD');
+    } catch (error) {
+      console.error(error);
+      showNotification("Hubo un error al guardar en Firestore", "error");
+    }
+  };
+
+  const handleRemoveReport = async (reportId) => {
+    if (window.confirm("¿Desea eliminar definitivamente este reporte de la base de datos de la UGEL?")) {
+      try {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'reportes_minedu', reportId);
+        await deleteDoc(docRef);
+        showNotification("Reporte eliminado de la base de datos");
+      } catch (error) {
+        console.error(error);
+        showNotification("Error al eliminar", "error");
+      }
+    }
+  };
+
+  const calculateAnexo4 = (empleado) => {
+    let inasistenciasDias = 0;
+    let permisosSGDias = 0;
+
+    Object.values(empleado.asistencia).forEach(val => {
+      if (val === 'I' || val === '3T') inasistenciasDias++;
+      if (val === 'LS') permisosSGDias++;
+    });
+
+    return { inasistenciasDias, permisosSGDias };
+  };
+
+  const exportToCSV = (report) => {
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "\uFEFF"; 
+    csvContent += `DRE/UGEL:,${report.dreUgel},,MES Y AÑO:,${report.mesAno}\n`;
+    csvContent += `INSTITUCION EDUCATIVA:,${report.ie},,LUGAR:,${report.lugar}\n`;
+    csvContent += `CODIGO MODULAR:,${report.codigoModular},,NIVEL:,${report.nivel}\n\n`;
+    
+    csvContent += "N°,DNI,APELLIDOS Y NOMBRES,CARGO,CONDICIÓN,Jor. Lab.,Inasistencias (Dias),Tardanzas (Horas),Tardanzas (Minutos),Permisos SG (Horas),Permisos SG (Minutos),Permisos SG (Dias),Huelga/Paro (Dias),Observaciones\n";
+    
+    report.empleados.forEach((emp, index) => {
+      const calcs = calculateAnexo4(emp);
+      csvContent += `${index + 1},${emp.dni},"${emp.nombres}",${emp.cargo},${emp.condicion},${emp.jornada},${calcs.inasistenciasDias},${emp.tardanzasH || 0},${emp.tardanzasM || 0},${emp.permisosSGH || 0},${emp.permisosSGM || 0},${calcs.permisosSGDias},${emp.huelgaParoDias || 0},"${emp.observaciones || ''}"\n`;
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Consolidado_UGEL_${report.ie.replace(/ /g, "_")}_${report.mesAno}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // --- RENDERIZADORES COMPATIBLES CON FOCO ---
+
+  function renderLoginView() {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[75vh]">
+        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-lg w-full text-center border border-gray-150 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-green-600 to-emerald-700"></div>
+          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Escudo_nacional_del_Per%C3%BA.svg/150px-Escudo_nacional_del_Per%C3%BA.svg.png" alt="Escudo de Perú" className="h-20 mx-auto mb-4 opacity-90" />
+          <h1 className="text-2xl font-black text-slate-800 mb-1 google-sans">Mesa de Asistencia Digital</h1>
+          <p className="text-emerald-700 font-bold text-xs uppercase tracking-wider mb-4">MINEDU - UGEL</p>
+          <p className="text-gray-500 mb-6 text-sm leading-relaxed">
+            Plataforma web con diseño de <strong>Google Sheets / Excel</strong> para el llenado y consolidación en tiempo real de los Anexos 03 y 04.
+          </p>
+          
+          <div className="space-y-3">
+            <button 
+              onClick={() => { setRole('DIRECTOR'); setCurrentView('DASHBOARD'); }}
+              className="w-full flex items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition"
+            >
+              <Users size={20} />
+              Módulo del Director (Llenar y Enviar)
+            </button>
+            
+            <button 
+              onClick={() => { setRole('ADMIN'); setCurrentView('DASHBOARD'); }}
+              className="w-full flex items-center justify-center gap-3 bg-slate-800 hover:bg-slate-900 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition"
+            >
+              <FileSpreadsheet size={20} />
+              Módulo Administrador UGEL (Consolidar)
+            </button>
+
+            <button 
+              onClick={() => { setRole('DIRECTOR'); setCurrentView('SETTINGS'); }}
+              className="w-full flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl transition text-xs"
+            >
+              <Settings size={14} />
+              Configurar Enlace Google Sheets
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderSettingsView() {
+    return (
+      <div className="max-w-3xl mx-auto bg-white p-6 rounded-2xl shadow-sm border border-gray-200 animate-fade-in space-y-6">
+        <div className="flex justify-between items-center border-b pb-4">
+          <div className="flex items-center gap-2">
+            <Database className="text-emerald-600" size={24} />
+            <h2 className="text-xl font-black text-slate-800">Vincular Base de Datos (Google Sheets)</h2>
+          </div>
+          <button 
+            onClick={() => {
+              if (role) {
+                setCurrentView('DASHBOARD');
+              } else {
+                setRole('DIRECTOR');
+                setCurrentView('DASHBOARD');
+              }
+            }} 
+            className="text-xs font-bold text-gray-500 hover:text-slate-800 uppercase"
+          >
+            ← Regresar al Panel
+          </button>
+        </div>
+
+        <div className="bg-emerald-50 text-emerald-800 p-4 rounded-xl text-xs flex gap-2 leading-relaxed">
+          <Info size={18} className="flex-shrink-0 mt-0.5" />
+          <div>
+            <strong className="block mb-1">¿Cómo publicar correctamente tus hojas en Google Sheets?</strong>
+            <ol className="list-decimal pl-4 space-y-1">
+              <li>En tu Google Sheet, haz clic en: <strong>Archivo &gt; Compartir &gt; Publicar en la web</strong>.</li>
+              <li>Selecciona la hoja y cámbiala a formato <strong>Valores separados por comas (.csv)</strong>.</li>
+              <li>Copia ese enlace y pégalo abajo según corresponda.</li>
+            </ol>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-700 uppercase mb-2 flex items-center gap-1.5">
+              <Link2 size={14} className="text-gray-400" />
+              1. URL del CSV - Padrón de Escuelas (IIEE)
+            </label>
+            <input 
+              type="text" 
+              placeholder="Pega la URL del CSV publicado..." 
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:border-emerald-500 outline-none" 
+              value={sheetUrlIIEE}
+              onChange={e => setSheetUrlIIEE(e.target.value)}
+            />
+            <p className="text-[10px] text-gray-400 mt-1">Cabeceras requeridas: <strong>codigo_modular</strong>, <strong>dre_ugel</strong>, <strong>ie</strong>, <strong>lugar</strong>, <strong>nivel</strong>, <strong>distrito</strong>, <strong>tipo</strong>, <strong>provincia</strong></p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-700 uppercase mb-2 flex items-center gap-1.5">
+              <Link2 size={14} className="text-gray-400" />
+              2. URL del CSV - Planilla de Personal (DNI)
+            </label>
+            <input 
+              type="text" 
+              placeholder="Pega la URL del CSV publicado..." 
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:border-emerald-500 outline-none" 
+              value={sheetUrlPersonal}
+              onChange={e => setSheetUrlPersonal(e.target.value)}
+            />
+            <p className="text-[10px] text-gray-400 mt-1">Cabeceras requeridas: <strong>dni</strong>, <strong>nombres</strong>, <strong>cargo</strong>, <strong>condicion</strong>, <strong>jornada</strong></p>
+          </div>
+
+          <div className="pt-4 flex justify-end gap-3 border-t">
+            <button 
+              type="button" 
+              onClick={() => {
+                setCustomIeDb({});
+                setCustomPersonalDb({});
+                localStorage.removeItem('minedu_db_iiee_parsed');
+                localStorage.removeItem('minedu_db_personal_parsed');
+                localStorage.removeItem('minedu_sheet_iiee');
+                localStorage.removeItem('minedu_sheet_personal');
+                setSheetUrlIIEE('');
+                setSheetUrlPersonal('');
+                showNotification("Configuración borrada. Usando base de datos interna de prueba.");
+              }} 
+              className="px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-red-600 hover:bg-red-50"
+            >
+              Restaurar Base Interna
+            </button>
+
+            <button 
+              type="button" 
+              disabled={syncLoading}
+              onClick={handleSyncSheets} 
+              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white font-bold rounded-xl text-xs flex items-center gap-2 transition"
+            >
+              {syncLoading ? <RefreshCw size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+              {syncLoading ? "Sincronizando..." : "Guardar y Vincular Base"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderHeaderDataForm(readOnly = false) {
+    return (
+      <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm no-print">
+        <div className="flex flex-wrap items-center gap-2 lg:col-span-3 bg-gradient-to-r from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-100">
+          <label className="font-bold text-blue-900">CÓDIGO MODULAR DE LA I.E.:</label>
+          <div className="flex gap-2">
+            <input 
+              type="text" 
+              placeholder="Ej: 0123456" 
+              className="border border-gray-300 rounded-lg px-3 py-1.5 outline-none focus:border-blue-500 w-36 bg-white font-bold" 
+              value={formData.codigoModular || ''} 
+              onChange={e => setFormData({...formData, codigoModular: e.target.value})} 
+              readOnly={readOnly} 
+            />
+            {!readOnly && (
+              <button onClick={handleSearchIE} className="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 flex items-center gap-1 transition animate-none">
+                <Search size={14} /> Buscar Institución
+              </button>
+            )}
+          </div>
+          <span className="text-xs text-blue-700 italic ml-2 hidden lg:inline">Ejemplos válidos: <strong>0123456</strong>, <strong>0987654</strong>, <strong>1122334</strong> o <strong>1564738</strong></span>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="font-bold text-gray-700 text-xs uppercase">DRE/UGEL:</label>
+          <input type="text" className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition" value={formData.dreUgel} onChange={e => setFormData({...formData, dreUgel: e.target.value})} readOnly={readOnly} />
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="font-bold text-gray-700 text-xs uppercase">MES Y AÑO DE ASISTENCIA:</label>
+          <input type="month" className="border border-blue-300 rounded-lg px-3 py-2 bg-white focus:border-blue-500 outline-none font-bold" value={formData.mesAno} onChange={e => setFormData({...formData, mesAno: e.target.value})} readOnly={readOnly} />
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="font-bold text-gray-700 text-xs uppercase">INSTITUCIÓN EDUCATIVA:</label>
+          <input type="text" className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 font-bold text-blue-950 focus:bg-white" value={formData.ie} onChange={e => setFormData({...formData, ie: e.target.value})} readOnly={readOnly} />
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="font-bold text-gray-700 text-xs uppercase">LUGAR:</label>
+          <input type="text" className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition" value={formData.lugar} onChange={e => setFormData({...formData, lugar: e.target.value})} readOnly={readOnly} />
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="font-bold text-gray-700 text-xs uppercase">NIVEL EDUCATIVO:</label>
+          <input type="text" className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition" value={formData.nivel} onChange={e => setFormData({...formData, nivel: e.target.value})} readOnly={readOnly} />
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="font-bold text-gray-700 text-xs uppercase">DISTRITO:</label>
+          <input type="text" className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:bg-white" value={formData.distrito} onChange={e => setFormData({...formData, distrito: e.target.value})} readOnly={readOnly} />
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="font-bold text-gray-700 text-xs uppercase">TIPO INSTITUCIÓN:</label>
+          <input type="text" className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:bg-white" value={formData.tipo} onChange={e => setFormData({...formData, tipo: e.target.value})} readOnly={readOnly} />
+        </div>
+
+        <div className="flex flex-col gap-1 md:col-span-2">
+          <label className="font-bold text-gray-700 text-xs uppercase">PROVINCIA:</label>
+          <input type="text" className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:bg-white" value={formData.provincia} onChange={e => setFormData({...formData, provincia: e.target.value})} readOnly={readOnly} />
+        </div>
+      </div>
+    );
+  }
+
+  function renderPrintHeader(title, subtitle) {
+    return (
+      <div className="hidden print:block text-center mb-6">
+        <h2 className="font-black text-xl uppercase tracking-wider">{title}</h2>
+        <p className="text-xs font-bold text-gray-600 uppercase">{subtitle}</p>
+        <div className="grid grid-cols-4 text-left mt-4 text-[10px] border border-black p-3 rounded">
+          <div><strong>DRE/UGEL:</strong> {formData.dreUgel}</div>
+          <div><strong>CÓD. MODULAR:</strong> {formData.codigoModular}</div>
+          <div><strong>MES Y AÑO:</strong> {formData.mesAno}</div>
+          <div><strong>I.E.:</strong> {formData.ie}</div>
+          <div><strong>LUGAR:</strong> {formData.lugar}</div>
+          <div><strong>NIVEL:</strong> {formData.nivel}</div>
+          <div><strong>DISTRITO:</strong> {formData.distrito}</div>
+          <div><strong>PROVINCIA:</strong> {formData.provincia}</div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderFirmasSection() {
+    return (
+      <div className="mt-16 grid grid-cols-2 gap-8 text-center text-xs print:flex print:justify-around">
+        <div>
+          <div className="border-t border-black pt-2 mx-4 mt-8"></div>
+          <p className="font-bold">DIRECTOR(A) DE LA I.E.</p>
+          <p className="text-gray-500 mt-1 italic">Firma Digitalizada / Sello Electrónico</p>
+        </div>
+        <div>
+          <div className="border-t border-black pt-2 mx-4 mt-8"></div>
+          <p className="font-bold">CONEI / APAFA</p>
+          <p className="text-gray-500 mt-1 italic">Visto Bueno (V°B°)</p>
+        </div>
+      </div>
+    );
+  }
+
+  function renderAnexo3View(readOnly = false) {
+    return (
+      <div id="anexo-3-print-view" className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-fade-in">
+        <div className="p-4 bg-gray-50 border-b border-gray-200 flex flex-wrap justify-between items-center gap-2 no-print">
+          <div>
+            <h2 className="font-extrabold text-lg text-slate-800">ANEXO 03</h2>
+            <p className="text-xs text-gray-500 font-bold uppercase">FORMATO 01: REPORTE DE ASISTENCIA DETALLADO</p>
+          </div>
+          <div className="flex gap-2">
+            {!readOnly && (
+              <button onClick={addEmployee} className="px-4 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 shadow-sm transition">
+                + Agregar Personal
+              </button>
+            )}
+            <button onClick={() => window.print()} className="px-4 py-1.5 bg-slate-200 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-300 flex items-center gap-1 transition">
+              <Printer size={14} /> Imprimir Hoja
+            </button>
+          </div>
         </div>
         
-        <!-- BÚSQUEDA RÁPIDA DE I.E. / CÓDIGO MODULAR -->
-        <div class="relative w-full md:w-96">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-            </div>
-            <input type="text" id="ie-search-input" oninput="buscarIEAutocomplete(this.value)" placeholder="Buscar por Nombre de I.E. o Código Modular..." class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#0f9d58] focus:border-[#0f9d58] outline-none transition-all">
-            
-            <!-- Dropdown de resultados de autocompletado para I.E. -->
-            <div id="ie-autocomplete-results" class="hidden absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
-                <!-- Se poblará dinámicamente -->
-            </div>
+        {renderPrintHeader("ANEXO 03", "FORMATO 01: REPORTE DE ASISTENCIA DETALLADO")}
+
+        <div className="overflow-x-auto print:overflow-visible p-4">
+          <table className="w-full text-[10px] sm:text-xs border-collapse text-center">
+            <thead>
+              <tr className="bg-slate-100 text-slate-700 font-bold">
+                <th className="border border-gray-300 p-1 sticky left-0 z-10 w-8 bg-slate-100">N°</th>
+                <th className="border border-gray-300 p-1 sticky left-8 z-10 w-28 bg-slate-100">DNI</th>
+                <th className="border border-gray-300 p-1 min-w-[220px] sticky left-36 z-10 bg-slate-100 text-left">APELLIDOS Y NOMBRES</th>
+                <th className="border border-gray-300 p-1">CARGO</th>
+                <th className="border border-gray-300 p-1">CONDICIÓN</th>
+                <th className="border border-gray-300 p-1 w-12">Jor. Lab.</th>
+                <th colSpan={monthDays.length} className="border border-gray-300 bg-blue-50 p-1 text-blue-900">DÍAS CALENDARIOS</th>
+                <th className="border border-gray-300 bg-orange-50 p-1 text-orange-900 font-bold w-12">MIN.</th>
+                <th className="border border-gray-300 bg-gray-100 p-1 w-32">Observaciones</th>
+                {!readOnly && <th className="border border-gray-300 p-1 no-print">Eliminar</th>}
+              </tr>
+              <tr className="bg-slate-50 text-slate-600 text-[9px]">
+                <th colSpan={6} className="border border-gray-300 sticky left-0 z-10 bg-white"></th>
+                {monthDays.map(d => (
+                  <th key={d.day} className={`border border-gray-300 p-1 w-6 font-bold ${d.isWeekend ? 'bg-red-200 text-red-900' : 'bg-blue-50 text-blue-800'}`}>
+                    {d.day} <br/><span className="text-[7px] uppercase font-normal">{d.dayName}</span>
+                  </th>
+                ))}
+                <th className="border border-gray-300 bg-orange-50"></th>
+                <th className="border border-gray-300 bg-gray-100"></th>
+                {!readOnly && <th className="border border-gray-300 no-print"></th>}
+              </tr>
+            </thead>
+            <tbody>
+              {formData.empleados.map((emp, index) => (
+                <tr key={emp.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="border border-gray-300 p-1 sticky left-0 z-10 bg-white font-bold">{index + 1}</td>
+                  <td className="border border-gray-300 p-0 sticky left-8 z-10 bg-white">
+                    <input 
+                      type="text" 
+                      maxLength="8"
+                      className="w-full h-full p-1 text-center bg-transparent outline-none font-semibold text-slate-700" 
+                      value={emp.dni} 
+                      onChange={e => handleDniLookup(emp.id, e.target.value)} 
+                      onFocus={() => setActiveCellInfo({ row: index + 1, col: 'DNI', val: emp.dni })}
+                      readOnly={readOnly} 
+                      placeholder="DNI" 
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-0 sticky left-36 z-10 bg-white text-left font-semibold">
+                    <input 
+                      type="text" 
+                      className="w-full h-full p-1 bg-transparent outline-none text-slate-800" 
+                      value={emp.nombres} 
+                      onChange={e => updateEmployee(emp.id, 'nombres', e.target.value)} 
+                      onFocus={() => setActiveCellInfo({ row: index + 1, col: 'APELLIDOS Y NOMBRES', val: emp.nombres })}
+                      readOnly={readOnly} 
+                      placeholder="Apellidos y Nombres" 
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-0">
+                    <input 
+                      type="text" 
+                      className="w-full h-full p-1 text-center bg-transparent outline-none text-xs" 
+                      value={emp.cargo} 
+                      onChange={e => updateEmployee(emp.id, 'cargo', e.target.value)} 
+                      onFocus={() => setActiveCellInfo({ row: index + 1, col: 'CARGO', val: emp.cargo })}
+                      readOnly={readOnly} 
+                      placeholder="Cargo" 
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-0 font-medium">
+                    <input 
+                    type="text" 
+                    className="w-full h-full p-1 text-center bg-transparent outline-none text-xs" 
+                    value={emp.condicion} 
+                    onChange={e => updateEmployee(emp.id, 'condicion', e.target.value)} 
+                    onFocus={() => setActiveCellInfo({ row: index + 1, col: 'CONDICION', val: emp.condicion })}
+                    readOnly={readOnly} 
+                    placeholder="Condición" 
+                  />
+                  </td>
+                  <td className="border border-gray-300 p-0 font-semibold">
+                    <input 
+                      type="text" 
+                      className="w-full h-full p-1 text-center bg-transparent outline-none text-xs" 
+                      value={emp.jornada} 
+                      onChange={e => updateEmployee(emp.id, 'jornada', e.target.value)} 
+                      onFocus={() => setActiveCellInfo({ row: index + 1, col: 'JORNADA', val: emp.jornada })}
+                      readOnly={readOnly} 
+                      placeholder="Hrs" 
+                    />
+                  </td>
+                  {monthDays.map(d => (
+                    <td key={d.day} className={`border border-gray-300 p-0 relative ${d.isWeekend ? 'bg-red-100 text-red-700' : emp.asistencia[d.day] ? 'bg-blue-100 font-bold text-blue-955' : ''}`}>
+                      {readOnly || d.isWeekend ? (
+                        <span className={`block w-full text-center py-1 font-bold ${d.isWeekend ? 'text-red-500' : ''}`}>{d.isWeekend ? '-' : (emp.asistencia[d.day] || '')}</span>
+                      ) : (
+                        <input 
+                          type="text" 
+                          maxLength="2"
+                          className="w-full h-full p-1 outline-none text-center uppercase bg-transparent text-xs font-bold" 
+                          value={emp.asistencia[d.day] || ''} 
+                          onChange={e => updateAttendance(emp.id, d.day, e.target.value.toUpperCase())}
+                          onFocus={() => setActiveCellInfo({ row: index + 1, col: `DIA ${d.day}`, val: emp.asistencia[d.day] || '' })}
+                          title={`Día ${d.day}`}
+                        />
+                      )}
+                    </td>
+                  ))}
+                  
+                  {/* Columna MIN. de Tardanzas en Anexo 03 */}
+                  <td className="border border-gray-300 p-0 w-12 bg-orange-50/20">
+                    <input 
+                      type="number" 
+                      min="0" 
+                      max="59" 
+                      className="w-full h-full p-1 outline-none text-center bg-transparent text-xs font-bold" 
+                      value={emp.tardanzasM || ''} 
+                      onChange={e => updateEmployee(emp.id, 'tardanzasM', e.target.value)} 
+                      onFocus={() => setActiveCellInfo({ row: index + 1, col: 'MINUTOS TARDANZA', val: emp.tardanzasM || '' })}
+                      readOnly={readOnly} 
+                      placeholder="0"
+                    />
+                  </td>
+
+                  {/* Columna Observaciones en Anexo 03 */}
+                  <td className="border border-gray-300 p-0 bg-gray-50/20">
+                    <input 
+                      type="text" 
+                      className="w-full h-full p-1 outline-none text-left bg-transparent text-[10px]" 
+                      value={emp.observaciones || ''} 
+                      onChange={e => updateEmployee(emp.id, 'observaciones', e.target.value)} 
+                      onFocus={() => setActiveCellInfo({ row: index + 1, col: 'OBSERVACIONES', val: emp.observaciones || '' })}
+                      readOnly={readOnly} 
+                      placeholder="Observaciones..."
+                    />
+                  </td>
+
+                  {!readOnly && (
+                    <td className="border border-gray-300 p-1 no-print">
+                      <button onClick={() => removeEmployee(emp.id)} className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition" title="Quitar Personal">
+                        <Trash2 size={14} className="mx-auto" />
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+              {formData.empleados.length === 0 && (
+                <tr><td colSpan={monthDays.length + 9} className="p-6 text-gray-500 italic">No hay personal registrado en este reporte. Agregue personal para iniciar.</td></tr>
+              )}
+            </tbody>
+          </table>
+          
+          {/* Leyenda */}
+          <div className="mt-6 border border-gray-200 rounded-lg p-3 bg-slate-50 text-[10px] flex flex-wrap gap-4 justify-center">
+            <div className="font-bold text-slate-700 mr-2">Códigos de Asistencia:</div>
+            {Object.entries(LEYENDA).map(([k, v]) => (
+              <div key={k} className="bg-white px-2 py-1 rounded border border-gray-150"><span className="font-bold text-emerald-700">{k}</span>: {v}</div>
+            ))}
+          </div>
+
+          {renderFirmasSection()}
         </div>
-    </header>
+      </div>
+    );
+  }
 
-    <!-- BARRA DE FÓRMULAS & CONTROLES -->
-    <div class="bg-gray-100 border-b border-gray-200 px-4 py-1.5 flex items-center gap-2 text-xs shrink-0">
-        <div class="bg-white border border-gray-300 rounded px-2 py-1 font-mono text-gray-700 min-w-[50px] text-center" id="active-cell-indicator">
-            A1
+  function renderAnexo4View(readOnly = false) {
+    return (
+      <div id="anexo-4-print-view" className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-fade-in">
+        <div className="p-4 bg-gray-50 border-b border-gray-200 flex flex-wrap justify-between items-center gap-2 no-print">
+          <div>
+            <h2 className="font-extrabold text-lg text-slate-800">ANEXO 04</h2>
+            <p className="text-xs text-gray-500 font-bold uppercase">FORMATO 02: REPORTE DE INASISTENCIAS, TARDANZAS Y PERMISOS SIN GOCE</p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => window.print()} className="px-4 py-1.5 bg-slate-200 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-300 flex items-center gap-1 transition">
+              <Printer size={14} /> Imprimir Hoja
+            </button>
+          </div>
         </div>
-        <div class="text-gray-400 font-light text-base">|</div>
-        <div class="flex-1 flex items-center bg-white border border-gray-300 rounded px-2 py-1">
-            <span class="font-mono text-gray-400 mr-2 select-none italic">fx</span>
-            <input type="text" id="formula-bar" class="w-full bg-transparent outline-none text-gray-800 font-mono" placeholder="Valor de la celda activa...">
+
+        {renderPrintHeader("ANEXO 04", "FORMATO 02: REPORTE DE INASISTENCIAS, TARDANZAS Y PERMISOS SIN GOCE DE REMUNERACIONES")}
+
+        <div className="p-4 bg-yellow-50 text-xs border-b border-yellow-200 text-yellow-800 flex items-start gap-2 no-print leading-relaxed">
+          <Info size={16} className="mt-0.5 flex-shrink-0" />
+          <span><strong>Llenado Automatizado:</strong> Las columnas <strong className="text-red-700">Inasistencias (Días)</strong> y <strong className="text-blue-700">Permisos SG (Días)</strong> se calculan de manera inteligente según las marcas del Anexo 3. Solo debes rellenar las horas o minutos correspondientes.</span>
         </div>
-    </div>
 
-    <!-- CUERPO PRINCIPAL CON CONTENIDO Y PANELES LATERALES -->
-    <div class="flex-1 flex overflow-hidden relative">
-        
-        <!-- CONTENEDOR DE LA PLANTILLA DE EXCEL -->
-        <main class="flex-1 flex flex-col overflow-hidden bg-white">
-            
-            <!-- SECCIÓN DE CABECERA DEL FORMATO OFICIAL -->
-            <section class="p-4 bg-gray-50 border-b border-gray-200 shrink-0">
-                <div class="max-w-7xl mx-auto bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                    <div class="flex justify-between items-start border-b border-dashed border-gray-200 pb-3 mb-3">
-                        <div>
-                            <span class="text-[10px] font-bold text-[#0f9d58] tracking-wider uppercase block">R.S.G. N°326-2017-MINEDU</span>
-                            <h2 class="font-bold text-gray-800 text-sm md:text-base uppercase" id="form-title">FORMATO 01: REPORTE DE ASISTENCIA DETALLADO (ANEXO 03)</h2>
-                        </div>
-                        <div class="text-right">
-                            <span class="text-xs text-gray-500 font-medium bg-gray-100 px-2.5 py-1 rounded">MINISTERIO DE EDUCACIÓN</span>
-                        </div>
-                    </div>
+        <div className="overflow-x-auto print:overflow-visible p-4">
+          <table className="w-full text-xs border-collapse text-center">
+            <thead>
+              <tr className="bg-slate-100 text-slate-700 font-bold">
+                <th rowSpan={2} className="border border-gray-300 p-2 w-8">N°</th>
+                <th rowSpan={2} className="border border-gray-300 p-2 w-24">DNI</th>
+                <th rowSpan={2} className="border border-gray-300 p-2 min-w-[220px] text-left">APELLIDOS Y NOMBRES</th>
+                <th rowSpan={2} className="border border-gray-300 p-2">CARGO</th>
+                <th rowSpan={2} className="border border-gray-300 p-2">CONDICIÓN</th>
+                <th rowSpan={2} className="border border-gray-300 p-2 w-12">Jor. Lab.</th>
+                <th className="border border-gray-300 bg-red-50 p-1 text-red-900 font-bold">Inasistencias</th>
+                <th colSpan={2} className="border border-gray-300 bg-orange-50 p-1 text-orange-900 font-bold">Tardanzas</th>
+                <th colSpan={3} className="border border-gray-300 bg-blue-50 p-1 text-blue-900 font-bold">Permisos SG</th>
+                <th className="border border-gray-300 bg-purple-50 p-1 text-purple-900 font-bold">Huelga/Paro</th>
+                <th rowSpan={2} className="border border-gray-300 p-2 w-52">Observaciones</th>
+              </tr>
+              <tr className="bg-slate-50 text-[10px]">
+                <th className="border border-gray-300 bg-red-50 p-1 font-bold text-red-700">Días</th>
+                <th className="border border-gray-300 bg-orange-50 p-1 text-orange-700">Horas</th>
+                <th className="border border-gray-300 bg-orange-50 p-1 text-orange-700">Minutos</th>
+                <th className="border border-gray-300 bg-blue-50 p-1 text-blue-700">Horas</th>
+                <th className="border border-gray-300 bg-blue-50 p-1 text-blue-700">Minutos</th>
+                <th className="border border-gray-300 bg-blue-50 p-1 font-bold text-blue-700">Días</th>
+                <th className="border border-gray-300 bg-purple-50 p-1 text-purple-700">Días</th>
+              </tr>
+            </thead>
+            <tbody>
+              {formData.empleados.map((emp, index) => {
+                const calcs = calculateAnexo4(emp);
+                return (
+                  <tr key={emp.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="border border-gray-300 p-2 font-bold">{index + 1}</td>
+                    <td className="border border-gray-300 p-2 font-semibold text-slate-700">{emp.dni}</td>
+                    <td className="border border-gray-300 p-2 text-left font-semibold text-slate-800">{emp.nombres}</td>
+                    <td className="border border-gray-300 p-2 text-gray-600 text-xs">{emp.cargo}</td>
+                    <td className="border border-gray-300 p-2 text-gray-600 text-xs">{emp.condicion}</td>
+                    <td className="border border-gray-300 p-2 font-bold">{emp.jornada}</td>
+                    
+                    <td className="border border-gray-300 p-2 bg-red-50 font-bold text-red-700">{calcs.inasistenciasDias || '0'}</td>
+                    
+                    <td className="border border-gray-300 p-0 w-12 bg-orange-50/30">
+                      <input type="number" min="0" className="w-full h-full p-2 outline-none text-center bg-transparent" value={emp.tardanzasH || ''} onChange={e => updateEmployee(emp.id, 'tardanzasH', e.target.value)} onFocus={() => setActiveCellInfo({ row: index + 1, col: 'TARDANZAS HORAS', val: emp.tardanzasH || '' })} readOnly={readOnly} placeholder="0" />
+                    </td>
+                    <td className="border border-gray-300 p-0 w-12 bg-orange-50/30">
+                      <input type="number" min="0" max="59" className="w-full h-full p-2 outline-none text-center bg-transparent font-bold text-orange-950" value={emp.tardanzasM || ''} onChange={e => updateEmployee(emp.id, 'tardanzasM', e.target.value)} onFocus={() => setActiveCellInfo({ row: index + 1, col: 'TARDANZAS MINUTOS', val: emp.tardanzasM || '' })} readOnly={readOnly} placeholder="0" />
+                    </td>
 
-                    <!-- Campos editables y autocompletables -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
-                        <div>
-                            <label class="block text-gray-500 font-medium mb-1">DRE / UGEL</label>
-                            <input type="text" id="meta-dre-ugel" class="w-full border border-gray-300 rounded px-2 py-1 focus:ring-1 focus:ring-green-500 focus:outline-none" value="UGEL 03 - LIMA METROPOLITANA">
-                        </div>
-                        <div>
-                            <label class="block text-gray-500 font-medium mb-1">INSTITUCIÓN EDUCATIVA</label>
-                            <input type="text" id="meta-ie-nombre" class="w-full border border-gray-300 rounded px-2 py-1 font-semibold focus:ring-1 focus:ring-green-500 focus:outline-none" value="IE 1097 CLORINDA MATTO DE TURNER">
-                        </div>
-                        <div>
-                            <label class="block text-gray-500 font-medium mb-1">CÓDIGO MODULAR DE LA I.E.</label>
-                            <input type="text" id="meta-cod-modular" oninput="buscarIEPorCodigo(this.value)" class="w-full border border-green-500 bg-green-50/50 rounded px-2 py-1 font-mono font-bold text-green-800 focus:ring-1 focus:ring-green-500 focus:outline-none" value="0345678" placeholder="Ingresar 7 dígitos...">
-                        </div>
-                        <div>
-                            <label class="block text-gray-500 font-medium mb-1">MES Y AÑO</label>
-                            <input type="month" id="meta-mes-anio" class="w-full border border-gray-300 rounded px-2 py-1 focus:ring-1 focus:ring-green-500 focus:outline-none" value="2026-05">
-                        </div>
+                    <td className="border border-gray-300 p-0 w-12 bg-blue-50/30">
+                      <input type="number" min="0" className="w-full h-full p-2 outline-none text-center bg-transparent" value={emp.permisosSGH || ''} onChange={e => updateEmployee(emp.id, 'permisosSGH', e.target.value)} onFocus={() => setActiveCellInfo({ row: index + 1, col: 'PERMISOS SG HORAS', val: emp.permisosSGH || '' })} readOnly={readOnly} placeholder="0" />
+                    </td>
+                    <td className="border border-gray-300 p-0 w-12 bg-blue-50/30">
+                      <input type="number" min="0" max="59" className="w-full h-full p-2 outline-none text-center bg-transparent" value={emp.permisosSGM || ''} onChange={e => updateEmployee(emp.id, 'permisosSGM', e.target.value)} onFocus={() => setActiveCellInfo({ row: index + 1, col: 'PERMISOS SG MINUTOS', val: emp.permisosSGM || '' })} readOnly={readOnly} placeholder="0" />
+                    </td>
+                    
+                    <td className="border border-gray-300 p-2 bg-blue-50 font-bold text-blue-700">{calcs.permisosSGDias || '0'}</td>
 
-                        <div>
-                            <label class="block text-gray-500 font-medium mb-1">NIVEL EDUCATIVO / MODALIDAD</label>
-                            <input type="text" id="meta-nivel" class="w-full border border-gray-300 rounded px-2 py-1 focus:ring-1 focus:ring-green-500 focus:outline-none" value="SECUNDARIA MENORES">
-                        </div>
-                        <div>
-                            <label class="block text-gray-500 font-medium mb-1">TIPO DE INSTITUCIÓN</label>
-                            <input type="text" id="meta-tipo-ie" class="w-full border border-gray-300 rounded px-2 py-1 focus:ring-1 focus:ring-green-500 focus:outline-none" value="POLIDOCENTE COMPLETO">
-                        </div>
-                        <div>
-                            <label class="block text-gray-500 font-medium mb-1">LUGAR / DISTRITO / PROVINCIA</label>
-                            <div class="grid grid-cols-3 gap-1">
-                                <input type="text" id="meta-lugar" placeholder="Lugar" class="border border-gray-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-green-500" value="LIMA">
-                                <input type="text" id="meta-distrito" placeholder="Distrito" class="border border-gray-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-green-500" value="BREÑA">
-                                <input type="text" id="meta-provincia" placeholder="Provincia" class="border border-gray-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-green-500" value="LIMA">
-                            </div>
-                        </div>
-                        <div class="flex items-end justify-between bg-yellow-50 border border-yellow-200 p-2 rounded">
-                            <span class="text-[10px] text-yellow-800 leading-tight">
-                                💡 Escribe un <strong>DNI</strong> en la cuadrícula para autocompletar el personal automáticamente.
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </section>
+                    <td className="border border-gray-300 p-0 w-12 bg-purple-50/30">
+                      <input type="number" min="0" className="w-full h-full p-2 outline-none text-center bg-transparent font-bold text-purple-700" value={emp.huelgaParoDias || ''} onChange={e => updateEmployee(emp.id, 'huelgaParoDias', e.target.value)} onFocus={() => setActiveCellInfo({ row: index + 1, col: 'HUELGA/PARO DIAS', val: emp.huelgaParoDias || '' })} readOnly={readOnly} placeholder="0" />
+                    </td>
 
-            <!-- CONTENEDOR DE LA CUADRÍCULA (SABANAS) -->
-            <div class="flex-1 overflow-auto no-scrollbar relative p-4" id="sheet-container">
-                <!-- El contenido de las tablas de los Anexos se renderiza dinámicamente -->
-                <div id="grid-wrapper" class="inline-block align-middle min-w-full">
-                    <!-- Aquí se inyecta la tabla activa mediante JavaScript -->
-                </div>
-            </div>
+                    <td className="border border-gray-300 p-0">
+                      <input type="text" className="w-full h-full p-2 outline-none text-left bg-transparent text-xs" value={emp.observaciones || ''} onChange={e => updateEmployee(emp.id, 'observaciones', e.target.value)} onFocus={() => setActiveCellInfo({ row: index + 1, col: 'OBSERVACIONES A4', val: emp.observaciones || '' })} readOnly={readOnly} placeholder="Observaciones..." />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <div className="mt-2 text-[9px] text-gray-500 text-left">(*) Horas y minutos calculados de forma acumulada al cierre del mes calendario.</div>
+          {renderFirmasSection()}
+        </div>
+      </div>
+    );
+  }
 
-            <!-- BARRA DE PESTAÑAS (TABS) EN LA PARTE INFERIOR -->
-            <footer class="bg-gray-100 border-t border-gray-200 px-4 py-1.5 flex justify-between items-center shrink-0">
-                <div class="flex gap-1">
-                    <!-- Botón Anexo 3 -->
-                    <button id="btn-tab-anexo3" onclick="cambiarTab('anexo3')" class="px-4 py-1.5 rounded-t-md text-xs font-semibold flex items-center gap-1.5 transition-all bg-white text-green-700 border-t-2 border-green-600 shadow-sm">
-                        <span>📊</span> ANEXO 03 (Asistencia Detallada)
-                    </button>
-                    <!-- Botón Anexo 4 -->
-                    <button id="btn-tab-anexo4" onclick="cambiarTab('anexo4')" class="px-4 py-1.5 rounded-t-md text-xs font-semibold flex items-center gap-1.5 transition-all text-gray-600 hover:bg-gray-200">
-                        <span>📋</span> ANEXO 04 (Inasistencias & Tardanzas)
-                    </button>
-                </div>
-                <div class="text-[11px] text-gray-500 flex items-center gap-4">
-                    <span>Filas activas: <strong id="total-rows-label">25</strong></span>
-                    <span class="text-gray-300">|</span>
-                    <button onclick="agregarFila()" class="hover:bg-gray-200 text-gray-700 px-2 py-0.5 rounded border border-gray-300 font-medium">➕ Añadir Fila</button>
-                    <button onclick="limpiarPlantilla()" class="hover:bg-red-50 text-red-600 px-2 py-0.5 rounded border border-red-200 font-medium">🧹 Limpiar Sheet</button>
-                </div>
-            </footer>
-        </main>
-
-        <!-- PANEL LATERAL 1: BASE DE DATOS DE PERSONAL -->
-        <aside id="sidebar-personal" class="hidden w-96 bg-white border-l border-gray-200 flex flex-col shadow-2xl z-40 transition-all">
-            <div class="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-                <div class="flex items-center gap-2">
-                    <span class="text-xl">👥</span>
-                    <h3 class="font-bold text-gray-800 text-sm">Base de Datos de Personal</h3>
-                </div>
-                <button onclick="toggleSidebar('personal')" class="text-gray-400 hover:text-gray-600 text-lg">&times;</button>
+  function renderDirectorDashboard() {
+    return (
+      <div className="animate-fade-in space-y-6">
+        {currentView === 'DASHBOARD' && (
+          <div>
+            <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+              <div>
+                <h2 className="text-xl font-black text-slate-800">Panel del Director de Institución Educativa</h2>
+                <p className="text-xs text-gray-500 font-bold uppercase">Gestión de Reportes y Envíos a UGEL</p>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setCurrentView('SETTINGS')} className="bg-gray-100 hover:bg-gray-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition">
+                  <Settings size={15} /> Configurar Sheets
+                </button>
+                <button onClick={createNewReport} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg transition">
+                  + Crear Reporte del Mes
+                </button>
+              </div>
             </div>
             
-            <!-- Buscador interno en el panel de personal -->
-            <div class="p-3 bg-white border-b border-gray-100">
-                <input type="text" oninput="filtrarTablaPersonal(this.value)" placeholder="Filtrar por nombre o DNI..." class="w-full text-xs px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 focus:outline-none">
-            </div>
-
-            <div class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
-                <!-- Formulario para agregar nuevo personal -->
-                <div class="bg-green-50 border border-green-200 p-3 rounded-lg text-xs">
-                    <h4 class="font-bold text-green-800 mb-2">Añadir Nuevo Personal</h4>
-                    <div class="space-y-2">
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block text-gray-600 font-medium mb-0.5">DNI</label>
-                                <input type="text" id="new-dni" maxlength="8" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-green-500 font-mono" placeholder="8 dígitos">
-                            </div>
-                            <div>
-                                <label class="block text-gray-600 font-medium mb-0.5">Jor. Lab. (Hrs)</label>
-                                <select id="new-jornada" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-green-500">
-                                    <option value="30 Hrs">30 Hrs</option>
-                                    <option value="40 Hrs">40 Hrs</option>
-                                    <option value="24 Hrs">24 Hrs</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-gray-600 font-medium mb-0.5">Apellidos y Nombres</label>
-                            <input type="text" id="new-nombres" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-green-500 uppercase" placeholder="Ej. PEREZ MEZA, JUAN CARLOS">
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block text-gray-600 font-medium mb-0.5">Cargo</label>
-                                <input type="text" id="new-cargo" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-green-500 uppercase" placeholder="Ej. PROFESOR">
-                            </div>
-                            <div>
-                                <label class="block text-gray-600 font-medium mb-0.5">Condición</label>
-                                <select id="new-condicion" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-green-500">
-                                    <option value="NOMBRADO">NOMBRADO</option>
-                                    <option value="CONTRATADO">CONTRATADO</option>
-                                </select>
-                            </div>
-                        </div>
-                        <button onclick="guardarNuevoPersonal()" class="w-full bg-green-600 text-white font-semibold py-1.5 rounded hover:bg-green-700 transition">Agregar a Base de Datos</button>
-                    </div>
-                </div>
-
-                <!-- Tabla/Lista de personal registrado -->
-                <div>
-                    <h4 class="font-bold text-gray-700 text-xs mb-2">Personal Registrado (<span id="count-personal">0</span>)</h4>
-                    <div class="border border-gray-200 rounded divide-y divide-gray-100 max-h-96 overflow-y-auto no-scrollbar text-xs" id="lista-personal">
-                        <!-- Generado dinámicamente -->
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- PANEL LATERAL 2: BASE DE DATOS DE INSTITUCIONES EDUCATIVAS -->
-        <aside id="sidebar-ie" class="hidden w-96 bg-white border-l border-gray-200 flex flex-col shadow-2xl z-40 transition-all">
-            <div class="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-                <div class="flex items-center gap-2">
-                    <span class="text-xl">🏫</span>
-                    <h3 class="font-bold text-gray-800 text-sm">Gestión de Instituciones Educativas</h3>
-                </div>
-                <button onclick="toggleSidebar('ie')" class="text-gray-400 hover:text-gray-600 text-lg">&times;</button>
-            </div>
-
-            <div class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
-                <!-- Formulario para agregar nueva I.E. -->
-                <div class="bg-blue-50 border border-blue-200 p-3 rounded-lg text-xs">
-                    <h4 class="font-bold text-blue-800 mb-2">Registrar Nueva I.E.</h4>
-                    <div class="space-y-2">
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block text-gray-600 font-medium mb-0.5">Código Modular</label>
-                                <input type="text" id="new-ie-cod" maxlength="7" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500 font-mono font-bold text-blue-800" placeholder="7 dígitos">
-                            </div>
-                            <div>
-                                <label class="block text-gray-600 font-medium mb-0.5">DRE / UGEL</label>
-                                <input type="text" id="new-ie-dre" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500 uppercase" placeholder="UGEL 03">
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-gray-600 font-medium mb-0.5">Nombre Institución Educativa</label>
-                            <input type="text" id="new-ie-nombre" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500 uppercase" placeholder="Ej. HÉROES DEL CENEPA">
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block text-gray-600 font-medium mb-0.5">Nivel / Modalidad</label>
-                                <input type="text" id="new-ie-nivel" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500 uppercase" placeholder="SECUNDARIA">
-                            </div>
-                            <div>
-                                <label class="block text-gray-600 font-medium mb-0.5">Tipo I.E.</label>
-                                <input type="text" id="new-ie-tipo" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500 uppercase" value="POLIDOCENTE COMPLETO">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-3 gap-1">
-                            <div>
-                                <label class="block text-gray-600 font-medium mb-0.5">Lugar</label>
-                                <input type="text" id="new-ie-lugar" class="w-full border border-gray-300 rounded px-1.5 py-1 focus:outline-none focus:border-blue-500 uppercase" placeholder="LIMA">
-                            </div>
-                            <div>
-                                <label class="block text-gray-600 font-medium mb-0.5">Distrito</label>
-                                <input type="text" id="new-ie-distrito" class="w-full border border-gray-300 rounded px-1.5 py-1 focus:outline-none focus:border-blue-500 uppercase" placeholder="BREÑA">
-                            </div>
-                            <div>
-                                <label class="block text-gray-600 font-medium mb-0.5">Provincia</label>
-                                <input type="text" id="new-ie-provincia" class="w-full border border-gray-300 rounded px-1.5 py-1 focus:outline-none focus:border-blue-500 uppercase" placeholder="LIMA">
-                            </div>
-                        </div>
-                        <button onclick="guardarNuevaIE()" class="w-full bg-blue-600 text-white font-semibold py-1.5 rounded hover:bg-blue-700 transition">Registrar I.E.</button>
-                    </div>
-                </div>
-
-                <!-- Lista de I.E. guardadas -->
-                <div>
-                    <h4 class="font-bold text-gray-700 text-xs mb-2">Colegios Registrados (<span id="count-ie">0</span>)</h4>
-                    <div class="border border-gray-200 rounded divide-y divide-gray-100 max-h-96 overflow-y-auto no-scrollbar text-xs" id="lista-ie">
-                        <!-- Generado dinámicamente -->
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-    </div>
-
-    <!-- MODALES / NOTIFICACIONES FLOTANTES -->
-    <div id="toast" class="fixed bottom-4 right-4 bg-gray-900 text-white text-xs px-4 py-3 rounded-lg shadow-2xl z-50 flex items-center gap-2 transform translate-y-20 opacity-0 transition-all duration-300">
-        <span id="toast-icon">ℹ️</span>
-        <span id="toast-message">Mensaje informativo</span>
-    </div>
-
-    <!-- JAVASCRIPT CON EL CONTROLADOR DE LA APLICACIÓN -->
-    <script>
-        // --- BASE DE DATOS LOCALES INICIALES ---
-        const DATABASE_IE = [
-            { codModular: "0345678", nombre: "IE 1097 CLORINDA MATTO DE TURNER", dreUgel: "UGEL 03 - LIMA METROPOLITANA", nivel: "SECUNDARIA MENORES", tipo: "POLIDOCENTE COMPLETO", lugar: "LIMA", distrito: "BREÑA", provincia: "LIMA" },
-            { codModular: "1234567", nombre: "IE 1205 NICOLÁS DE PIÉROLA", dreUgel: "UGEL 01 - SAN JUAN DE MIRAFLORES", nivel: "PRIMARIA - SECUNDARIA", tipo: "POLIDOCENTE COMPLETO", lugar: "LIMA", distrito: "CHORRILLOS", provincia: "LIMA" },
-            { codModular: "0893452", nombre: "IE REVOLUCIONARIA GERARDO UNGER", dreUgel: "UGEL 02 - LIMA NORTE", nivel: "SECUNDARIA TÉCNICA", tipo: "POLIDOCENTE COMPLETO", lugar: "LIMA", distrito: "SAN MARTIN DE PORRES", provincia: "LIMA" },
-            { codModular: "0564321", nombre: "IE CORONEL BOLOGNESI", dreUgel: "UGEL TACNA", nivel: "SECUNDARIA VARONES", tipo: "EMBLEMÁTICA", lugar: "TACNA", distrito: "TACNA", provincia: "TACNA" },
-            { codModular: "1102934", nombre: "IE NUESTRA SEÑORA DE GUADALUPE", dreUgel: "UGEL 03 - LIMA CENTRO", nivel: "SECUNDARIA MENORES", tipo: "EMBLEMÁTICA POLIDOCENTE", lugar: "LIMA", distrito: "LIMA", provincia: "LIMA" },
-            { codModular: "1554302", nombre: "IE FE Y ALEGRÍA N° 2", dreUgel: "UGEL 05 - S.J.L.", nivel: "INICIAL - PRIMARIA - SECUNDARIA", tipo: "POLIDOCENTE COMPLETO", lugar: "LIMA", distrito: "SAN JUAN DE LURIGANCHO", provincia: "LIMA" }
-        ];
-
-        const DATABASE_PERSONAL = [
-            { dni: "45892301", nombres: "ALVARADO CHUMPITAZ, MARÍA ESTHER", cargo: "PROFESOR DE INGLÉS", condicion: "NOMBRADO", jornada: "30 Hrs" },
-            { dni: "10239485", nombres: "BENAVIDES VILLALOBOS, CARLOS ALBERTO", cargo: "PROFESOR DE MATEMÁTICA", condicion: "NOMBRADO", jornada: "30 Hrs" },
-            { dni: "70349281", nombres: "CASTILLO QUISPE, HUGO JAVIER", cargo: "PROFESOR DE EDUCACIÓN FÍSICA", condicion: "CONTRATADO", jornada: "30 Hrs" },
-            { dni: "41920384", nombres: "DIAZ LORENZO, ROSA ELVIRA", cargo: "PROFESOR DE COMUNICACIÓN", condicion: "NOMBRADO", jornada: "40 Hrs" },
-            { dni: "09348123", nombres: "ESPINOSA RAMIREZ, LUIS FERNANDO", cargo: "AUXILIAR DE EDUCACIÓN", condicion: "NOMBRADO", jornada: "30 Hrs" },
-            { dni: "25839401", nombres: "FLORES HUAMÁN, GLADYS MILAGROS", cargo: "PROFESOR DE CIENCIA Y TECNOLOGÍA", condicion: "CONTRATADO", jornada: "30 Hrs" },
-            { dni: "44019283", nombres: "GONZALES ROJAS, JORGE ENRIQUE", cargo: "DIRECTOR I.E.", condicion: "NOMBRADO", jornada: "40 Hrs" },
-            { dni: "47239102", nombres: "HERRERA SOLANO, PATRICIA BEATRIZ", cargo: "PROFESOR DE ARTE Y CULTURA", condicion: "CONTRATADO", jornada: "24 Hrs" },
-            { dni: "08394827", nombres: "LINARES ORTIZ, FRANCISCO SEBASTIÁN", cargo: "PROFESOR DE HISTORIA Y GEOGRAFÍA", condicion: "NOMBRADO", jornada: "30 Hrs" },
-            { dni: "72193049", nombres: "MORALES MEJÍA, ANA CECILIA", cargo: "AUXILIAR DE EDUCACIÓN", condicion: "CONTRATADO", jornada: "30 Hrs" }
-        ];
-
-        // --- ESTADO GLOBAL DE LA HOJA ---
-        let tabActiva = 'anexo3'; // 'anexo3' o 'anexo4'
-        let totalFilas = 20;
-        let celdaActiva = { row: null, col: null };
-        let datosCeldas = {
-            anexo3: {},
-            anexo4: {}
-        };
-
-        // --- AL CARGAR EL DOCUMENTO ---
-        window.onload = function() {
-            cargarBasesDeDatos();
-            renderizarGrid();
-            inicializarEventosFormulaBar();
-            showToast("📊 Plantilla lista. Ingrese un DNI o Código Modular para probar.", "🚀");
-        };
-
-        // Inicializar bases de datos en storage o memoria
-        function cargarBasesDeDatos() {
-            if (!localStorage.getItem('minedu_ie')) {
-                localStorage.setItem('minedu_ie', JSON.stringify(DATABASE_IE));
-            }
-            if (!localStorage.getItem('minedu_personal')) {
-                localStorage.setItem('minedu_personal', JSON.stringify(DATABASE_PERSONAL));
-            }
-            actualizarListasLaterales();
-        }
-
-        function getIEFromStorage() {
-            return JSON.parse(localStorage.getItem('minedu_ie') || '[]');
-        }
-
-        function getPersonalFromStorage() {
-            return JSON.parse(localStorage.getItem('minedu_personal') || '[]');
-        }
-
-        // --- RENDERIZADO DE LAS CUADRÍCULAS ---
-        function renderizarGrid() {
-            const wrapper = document.getElementById('grid-wrapper');
-            let html = '';
-
-            if (tabActiva === 'anexo3') {
-                html = construirAnexo3HTML();
-            } else {
-                html = construirAnexo4HTML();
-            }
-
-            wrapper.innerHTML = html;
-            vincularEventosCeldas();
-            document.getElementById('total-rows-label').innerText = totalFilas;
-        }
-
-        // Construir tabla del Anexo 3 (Asistencia Detallada)
-        function construirAnexo3HTML() {
-            // Estructura oficial del reporte de asistencia con 31 días calendarios
-            let html = `<table class="sheet-grid border-collapse bg-white select-none">`;
-            
-            // Fila de Encabezados Principales
-            html += `
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-4 bg-gray-50 border-b border-gray-200 text-xs font-bold text-slate-600 flex justify-between items-center">
+                <span>HISTORIAL DE REPORTES ENVIADOS</span>
+                <span className="flex items-center gap-1 text-green-600"><Cloud size={14} /> Nube Activa</span>
+              </div>
+              <table className="w-full text-left border-collapse">
                 <thead>
-                    <tr>
-                        <th rowspan="2" class="col-header px-1 text-center" style="width: 40px;">N°</th>
-                        <th rowspan="2" class="col-header px-2 text-center" style="width: 100px;">DNI</th>
-                        <th rowspan="2" class="col-header px-4 text-left" style="width: 280px;">APELLIDOS Y NOMBRES</th>
-                        <th rowspan="2" class="col-header px-3 text-left" style="width: 180px;">CARGO</th>
-                        <th rowspan="2" class="col-header px-2 text-center" style="width: 120px;">CONDICIÓN</th>
-                        <th rowspan="2" class="col-header px-1 text-center" style="width: 90px;">Jor. Lab.</th>
-                        <th colspan="31" class="text-center py-1 text-xs">DIAS CALENDARIOS (Marcar A, I, 3T, J, LS)</th>
-                    </tr>
-                    <tr class="bg-gray-50">
-            `;
-
-            // Agregar días del 1 al 31
-            for (let i = 1; i <= 31; i++) {
-                html += `<th class="text-center border" style="width: 25px; min-width: 25px; font-size: 10px;">${i}</th>`;
-            }
-            html += `</tr></thead><tbody>`;
-
-            // Construir filas de datos
-            for (let r = 1; r <= totalFilas; r++) {
-                // Recuperar valores o inicializar
-                let dni = getValorCelda(r, 'DNI') || '';
-                let nombres = getValorCelda(r, 'APELLIDOS Y NOMBRES') || '';
-                let cargo = getValorCelda(r, 'CARGO') || '';
-                let condicion = getValorCelda(r, 'CONDICIÓN') || '';
-                let jornada = getValorCelda(r, 'Jor. Lab.') || '';
-
-                html += `
-                    <tr data-row="${r}">
-                        <td class="row-header">${r}</td>
-                        <td class="px-2 font-mono text-center font-semibold bg-green-50/20" contenteditable="true" data-col="DNI" onblur="validarDniFila(this, ${r})">${dni}</td>
-                        <td class="px-3 text-left" contenteditable="true" data-col="APELLIDOS Y NOMBRES">${nombres}</td>
-                        <td class="px-3 text-left text-gray-600" contenteditable="true" data-col="CARGO">${cargo}</td>
-                        <td class="px-2 text-center text-xs font-medium" contenteditable="true" data-col="CONDICIÓN">${condicion}</td>
-                        <td class="px-1 text-center font-mono text-xs" contenteditable="true" data-col="Jor. Lab.">${jornada}</td>
-                `;
-
-                // Celdas para días del 1 al 31
-                for (let d = 1; d <= 31; d++) {
-                    let diaVal = getValorCelda(r, `dia_${d}`) || '';
-                    html += `<td class="text-center font-semibold font-mono text-xs cursor-pointer select-all border" contenteditable="true" data-col="dia_${d}">${diaVal}</td>`;
-                }
-
-                html += `</tr>`;
-            }
-
-            html += `</tbody></table>`;
-            return html;
-        }
-
-        // Construir tabla del Anexo 4 (Inasistencias, tardanzas, etc.)
-        function construirAnexo4HTML() {
-            let html = `<table class="sheet-grid border-collapse bg-white select-none">`;
-            
-            // Fila de Encabezados Principales del Anexo 04
-            html += `
-                <thead>
-                    <tr>
-                        <th rowspan="2" class="col-header px-1 text-center" style="width: 40px;">N°</th>
-                        <th rowspan="2" class="col-header px-2 text-center" style="width: 100px;">DNI</th>
-                        <th rowspan="2" class="col-header px-4 text-left" style="width: 280px;">APELLIDOS Y NOMBRES</th>
-                        <th rowspan="2" class="col-header px-3 text-left" style="width: 180px;">CARGO</th>
-                        <th rowspan="2" class="col-header px-2 text-center" style="width: 120px;">CONDICIÓN</th>
-                        <th rowspan="2" class="col-header px-1 text-center" style="width: 90px;">Jor. Lab.</th>
-                        <th colspan="3" class="text-center py-1 text-xs bg-red-50 text-red-800">Inasistencias</th>
-                        <th colspan="2" class="text-center py-1 text-xs bg-yellow-50 text-yellow-800">Tardanzas</th>
-                        <th colspan="2" class="text-center py-1 text-xs bg-blue-50 text-blue-800">Permisos SG</th>
-                        <th rowspan="2" class="col-header px-2 text-center" style="width: 70px;">Huelga / Paro (Días)</th>
-                        <th rowspan="2" class="col-header px-4 text-left" style="width: 150px;">Observaciones</th>
-                    </tr>
-                    <tr class="bg-gray-50 text-[10px]">
-                        <th class="text-center border bg-red-50/50" style="width: 50px;">Días</th>
-                        <th class="text-center border bg-red-50/50" style="width: 50px;">Horas</th>
-                        <th class="text-center border bg-red-50/50" style="width: 50px;">Minutos</th>
-                        <th class="text-center border bg-yellow-50/50" style="width: 50px;">Horas</th>
-                        <th class="text-center border bg-yellow-50/50" style="width: 50px;">Minutos</th>
-                        <th class="text-center border bg-blue-50/50" style="width: 50px;">Días</th>
-                        <th class="text-center border bg-blue-50/50" style="width: 50px;">Horas</th>
-                    </tr>
+                  <tr className="bg-slate-100 border-b border-gray-200 text-xs font-bold text-slate-700">
+                    <th className="p-4">I.E. / Código Modular</th>
+                    <th className="p-4">Mes / Año</th>
+                    <th className="p-4">Personal Registrado</th>
+                    <th className="p-4">Última Modificación</th>
+                    <th className="p-4 text-right">Acciones de Reporte</th>
+                  </tr>
                 </thead>
                 <tbody>
-            `;
-
-            for (let r = 1; r <= totalFilas; r++) {
-                let dni = getValorCelda(r, 'DNI') || '';
-                let nombres = getValorCelda(r, 'APELLIDOS Y NOMBRES') || '';
-                let cargo = getValorCelda(r, 'CARGO') || '';
-                let condicion = getValorCelda(r, 'CONDICIÓN') || '';
-                let jornada = getValorCelda(r, 'Jor. Lab.') || '';
-
-                // Valores de faltas/tardanzas
-                let inasistDias = getValorCelda(r, 'inasist_dias') || '';
-                let inasistHoras = getValorCelda(r, 'inasist_horas') || '';
-                let inasistMin = getValorCelda(r, 'inasist_min') || '';
-                let tardanzaHoras = getValorCelda(r, 'tard_horas') || '';
-                let tardanzaMin = getValorCelda(r, 'tard_min') || '';
-                let permisoDias = getValorCelda(r, 'perm_dias') || '';
-                let permisoHoras = getValorCelda(r, 'perm_horas') || '';
-                let huelga = getValorCelda(r, 'huelga') || '';
-                let observaciones = getValorCelda(r, 'observaciones') || '';
-
-                html += `
-                    <tr data-row="${r}">
-                        <td class="row-header">${r}</td>
-                        <td class="px-2 font-mono text-center font-semibold bg-green-50/20" contenteditable="true" data-col="DNI" onblur="validarDniFila(this, ${r})">${dni}</td>
-                        <td class="px-3 text-left" contenteditable="true" data-col="APELLIDOS Y NOMBRES">${nombres}</td>
-                        <td class="px-3 text-left text-gray-600" contenteditable="true" data-col="CARGO">${cargo}</td>
-                        <td class="px-2 text-center text-xs font-medium" contenteditable="true" data-col="CONDICIÓN">${condicion}</td>
-                        <td class="px-1 text-center font-mono text-xs" contenteditable="true" data-col="Jor. Lab.">${jornada}</td>
-                        
-                        <!-- Campos específicos Anexo 4 -->
-                        <td class="text-center font-mono" contenteditable="true" data-col="inasist_dias">${inasistDias}</td>
-                        <td class="text-center font-mono" contenteditable="true" data-col="inasist_horas">${inasistHoras}</td>
-                        <td class="text-center font-mono" contenteditable="true" data-col="inasist_min">${inasistMin}</td>
-                        <td class="text-center font-mono" contenteditable="true" data-col="tard_horas">${tardanzaHoras}</td>
-                        <td class="text-center font-mono" contenteditable="true" data-col="tard_min">${tardanzaMin}</td>
-                        <td class="text-center font-mono" contenteditable="true" data-col="perm_dias">${permisoDias}</td>
-                        <td class="text-center font-mono" contenteditable="true" data-col="perm_horas">${permisoHoras}</td>
-                        <td class="text-center font-mono" contenteditable="true" data-col="huelga">${huelga}</td>
-                        <td class="px-2 text-left text-xs" contenteditable="true" data-col="observaciones">${observaciones}</td>
+                  {reports.filter(r => r.submittedBy === user?.uid).map(report => (
+                    <tr key={report.id} className="border-b border-gray-150 hover:bg-slate-50 transition">
+                      <td className="p-4">
+                        <div className="font-extrabold text-slate-800">{report.ie || 'Falta buscar Cód. Modular'}</div>
+                        <div className="text-xs text-blue-600 font-bold uppercase">{report.codigoModular} - {report.nivel}</div>
+                      </td>
+                      <td className="p-4 text-slate-600 font-bold">{report.mesAno}</td>
+                      <td className="p-4 text-slate-500 font-semibold">{report.empleados?.length || 0} integrantes</td>
+                      <td className="p-4 text-slate-400 text-xs font-medium">{new Date(report.updatedAt).toLocaleString()}</td>
+                      <td className="p-4 text-right space-x-2 flex justify-end">
+                        <button 
+                          onClick={() => { setFormData(report); setCurrentView('FORM_EDIT'); }} 
+                          className="bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3 py-1.5 rounded-lg text-xs transition"
+                        >
+                          Abrir / Editar
+                        </button>
+                        <button 
+                          onClick={() => handleRemoveReport(report.id)} 
+                          className="bg-red-50 text-red-600 hover:bg-red-100 font-bold p-1.5 rounded-lg text-xs transition inline-flex items-center"
+                          title="Eliminar Reporte de la Base de Datos"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
                     </tr>
-                `;
-            }
+                  ))}
+                  {reports.filter(r => r.submittedBy === user?.uid).length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="p-12 text-center text-gray-500 italic">
+                        <FileText size={40} className="mx-auto mb-3 text-gray-300" />
+                        Aún no has creado reportes de asistencia. Haz clic en "+ Crear Reporte del Mes" para empezar.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
-            html += `</tbody></table>`;
-            return html;
-        }
+        {currentView === 'FORM_EDIT' && (
+          <div className="max-w-[1400px] mx-auto space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-4 no-print bg-white p-4 rounded-xl border border-gray-200">
+              <button onClick={() => setCurrentView('DASHBOARD')} className="text-slate-500 hover:text-slate-800 flex items-center gap-1 font-bold text-xs uppercase">
+                ← Volver a mis reportes
+              </button>
+              <div className="flex bg-gray-100 p-1.5 rounded-xl gap-1">
+                <button 
+                  className={`px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition ${activeTab === 'ANEXO3' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-slate-800'}`}
+                  onClick={() => setActiveTab('ANEXO3')}
+                >
+                  Anexo 03 (Asistencia)
+                </button>
+                <button 
+                  className={`px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition ${activeTab === 'ANEXO4' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-slate-800'}`}
+                  onClick={() => setActiveTab('ANEXO4')}
+                >
+                  Anexo 04 (Inasistencias)
+                </button>
+              </div>
+              
+              <div className="flex gap-2">
+                <button onClick={handleSaveToDatabase} className="bg-emerald-600 text-white font-black px-6 py-2.5 rounded-lg text-xs flex items-center gap-2 hover:bg-emerald-700 transition shadow-md">
+                  <Cloud size={16} /> Guardar y Enviar a UGEL (Nube)
+                </button>
+              </div>
+            </div>
 
-        // --- SISTEMA DE MANEJO DE ESTADOS DE CELDAS ---
-        function getValorCelda(row, col) {
-            return datosCeldas[tabActiva][`${row}_${col}`] || '';
-        }
+            {/* BARRA DE FÓRMULAS DE EXCEL */}
+            <div className="bg-gray-100 border border-gray-200 px-4 py-2 flex items-center gap-2 text-xs rounded-xl no-print">
+              <div className="bg-white border border-gray-300 rounded px-2.5 py-1 font-mono text-gray-700 font-bold min-w-[140px] text-center">
+                {activeCellInfo.row ? `FILA ${activeCellInfo.row} - ${activeCellInfo.col}` : 'CELDA INACTIVA'}
+              </div>
+              <div className="text-gray-400 font-light text-base">|</div>
+              <div className="flex-1 flex items-center bg-white border border-gray-300 rounded px-3 py-1">
+                <span className="font-mono text-gray-400 mr-2 select-none italic font-bold">fx</span>
+                <input 
+                  type="text" 
+                  className="w-full bg-transparent outline-none text-gray-800 font-mono" 
+                  value={activeCellInfo.val} 
+                  readOnly
+                  placeholder="Seleccione o edite una celda en la cuadrícula de abajo..." 
+                />
+              </div>
+            </div>
 
-        function setValorCelda(row, col, valor) {
-            datosCeldas[tabActiva][`${row}_${col}`] = valor.trim().toUpperCase();
-        }
-
-        function vincularEventosCeldas() {
-            const table = document.querySelector('.sheet-grid');
-            if (!table) return;
-
-            // Al hacer clic en cualquier celda editable
-            table.querySelectorAll('td[contenteditable="true"]').forEach(cell => {
-                cell.addEventListener('focus', function() {
-                    const tr = this.closest('tr');
-                    const row = tr.dataset.row;
-                    const col = this.dataset.col;
-
-                    // Remover clase activa previa
-                    table.querySelectorAll('td.active-cell').forEach(c => c.classList.remove('active-cell'));
-                    
-                    // Añadir clase activa a la celda seleccionada
-                    this.classList.add('active-cell');
-                    celdaActiva = { row, col };
-
-                    // Actualizar barra de fórmulas e indicador de celda
-                    document.getElementById('active-cell-indicator').innerText = `F${row}-${col.substring(0, 5).toUpperCase()}`;
-                    document.getElementById('formula-bar').value = this.innerText;
-                });
-
-                // Al salir de la celda (Guardar datos de vuelta)
-                cell.addEventListener('blur', function() {
-                    const tr = this.closest('tr');
-                    const row = tr.dataset.row;
-                    const col = this.dataset.col;
-                    setValorCelda(row, col, this.innerText);
-                });
-
-                // Controlar entrada y enter rápido
-                cell.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        this.blur();
-                        // Mover foco abajo si es posible
-                        const siguienteFila = parseInt(tr.dataset.row) + 1;
-                        const proximaCelda = table.querySelector(`tr[data-row="${siguienteFila}"] td[data-col="${col}"]`);
-                        if (proximaCelda) proximaCelda.focus();
-                    }
-                });
-            });
-        }
-
-        // Vincular barra de fórmulas de arriba con la celda activa
-        function inicializarEventosFormulaBar() {
-            const fb = document.getElementById('formula-bar');
-            fb.addEventListener('input', function() {
-                if (celdaActiva.row && celdaActiva.col) {
-                    const celdaHTML = document.querySelector(`tr[data-row="${celdaActiva.row}"] td[data-col="${celdaActiva.col}"]`);
-                    if (celdaHTML) {
-                        celdaHTML.innerText = this.value;
-                        setValorCelda(celdaActiva.row, celdaActiva.col, this.value);
-                    }
-                }
-            });
-        }
-
-        // --- LÓGICA DE AUTOCOMPLETADO DE DNI ---
-        function validarDniFila(cell, numFila) {
-            const dniIngresado = cell.innerText.trim();
-            if (dniIngresado === '') return;
-
-            // Buscar en base de datos de personal
-            const personalDb = getPersonalFromStorage();
-            const coincidencia = personalDb.find(p => p.dni === dniIngresado);
-
-            if (coincidencia) {
-                // Rellenar automáticamente los campos apellidos, cargo, condición, jornada
-                setValorCelda(numFila, 'APELLIDOS Y NOMBRES', coincidencia.nombres);
-                setValorCelda(numFila, 'CARGO', coincidencia.cargo);
-                setValorCelda(numFila, 'CONDICIÓN', coincidencia.condicion);
-                setValorCelda(numFila, 'Jor. Lab.', coincidencia.jornada);
-
-                // Forzar re-renderizado parcial de la fila para mostrar los datos autocompletados
-                actualizarFilaEnDOM(numFila, coincidencia);
-                showToast(`✅ Datos de ${coincidencia.nombres.split(',')[1] || coincidencia.nombres} autocompletados con éxito.`, '👤');
-            } else {
-                // Ofrecer crear en el panel lateral
-                showToast(`⚠️ DNI no encontrado en base de datos. Ábrelo a la derecha para agregarlo.`, '🔍');
-                
-                // Si el DNI tiene exactamente 8 dígitos, abrimos el panel de personal y rellenamos el DNI automáticamente
-                if (dniIngresado.length === 8) {
-                    toggleSidebar('personal', true);
-                    document.getElementById('new-dni').value = dniIngresado;
-                    document.getElementById('new-nombres').focus();
-                }
-            }
-        }
-
-        // Actualizar visualmente la fila en el DOM sin recargar la tabla completa
-        function actualizarFilaEnDOM(rowNum, datos) {
-            const tr = document.querySelector(`tr[data-row="${rowNum}"]`);
-            if (!tr) return;
-
-            const colNombres = tr.querySelector('td[data-col="APELLIDOS Y NOMBRES"]');
-            const colCargo = tr.querySelector('td[data-col="CARGO"]');
-            const colCond = tr.querySelector('td[data-col="CONDICIÓN"]');
-            const colJor = tr.querySelector('td[data-col="Jor. Lab."]');
-
-            if (colNombres) colNombres.innerText = datos.nombres;
-            if (colCargo) colCargo.innerText = datos.cargo;
-            if (colCond) colCond.innerText = datos.condicion;
-            if (colJor) colJor.innerText = datos.jornada;
-        }
-
-        // --- LÓGICA DE AUTOCOMPLETADO DE I.E. POR CÓDIGO MODULAR ---
-        function buscarIEPorCodigo(codigo) {
-            const codLimpio = codigo.trim();
-            if (codLimpio.length < 5) return; // Esperar al menos unos números
-
-            const ieDb = getIEFromStorage();
-            const colegio = ieDb.find(c => c.codModular === codLimpio);
-
-            if (colegio) {
-                rellenarCamposHeaderIE(colegio);
-                showToast(`🏫 I.E. "${colegio.nombre}" cargada desde Código Modular.`, '✨');
-            }
-        }
-
-        // Búsqueda en vivo de I.E. mediante el Input superior
-        function buscarIEAutocomplete(val) {
-            const query = val.toLowerCase().trim();
-            const dropdown = document.getElementById('ie-autocomplete-results');
+            {renderHeaderDataForm()}
             
-            if (query === '') {
-                dropdown.classList.add('hidden');
-                return;
-            }
+            {activeTab === 'ANEXO3' ? renderAnexo3View() : renderAnexo4View()}
+          </div>
+        )}
+      </div>
+    );
+  }
 
-            const ieDb = getIEFromStorage();
-            const resultados = ieDb.filter(c => 
-                c.nombre.toLowerCase().includes(query) || 
-                c.codModular.includes(query)
-            );
-
-            if (resultados.length > 0) {
-                dropdown.innerHTML = '';
-                resultados.forEach(colegio => {
-                    const div = document.createElement('div');
-                    div.className = "px-4 py-2 hover:bg-green-50 cursor-pointer border-b border-gray-100 transition-colors";
-                    div.innerHTML = `
-                        <div class="font-bold text-xs text-gray-800">${colegio.nombre}</div>
-                        <div class="flex justify-between text-[10px] text-gray-500 mt-0.5">
-                            <span>Código Modular: <strong class="text-green-700 font-mono">${colegio.codModular}</strong></span>
-                            <span>UGEL: ${colegio.dreUgel}</span>
-                        </div>
-                    `;
-                    div.onclick = function() {
-                        rellenarCamposHeaderIE(colegio);
-                        dropdown.classList.add('hidden');
-                        document.getElementById('ie-search-input').value = colegio.nombre;
-                        showToast(`🏫 Colegio seleccionado: ${colegio.nombre}`, '✨');
-                    };
-                    dropdown.appendChild(div);
-                });
-                dropdown.classList.remove('hidden');
-            } else {
-                dropdown.innerHTML = `
-                    <div class="px-4 py-3 text-xs text-gray-500 text-center">
-                        No se encontraron coincidencias. 
-                        <button onclick="toggleSidebar('ie', true)" class="text-blue-600 underline ml-1 block w-full mt-1">Registrar nueva I.E.</button>
-                    </div>
-                `;
-                dropdown.classList.remove('hidden');
-            }
-        }
-
-        // Rellenar cabeceras con los datos de la I.E. encontrada
-        function rellenarCamposHeaderIE(colegio) {
-            document.getElementById('meta-dre-ugel').value = colegio.dreUgel;
-            document.getElementById('meta-ie-nombre').value = colegio.nombre;
-            document.getElementById('meta-cod-modular').value = colegio.codModular;
-            document.getElementById('meta-nivel').value = colegio.nivel;
-            document.getElementById('meta-tipo-ie').value = colegio.tipo;
-            document.getElementById('meta-lugar').value = colegio.lugar;
-            document.getElementById('meta-distrito').value = colegio.distrito;
-            document.getElementById('meta-provincia').value = colegio.provincia;
-        }
-
-        // --- GESTIÓN DE BASES DE DATOS DESDE PANELES ---
-        function guardarNuevoPersonal() {
-            const dni = document.getElementById('new-dni').value.trim();
-            const nombres = document.getElementById('new-nombres').value.trim().toUpperCase();
-            const cargo = document.getElementById('new-cargo').value.trim().toUpperCase();
-            const condicion = document.getElementById('new-condicion').value;
-            const jornada = document.getElementById('new-jornada').value;
-
-            if (dni.length !== 8 || isNaN(dni)) {
-                showToast("❌ El DNI debe contener exactamente 8 dígitos numéricos.", "⚠️");
-                return;
-            }
-            if (nombres === "") {
-                showToast("❌ Debe ingresar Apellidos y Nombres.", "⚠️");
-                return;
-            }
-
-            const personalDb = getPersonalFromStorage();
-            // Evitar duplicados
-            if (personalDb.some(p => p.dni === dni)) {
-                showToast("❌ Este número de DNI ya está registrado.", "⚠️");
-                return;
-            }
-
-            personalDb.push({ dni, nombres, cargo: cargo || 'PROFESOR', condicion, jornada });
-            localStorage.setItem('minedu_personal', JSON.stringify(personalDb));
-            
-            // Limpiar formulario de ingreso
-            document.getElementById('new-dni').value = '';
-            document.getElementById('new-nombres').value = '';
-            document.getElementById('new-cargo').value = '';
-
-            actualizarListasLaterales();
-            showToast("👤 Personal agregado a la Base de Datos con éxito.", "✅");
-
-            // Si hay una celda activa escribiendo este DNI, forzar autocompletado rápido
-            if (celdaActiva.row && celdaActiva.col === 'DNI') {
-                const celdaHTML = document.querySelector(`tr[data-row="${celdaActiva.row}"] td[data-col="DNI"]`);
-                if (celdaHTML && celdaHTML.innerText.trim() === dni) {
-                    validarDniFila(celdaHTML, celdaActiva.row);
-                }
-            }
-        }
-
-        function guardarNuevaIE() {
-            const cod = document.getElementById('new-ie-cod').value.trim();
-            const dre = document.getElementById('new-ie-dre').value.trim().toUpperCase();
-            const nombre = document.getElementById('new-ie-nombre').value.trim().toUpperCase();
-            const nivel = document.getElementById('new-ie-nivel').value.trim().toUpperCase();
-            const tipo = document.getElementById('new-ie-tipo').value.trim().toUpperCase();
-            const lugar = document.getElementById('new-ie-lugar').value.trim().toUpperCase();
-            const distrito = document.getElementById('new-ie-distrito').value.trim().toUpperCase();
-            const provincia = document.getElementById('new-ie-provincia').value.trim().toUpperCase();
-
-            if (cod.length !== 7 || isNaN(cod)) {
-                showToast("❌ El Código Modular debe contener exactamente 7 dígitos.", "⚠️");
-                return;
-            }
-            if (nombre === "") {
-                showToast("❌ Debe ingresar el Nombre del Colegio.", "⚠️");
-                return;
-            }
-
-            const ieDb = getIEFromStorage();
-            if (ieDb.some(i => i.codModular === cod)) {
-                showToast("❌ Este Código Modular ya está registrado.", "⚠️");
-                return;
-            }
-
-            const nuevaIE = { codModular: cod, nombre, dreUgel: dre || 'UGEL 03', nivel: nivel || 'SECUNDARIA', tipo: tipo || 'POLIDOCENTE COMPLETO', lugar: lugar || 'LIMA', distrito: distrito || 'LIMA', provincia: provincia || 'LIMA' };
-            ieDb.push(nuevaIE);
-            localStorage.setItem('minedu_ie', JSON.stringify(ieDb));
-
-            // Limpiar formulario
-            document.getElementById('new-ie-cod').value = '';
-            document.getElementById('new-ie-nombre').value = '';
-            document.getElementById('new-ie-nivel').value = '';
-
-            actualizarListasLaterales();
-            rellenarCamposHeaderIE(nuevaIE);
-            showToast("🏫 Nueva I.E. registrada y cargada como activa.", "✅");
-        }
-
-        function borrarPersonal(dni) {
-            let personalDb = getPersonalFromStorage();
-            personalDb = personalDb.filter(p => p.dni !== dni);
-            localStorage.setItem('minedu_personal', JSON.stringify(personalDb));
-            actualizarListasLaterales();
-            showToast("👤 Registro de personal eliminado de la Base de Datos.", "🗑️");
-        }
-
-        function borrarIE(cod) {
-            let ieDb = getIEFromStorage();
-            ieDb = ieDb.filter(i => i.codModular !== cod);
-            localStorage.setItem('minedu_ie', JSON.stringify(ieDb));
-            actualizarListasLaterales();
-            showToast("🏫 Colegio eliminado de la base de datos local.", "🗑️");
-        }
-
-        // Actualizar UI de los paneles laterales
-        function actualizarListasLaterales() {
-            const listP = document.getElementById('lista-personal');
-            const listI = document.getElementById('lista-ie');
-            
-            const personalDb = getPersonalFromStorage();
-            const ieDb = getIEFromStorage();
-
-            document.getElementById('count-personal').innerText = personalDb.length;
-            document.getElementById('count-ie').innerText = ieDb.length;
-
-            // Render lista personal
-            listP.innerHTML = personalDb.map(p => `
-                <div class="p-2.5 hover:bg-gray-50 flex justify-between items-center transition-all group">
-                    <div>
-                        <div class="font-semibold text-gray-800">${p.nombres}</div>
-                        <div class="text-[10px] text-gray-500 mt-0.5 flex items-center gap-2">
-                            <span>DNI: <strong class="font-mono text-gray-700">${p.dni}</strong></span>
-                            <span>•</span>
-                            <span>${p.condicion}</span>
-                            <span>•</span>
-                            <span>${p.jornada}</span>
-                        </div>
-                    </div>
-                    <button onclick="borrarPersonal('${p.dni}')" class="text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity ml-2">&times;</button>
+  function renderAdminDashboard() {
+    return (
+      <div className="animate-fade-in space-y-6">
+        {currentView === 'DASHBOARD' && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap justify-between items-center gap-4">
+              <div>
+                <h2 className="text-xl font-black text-slate-800">Consolidado General de la UGEL (Administrador)</h2>
+                <p className="text-xs text-gray-500 font-bold uppercase">Sincronización en Tiempo Real Activa</p>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <button onClick={() => setCurrentView('SETTINGS')} className="bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition">
+                  <Database size={15} /> Configurar Sheets
+                </button>
+                <div className="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg font-bold border border-blue-200 text-xs">
+                  <Cloud size={18} className="animate-pulse" />
+                  Recibiendo Reportes Automáticamente
                 </div>
-            `).join('');
+              </div>
+            </div>
 
-            // Render lista colegios
-            listI.innerHTML = ieDb.map(i => `
-                <div class="p-2.5 hover:bg-gray-50 flex justify-between items-center transition-all group">
-                    <div>
-                        <div class="font-semibold text-gray-800">${i.nombre}</div>
-                        <div class="text-[10px] text-gray-500 mt-0.5 flex items-center gap-2">
-                            <span>Modular: <strong class="font-mono text-blue-700">${i.codModular}</strong></span>
-                            <span>•</span>
-                            <span>${i.distrito}</span>
-                        </div>
-                    </div>
-                    <button onclick="borrarIE('${i.codModular}')" class="text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity ml-2">&times;</button>
-                </div>
-            `).join('');
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-4 bg-gray-50 border-b border-gray-200 text-xs font-bold text-slate-600">
+                REPORTES RECIBIDOS EN LA BASE DE DATOS
+              </div>
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 border-b border-gray-200 text-xs font-bold text-slate-700">
+                    <th className="p-4">Institución Educativa</th>
+                    <th className="p-4">Mes / Año</th>
+                    <th className="p-4">Personal</th>
+                    <th className="p-4 text-center">Acción y Exportación</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reports.map(report => (
+                    <tr key={report.id} className="border-b border-gray-150 hover:bg-slate-50 transition">
+                      <td className="p-4">
+                        <div className="font-extrabold text-slate-800">{report.ie || 'Sin Nombre'}</div>
+                        <div className="text-xs text-slate-500 font-bold uppercase">{report.codigoModular} - {report.distrito} - {report.nivel}</div>
+                      </td>
+                      <td className="p-4 text-slate-600 font-bold">{report.mesAno}</td>
+                      <td className="p-4 text-slate-500 font-semibold">{report.empleados?.length || 0} registrados</td>
+                      <td className="p-4 flex items-center justify-center gap-2">
+                        <button 
+                          onClick={() => { setFormData(report); setCurrentView('ADMIN_VIEW'); }} 
+                          className="bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3.5 py-2 rounded-lg text-xs transition shadow-sm"
+                          title="Revisar Reporte Completo"
+                        >
+                          Revisar
+                        </button>
+
+                        <button 
+                          onClick={() => { 
+                            setFormData(report); 
+                            setCurrentView('ADMIN_VIEW');
+                            setPrintTarget('ANEXO3');
+                          }} 
+                          className="bg-amber-50 text-amber-700 hover:bg-amber-100 font-bold px-3 py-2 rounded-lg text-xs transition flex items-center gap-1.5 shadow-sm border border-amber-200"
+                          title="Generar PDF Automático de Anexo 03"
+                        >
+                          <Printer size={13} />
+                          <span>PDF A3</span>
+                        </button>
+
+                        <button 
+                          onClick={() => { 
+                            setFormData(report); 
+                            setCurrentView('ADMIN_VIEW');
+                            setPrintTarget('ANEXO4');
+                          }} 
+                          className="bg-teal-50 text-teal-700 hover:bg-teal-100 font-bold px-3 py-2 rounded-lg text-xs transition flex items-center gap-1.5 shadow-sm border border-teal-200"
+                          title="Generar PDF Automático de Anexo 04"
+                        >
+                          <Printer size={13} />
+                          <span>PDF A4</span>
+                        </button>
+
+                        <button 
+                          onClick={() => exportToCSV(report)} 
+                          className="bg-green-50 text-green-700 hover:bg-green-100 font-extrabold px-3 py-2 rounded-lg text-xs transition flex items-center gap-1 shadow-sm"
+                          title="Exportar Reporte a Excel"
+                        >
+                          Excel
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {reports.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="p-12 text-center text-gray-500 italic">
+                        <Cloud size={40} className="mx-auto mb-3 text-gray-300" />
+                        Esperando que los directores envíen sus reportes. <br/>
+                        <span className="text-xs font-normal text-gray-400">Aparecerán aquí automáticamente sin necesidad de recargar la página.</span>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {currentView === 'ADMIN_VIEW' && (
+          <div className="max-w-[1400px] mx-auto space-y-6">
+            <div className="flex flex-wrap justify-between items-center gap-4 no-print bg-white p-4 rounded-xl border border-gray-200">
+              <button onClick={() => setCurrentView('DASHBOARD')} className="text-slate-500 hover:text-slate-800 flex items-center gap-1 font-bold text-xs uppercase">
+                ← Volver al Consolidador
+              </button>
+              <div className="bg-indigo-50 text-indigo-800 px-4 py-1.5 rounded-lg text-xs font-bold border border-indigo-200 uppercase">
+                Vista del Administrador (Solo Lectura)
+              </div>
+              <button onClick={() => exportToCSV(formData)} className="bg-green-600 text-white font-bold px-5 py-2 rounded-lg text-xs flex items-center gap-1.5 hover:bg-green-700 transition">
+                <Download size={14} /> Exportar Excel (.csv)
+              </button>
+            </div>
+
+            {renderHeaderDataForm(true)}
+
+            <div className="space-y-8">
+              {renderAnexo3View(true)}
+              <div className="border-t-4 border-dashed border-slate-300 my-8 print:hidden"></div>
+              {renderAnexo4View(true)}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`min-h-screen bg-slate-50 font-sans text-slate-800 ${printTarget ? `print-${printTarget.toLowerCase()}` : ''}`}>
+      {/* Toast Notification */}
+      {notification && (
+        <div className={`fixed top-4 right-4 z-50 px-6 py-3.5 rounded-xl shadow-xl font-bold text-white flex items-center gap-2 animate-bounce-in ${notification.type === 'error' ? 'bg-red-500' : 'bg-green-600'}`}>
+          {notification.type === 'error' ? <AlertTriangle size={18} /> : <CheckCircle size={18} />}
+          {notification.msg}
+        </div>
+      )}
+
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-40 no-print">
+        <div className="flex items-center gap-3">
+          <div className="bg-[#0f9d58] text-white font-black p-2 rounded text-sm uppercase flex items-center gap-1 shadow">
+            <FileSpreadsheet size={16} /> MINEDU
+          </div>
+          <div className="h-6 w-px bg-gray-300 hidden sm:block"></div>
+          <h1 className="font-extrabold text-slate-800 hidden sm:block tracking-tight text-sm uppercase">Mesa de Asistencia Digital - Plantillas Inteligentes</h1>
+        </div>
+        {role && (
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <div className="font-extrabold text-xs uppercase tracking-wide text-slate-800">{role === 'ADMIN' ? 'Especialista UGEL' : 'Director de I.E.'}</div>
+              <div className="text-emerald-600 font-bold text-[10px] uppercase flex items-center justify-end gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Nube Conectada
+              </div>
+            </div>
+            <button onClick={handleLogout} className="text-slate-400 hover:text-red-600 transition" title="Cerrar Módulo">
+              <LogOut size={20} />
+            </button>
+          </div>
+        )}
+      </header>
+
+      {/* Main */}
+      <main className="p-4 sm:p-6 lg:p-8">
+        {currentView === 'SETTINGS' ? renderSettingsView() : (!role ? renderLoginView() : role === 'DIRECTOR' ? renderDirectorDashboard() : renderAdminDashboard())}
+      </main>
+
+      <style dangerouslySetInnerHTML={{__html: `
+        @media print {
+          body { background-color: white !important; }
+          .no-print { display: none !important; }
+          @page { size: landscape; margin: 8mm; }
+          table { width: 100% !important; page-break-inside: auto; }
+          tr { page-break-inside: avoid; page-break-after: auto; }
+          thead { display: table-header-group; }
+          .print\\:overflow-visible { overflow: visible !important; }
+          .print\\:block { display: block !important; }
+          .print\\:flex { display: flex !important; }
+          .print\\:justify-around { justify-content: space-around !important; }
+          .print\\:hidden { display: none !important; }
+          
+          .print-anexo3 #anexo-4-print-view { display: none !important; }
+          .print-anexo3 .border-t-4 { display: none !important; }
+          
+          .print-anexo4 #anexo-3-print-view { display: none !important; }
+          .print-anexo4 .border-t-4 { display: none !important; }
         }
-
-        // Filtrar tabla de personal en vivo
-        function filtrarTablaPersonal(query) {
-            const q = query.toLowerCase().trim();
-            const items = document.getElementById('lista-personal').children;
-            for (let item of items) {
-                const texto = item.innerText.toLowerCase();
-                if (texto.includes(q)) {
-                    item.classList.remove('hidden');
-                } else {
-                    item.classList.add('hidden');
-                }
-            }
-        }
-
-        // --- SISTEMA DE TABS ---
-        function cambiarTab(idTab) {
-            if (tabActiva === idTab) return;
-            tabActiva = idTab;
-
-            // Clases de estilo de pestañas de Excel/Google Sheets
-            const tab3 = document.getElementById('btn-tab-anexo3');
-            const tab4 = document.getElementById('btn-tab-anexo4');
-
-            if (idTab === 'anexo3') {
-                document.getElementById('form-title').innerText = "FORMATO 01: REPORTE DE ASISTENCIA DETALLADO (ANEXO 03)";
-                
-                tab3.className = "px-4 py-1.5 rounded-t-md text-xs font-semibold flex items-center gap-1.5 transition-all bg-white text-green-700 border-t-2 border-green-600 shadow-sm";
-                tab4.className = "px-4 py-1.5 rounded-t-md text-xs font-semibold flex items-center gap-1.5 transition-all text-gray-600 hover:bg-gray-200";
-            } else {
-                document.getElementById('form-title').innerText = "FORMATO 02: REPORTE DE INASISTENCIAS, TARDANZAS Y PERMISOS SIN GOCE DE REMUNERACIONES (ANEXO 04)";
-                
-                tab4.className = "px-4 py-1.5 rounded-t-md text-xs font-semibold flex items-center gap-1.5 transition-all bg-white text-green-700 border-t-2 border-green-600 shadow-sm";
-                tab3.className = "px-4 py-1.5 rounded-t-md text-xs font-semibold flex items-center gap-1.5 transition-all text-gray-600 hover:bg-gray-200";
-            }
-
-            celdaActiva = { row: null, col: null };
-            document.getElementById('active-cell-indicator').innerText = "A1";
-            document.getElementById('formula-bar').value = "";
-
-            renderizarGrid();
-        }
-
-        // --- ACCIONES GENERALES ---
-        function toggleSidebar(tipo, forzarAbrir = false) {
-            const sideP = document.getElementById('sidebar-personal');
-            const sideI = document.getElementById('sidebar-ie');
-
-            if (tipo === 'personal') {
-                sideI.classList.add('hidden');
-                if (forzarAbrir) {
-                    sideP.classList.remove('hidden');
-                } else {
-                    sideP.classList.toggle('hidden');
-                }
-            } else {
-                sideP.classList.add('hidden');
-                if (forzarAbrir) {
-                    sideI.classList.remove('hidden');
-                } else {
-                    sideI.classList.toggle('hidden');
-                }
-            }
-        }
-
-        function agregarFila() {
-            totalFilas++;
-            renderizarGrid();
-            showToast(`Fila ${totalFilas} añadida a la cuadrícula.`, '➕');
-        }
-
-        function limpiarPlantilla() {
-            if (confirm("¿Está seguro de que desea limpiar todos los datos de la cuadrícula actual? Los datos de las bases de datos no se borrarán.")) {
-                datosCeldas[tabActiva] = {};
-                renderizarGrid();
-                showToast("Se han limpiado los datos de la cuadrícula activa.", "🧹");
-            }
-        }
-
-        // Mostrar notificación tipo Toast en la parte inferior derecha
-        function showToast(mensaje, icon = 'ℹ️') {
-            const toast = document.getElementById('toast');
-            document.getElementById('toast-icon').innerText = icon;
-            document.getElementById('toast-message').innerText = mensaje;
-            
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            toast.classList.add('translate-y-0', 'opacity-100');
-
-            setTimeout(() => {
-                toast.classList.remove('translate-y-0', 'opacity-100');
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 3500);
-        }
-
-        // Exportar a un formato estructurado tipo CSV simulación
-        function exportarExcel() {
-            let csvContent = "data:text/csv;charset=utf-8,";
-            
-            // Metadatos
-            csvContent += `DRE_UGEL,${document.getElementById('meta-dre-ugel').value}\n`;
-            csvContent += `IE,${document.getElementById('meta-ie-nombre').value}\n`;
-            csvContent += `CODIGO_MODULAR,${document.getElementById('meta-cod-modular').value}\n`;
-            csvContent += `MES_ANIO,${document.getElementById('meta-mes-anio').value}\n\n`;
-
-            if (tabActiva === 'anexo3') {
-                csvContent += "N,DNI,APELLIDOS Y NOMBRES,CARGO,CONDICION,JORNADA_LABORAL\n";
-                for (let r = 1; r <= totalFilas; r++) {
-                    let dni = getValorCelda(r, 'DNI');
-                    let nombres = getValorCelda(r, 'APELLIDOS Y NOMBRES');
-                    let cargo = getValorCelda(r, 'CARGO');
-                    let condicion = getValorCelda(r, 'CONDICIÓN');
-                    let jornada = getValorCelda(r, 'Jor. Lab.');
-                    if (dni) {
-                        csvContent += `"${r}","${dni}","${nombres}","${cargo}","${condicion}","${jornada}"\n`;
-                    }
-                }
-            } else {
-                csvContent += "N,DNI,APELLIDOS Y NOMBRES,CARGO,CONDICION,JORNADA_LABORAL,FALTAS_DIAS,TARDANZAS_MIN\n";
-                for (let r = 1; r <= totalFilas; r++) {
-                    let dni = getValorCelda(r, 'DNI');
-                    let nombres = getValorCelda(r, 'APELLIDOS Y NOMBRES');
-                    let cargo = getValorCelda(r, 'CARGO');
-                    let condicion = getValorCelda(r, 'CONDICIÓN');
-                    let jornada = getValorCelda(r, 'Jor. Lab.');
-                    let fdias = getValorCelda(r, 'inasist_dias') || '0';
-                    let tmin = getValorCelda(r, 'tard_min') || '0';
-                    if (dni) {
-                        csvContent += `"${r}","${dni}","${nombres}","${cargo}","${condicion}","${jornada}","${fdias}","${tmin}"\n`;
-                    }
-                }
-            }
-
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `asistencia_minedu_${tabActiva}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            showToast("📥 Archivo CSV exportado correctamente.", "💾");
-        }
-    </script>
-</body>
-</html>
+        .animate-fade-in { animation: fadeIn 0.2s ease-out; }
+        .animate-bounce-in { animation: bounceIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes bounceIn { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+      `}} />
+    </div>
+  );
+}
