@@ -1,19 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { 
   FileSpreadsheet, Users, Save, Printer, LogOut, CheckCircle, 
-  AlertTriangle, Info, Download, Search, FileText, Trash2, 
+  AlertTriangle, Info, Download, FileText, Trash2, 
   Cloud, Settings, Database, RefreshCw, Eye, Link2
 } from 'lucide-react';
-
-// --- CONFIGURACIÓN DE BASE DE DATOS INTEGRADA ---
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'minedu-asistencia-app';
 
 // --- CONSTANTES ---
 const LEYENDA = {
@@ -40,7 +30,6 @@ const DB_PERSONAL = {
 };
 
 export default function App() {
-  const [user, setUser] = useState(null);
   const [role, setRole] = useState(null); // 'DIRECTOR' o 'ADMIN'
   const [reports, setReports] = useState([]);
   const [currentView, setCurrentView] = useState('DASHBOARD'); // DASHBOARD, FORM_EDIT, SETTINGS, ADMIN_VIEW
@@ -51,7 +40,13 @@ export default function App() {
   
   // URL de Google Sheets
   const [sheetUrl, setSheetUrl] = useState(() => localStorage.getItem('minedu_gsheet_url') || '');
+  const [sheetUrlIe, setSheetUrlIe] = useState(() => localStorage.getItem('minedu_csv_ie') || '');
+  const [sheetUrlPersonal, setSheetUrlPersonal] = useState(() => localStorage.getItem('minedu_csv_personal') || '');
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Bases de datos locales cargadas
+  const [dbIe, setDbIe] = useState(DB_IE);
+  const [dbPersonal, setDbPersonal] = useState(DB_PERSONAL);
 
   // Estado del formulario
   const [formData, setFormData] = useState({
@@ -116,6 +111,103 @@ export default function App() {
       fetchReportsFromSheets(true);
     }
   }, [role]); 
+
+  // --- CARGAR BASES DE DATOS CSV ---
+  const parseCSV = (text) => {
+    const lines = text.split('\n');
+    return lines.map(line => {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') inQuotes = !inQuotes;
+        else if (char === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
+        else current += char;
+      }
+      result.push(current.trim());
+      return result;
+    });
+  };
+
+  const loadCsvDatabases = async () => {
+    let loadedIe = { ...DB_IE };
+    let loadedPersonal = { ...DB_PERSONAL };
+
+    const fetchUrlIe = localStorage.getItem('minedu_csv_ie');
+    const fetchUrlPersonal = localStorage.getItem('minedu_csv_personal');
+
+    if (fetchUrlIe) {
+      try {
+        const res = await fetch(fetchUrlIe);
+        const text = await res.text();
+        const rows = parseCSV(text);
+        if (rows.length > 1) {
+          const headers = rows[0].map(h => h.toLowerCase().replace(/[^a-z]/g, ''));
+          const iCod = headers.findIndex(h => h.includes('codigo'));
+          const iDre = headers.findIndex(h => h.includes('dre') || h.includes('ugel'));
+          const iIe = headers.findIndex(h => h.includes('institucion') || h.includes('ie'));
+          const iLugar = headers.findIndex(h => h.includes('lugar'));
+          const iNivel = headers.findIndex(h => h.includes('nivel'));
+          const iDistrito = headers.findIndex(h => h.includes('distrito'));
+
+          if (iCod !== -1) {
+            loadedIe = {};
+            for (let i = 1; i < rows.length; i++) {
+              const r = rows[i];
+              if (r[iCod]) {
+                loadedIe[r[iCod].trim()] = {
+                  dreUgel: iDre !== -1 ? r[iDre] : '',
+                  ie: iIe !== -1 ? r[iIe] : '',
+                  lugar: iLugar !== -1 ? r[iLugar] : '',
+                  nivel: iNivel !== -1 ? r[iNivel] : '',
+                  distrito: iDistrito !== -1 ? r[iDistrito] : ''
+                };
+              }
+            }
+          }
+        }
+      } catch (e) { console.error("Error CSV IE", e); }
+    }
+
+    if (fetchUrlPersonal) {
+      try {
+        const res = await fetch(fetchUrlPersonal);
+        const text = await res.text();
+        const rows = parseCSV(text);
+        if (rows.length > 1) {
+          const headers = rows[0].map(h => h.toLowerCase().replace(/[^a-z]/g, ''));
+          const iDni = headers.findIndex(h => h.includes('dni') || h.includes('documento'));
+          const iNom = headers.findIndex(h => h.includes('nombre') || h.includes('apellido'));
+          const iCargo = headers.findIndex(h => h.includes('cargo'));
+          const iCond = headers.findIndex(h => h.includes('condicion'));
+          const iJor = headers.findIndex(h => h.includes('jornada') || h.includes('horas'));
+
+          if (iDni !== -1) {
+            loadedPersonal = {};
+            for (let i = 1; i < rows.length; i++) {
+              const r = rows[i];
+              if (r[iDni]) {
+                loadedPersonal[r[iDni].trim()] = {
+                  nombres: iNom !== -1 ? r[iNom] : '',
+                  cargo: iCargo !== -1 ? r[iCargo] : '',
+                  condicion: iCond !== -1 ? r[iCond] : '',
+                  jornada: iJor !== -1 ? r[iJor] : ''
+                };
+              }
+            }
+          }
+        }
+      } catch (e) { console.error("Error CSV Personal", e); }
+    }
+
+    setDbIe(loadedIe);
+    setDbPersonal(loadedPersonal);
+  };
+
+  useEffect(() => {
+    loadCsvDatabases();
+  }, []);
 
   // --- FUNCIONES AUXILIARES ---
   const showNotification = (msg, type = 'success') => {
@@ -182,20 +274,38 @@ export default function App() {
 
   // --- AUTOCOMPLETADOS ---
   const handleIeLookup = (val) => {
-    const data = DB_IE[val];
-    if (data) {
-      setFormData(prev => ({ ...prev, codigoModular: val, ...data }));
-      showNotification("Institución Educativa encontrada", "success");
-    } else {
-      setFormData(prev => ({ ...prev, codigoModular: val }));
+    // Si somos administrador no permitimos modificar campos
+    if (role === 'ADMIN') return;
+    
+    // Primero, siempre actualizamos el valor en el estado mientras se escribe
+    setFormData(prev => ({ ...prev, codigoModular: val }));
+
+    // Realizamos la validación y autocompletado en caliente solo si se completan los 7 dígitos
+    if (val.trim().length === 7) {
+        const data = dbIe[val.trim()]; // Buscamos en nuestra base de datos cargada de Google Sheets
+        
+        if (data) {
+            setFormData(prev => ({ 
+                ...prev, 
+                codigoModular: val, 
+                dreUgel: data.dreUgel || '',
+                ie: data.ie || '',
+                lugar: data.lugar || '',
+                nivel: data.nivel || '',
+                distrito: data.distrito || ''
+            }));
+            showNotification("Institución Educativa completada automáticamente", "success");
+        } else {
+             showNotification("Código Modular no encontrado en la Base de Datos", "error");
+        }
     }
   };
 
   const handleDniLookup = (empId, dniValue) => {
     let updateFields = { dni: dniValue };
-    if (dniValue.length === 8 && DB_PERSONAL[dniValue]) {
-      const match = DB_PERSONAL[dniValue];
-      updateFields = { ...updateFields, nombres: match.nombres, cargo: match.cargo, condicion: match.condicion, jornada: match.jornada };
+    if (dniValue.length === 8 && dbPersonal[dniValue]) {
+      const match = dbPersonal[dniValue];
+      updateFields = { ...updateFields, nombres: match.nombres, cargo: match.cargo || '', condicion: match.condicion, jornada: match.jornada };
       showNotification("Personal autocompletado", "success");
     }
     
@@ -323,13 +433,8 @@ export default function App() {
         <div className="bg-blue-50 text-blue-800 p-4 rounded-xl text-xs flex gap-2 leading-relaxed">
           <Info size={18} className="flex-shrink-0 mt-0.5" />
           <div>
-            <strong className="block mb-1">¿Cómo publicar tu hoja en Google Sheets?</strong>
-            <ol className="list-decimal pl-4 space-y-1">
-              <li>En tu Google Sheet, haz clic en: <strong>Extensiones &gt; Apps Script</strong>.</li>
-              <li>Pega el código de servidor (doPost y doGet) provisto.</li>
-              <li>Haz clic en <strong>Implementar &gt; Nueva implementación (App Web)</strong>.</li>
-              <li>Copia el enlace generado y pégalo abajo.</li>
-            </ol>
+            <strong className="block mb-1">Configuración de Bases de Datos:</strong>
+            <p className="mb-2">Para el autocompletado automático, publique sus padrones de Google Sheets como <strong>CSV</strong> (Archivo &gt; Compartir &gt; Publicar en la web &gt; Valores separados por comas) y pegue los enlaces en los campos correspondientes a continuación.</p>
           </div>
         </div>
 
@@ -337,7 +442,7 @@ export default function App() {
           <div>
             <label className="block text-xs font-bold text-gray-700 uppercase mb-2 flex items-center gap-1.5">
               <Link2 size={14} className="text-gray-400" />
-              URL de Web App (Apps Script)
+              1. URL de Web App (Para guardar Asistencias)
             </label>
             <input 
               type="text" 
@@ -348,17 +453,50 @@ export default function App() {
             />
           </div>
 
-          <div className="pt-4 flex justify-end gap-3 border-t">
+          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-4 mt-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-2 flex items-center gap-1.5">
+                <Link2 size={14} className="text-gray-400" />
+                2. URL CSV - Base de Datos I.E. (Padrón Colegios)
+              </label>
+              <input 
+                type="text" 
+                placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv" 
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:border-red-500 outline-none" 
+                value={sheetUrlIe}
+                onChange={e => setSheetUrlIe(e.target.value)}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-2 flex items-center gap-1.5">
+                <Link2 size={14} className="text-gray-400" />
+                3. URL CSV - Base de Datos Personal (Padrón DNI)
+              </label>
+              <input 
+                type="text" 
+                placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv" 
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:border-red-500 outline-none" 
+                value={sheetUrlPersonal}
+                onChange={e => setSheetUrlPersonal(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="pt-4 flex justify-end gap-3 border-t mt-4">
             <button 
               type="button" 
               onClick={() => {
                 localStorage.setItem('minedu_gsheet_url', sheetUrl);
-                showNotification("Configuración de Google Sheets guardada con éxito", "success");
+                localStorage.setItem('minedu_csv_ie', sheetUrlIe);
+                localStorage.setItem('minedu_csv_personal', sheetUrlPersonal);
+                loadCsvDatabases();
+                showNotification("Bases de datos vinculadas con éxito", "success");
                 setCurrentView('DASHBOARD');
               }} 
               className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 transition shadow-md"
             >
-              <Save size={14} /> Guardar e Inicializar Conexión
+              <Save size={14} /> Guardar e Inicializar Conexiones
             </button>
           </div>
         </div>
@@ -372,16 +510,18 @@ export default function App() {
         <div className="flex flex-wrap items-center gap-2 lg:col-span-3 bg-red-50 p-3 rounded-lg border border-red-100">
           <label className="font-bold text-red-900">CÓDIGO MODULAR DE LA I.E.:</label>
           <div className="flex gap-2">
+            {/* Input modificado para búsqueda automática onChange o onInput en vez de botón */}
             <input 
               type="text" 
-              placeholder="Buscar..." 
-              className="border border-red-200 rounded-lg px-3 py-1.5 outline-none focus:border-red-500 w-36 bg-white font-bold text-red-900" 
+              placeholder="Escriba los 7 dígitos..." 
+              className="border border-red-200 rounded-lg px-3 py-1.5 outline-none focus:border-red-500 w-44 bg-white font-bold text-red-900" 
               value={formData.codigoModular || ''} 
-              onChange={e => { setFormData({...formData, codigoModular: e.target.value}); handleIeLookup(e.target.value); }} 
-              readOnly={readOnly} 
+              onChange={e => handleIeLookup(e.target.value)} 
+              readOnly={readOnly}
+              maxLength="7" 
             />
           </div>
-          <span className="text-xs text-red-700 italic ml-2 hidden lg:inline">Ejemplos para probar: <strong>0123456</strong>, <strong>0987654</strong></span>
+          <span className="text-xs text-red-700 italic ml-2 hidden lg:inline">Ejemplos para probar la búsqueda automática: <strong>0123456</strong>, <strong>0987654</strong></span>
         </div>
 
         <div className="flex flex-col gap-1">
