@@ -1,1074 +1,882 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  FileSpreadsheet, Users, Save, Printer, LogOut, CheckCircle, 
-  AlertTriangle, Info, Download, FileText, Trash2, 
-  Cloud, Settings, Database, RefreshCw, Eye, Link2
-} from 'lucide-react';
-
-// --- CONSTANTES ---
-const LEYENDA = {
-  'A': 'Día laborado',
-  'I': 'Inasistencia injustificada',
-  '3T': 'Tercera tardanza (inasistencia)',
-  'J': 'Inasistencia justificada',
-  'LS': 'Licencia sin goce'
-};
-
-// Padrón de prueba para Autocompletado
-const DB_IE = {
-  '0123456': { dreUgel: 'UGEL 01 - SAN JUAN DE MIRAFLORES', ie: '6004 SANTIAGO ANTÚNEZ DE MAYOLO', lugar: 'VILLA EL SALVADOR', nivel: 'SECUNDARIA', distrito: 'VILLA EL SALVADOR', tipo: 'PÚBLICA DE GESTIÓN DIRECTA', provincia: 'LIMA' },
-  '0987654': { dreUgel: 'UGEL 03 - BREÑA', ie: '10 DE OCTUBRE', lugar: 'BREÑA', nivel: 'PRIMARIA', distrito: 'BREÑA', tipo: 'PÚBLICA DE GESTIÓN DIRECTA', provincia: 'LIMA' },
-  '1122334': { dreUgel: 'DRE CUSCO - UGEL CUSCO', ie: 'CIENCIAS', lugar: 'CUSCO', nivel: 'SECUNDARIA', distrito: 'CUSCO', tipo: 'PÚBLICA DE GESTIÓN DIRECTA', provincia: 'CUSCO' },
-  '1564738': { dreUgel: 'UGEL AQP - AREQUIPA', ie: 'INDEPENDENCIA AMERICANA', lugar: 'AREQUIPA', nivel: 'SECUNDARIA', distrito: 'AREQUIPA', tipo: 'PÚBLICA DE GESTIÓN DIRECTA', provincia: 'AREQUIPA' }
-};
-
-const DB_PERSONAL = {
-  '40001122': { nombres: 'QUISPE MENDOZA, JUAN CARLOS', cargo: 'PROFESOR DE AULA', condicion: 'NOMBRADO', jornada: '30' },
-  '40003344': { nombres: 'RODRIGUEZ FLORES, MARIA ELENA', cargo: 'PROFESOR DE EDUCACION FISICA', condicion: 'CONTRATADO', jornada: '30' },
-  '40005566': { nombres: 'HUAMAN MAMANI, LUIS ALBERTO', cargo: 'AUXILIAR DE EDUCACION', condicion: 'NOMBRADO', jornada: '40' },
-  '70112233': { nombres: 'CASTRO ALVAREZ, SOPHIA LUCIANA', cargo: 'PROFESOR DE AULA', condicion: 'CONTRATADO', jornada: '30' }
-};
-
-export default function App() {
-  const [role, setRole] = useState(null); // 'DIRECTOR' o 'ADMIN'
-  const [reports, setReports] = useState([]);
-  const [currentView, setCurrentView] = useState('DASHBOARD'); // DASHBOARD, FORM_EDIT, SETTINGS, ADMIN_VIEW
-  const [activeTab, setActiveTab] = useState('ANEXO3'); // 'ANEXO3' o 'ANEXO4'
-  const [printTarget, setPrintTarget] = useState(null);
-  const [notification, setNotification] = useState(null);
-  const [activeCellInfo, setActiveCellInfo] = useState({ row: '', col: '', val: '' });
-  
-  // URL de Google Sheets
-  const [sheetUrl, setSheetUrl] = useState(() => localStorage.getItem('minedu_gsheet_url') || '');
-  const [sheetUrlIe, setSheetUrlIe] = useState(() => localStorage.getItem('minedu_csv_ie') || '');
-  const [sheetUrlPersonal, setSheetUrlPersonal] = useState(() => localStorage.getItem('minedu_csv_personal') || '');
-  const [isSyncing, setIsSyncing] = useState(false);
-
-  // Bases de datos locales cargadas
-  const [dbIe, setDbIe] = useState(DB_IE);
-  const [dbPersonal, setDbPersonal] = useState(DB_PERSONAL);
-
-  // Estado del formulario
-  const [formData, setFormData] = useState({
-    id: '', codigoModular: '', dreUgel: '', mesAno: '', ie: '', lugar: '', 
-    nivel: '', distrito: '', tipo: '', provincia: '', empleados: []
-  });
-
-  // --- EFECTO PARA IMPRIMIR PDF ---
-  useEffect(() => {
-    if (printTarget) {
-      const timer = setTimeout(() => {
-        window.print();
-        setPrintTarget(null);
-      }, 350);
-      return () => clearTimeout(timer);
-    }
-  }, [printTarget]);
-
-  // --- GOOGLE SHEETS SYNC ---
-  const fetchReportsFromSheets = async (silent = false) => {
-    if (!sheetUrl) return;
-    setIsSyncing(true);
-    if (!silent) showNotification("Descargando datos desde Google Sheets...", "info");
-    try {
-      const res = await fetch(sheetUrl);
-      const data = await res.json();
-      if (data && Array.isArray(data.reports)) {
-        setReports(data.reports);
-        if (!silent) showNotification("Datos sincronizados con éxito", "success");
-      }
-    } catch (error) {
-      console.error(error);
-      if (!silent) showNotification("Error al conectar con Google Sheets", "error");
-    }
-    setIsSyncing(false);
-  };
-
-  const saveReportsToSheets = async (newReportsList, silent = false) => {
-    if (!sheetUrl) {
-      if (!silent) showNotification("Configure la URL de Google Sheets primero", "error");
-      return;
-    }
-    setIsSyncing(true);
-    if (!silent) showNotification("Guardando en la Nube...", "info");
-    try {
-      await fetch(sheetUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ reports: newReportsList })
-      });
-      setReports(newReportsList);
-      if (!silent) showNotification("Guardado exitosamente en Google Sheets", "success");
-    } catch (error) {
-      console.error(error);
-      if (!silent) showNotification("Error al guardar en Google Sheets", "error");
-    }
-    setIsSyncing(false);
-  };
-
-  useEffect(() => {
-    if (sheetUrl && role) {
-      fetchReportsFromSheets(true);
-    }
-  }, [role]); 
-
-  // --- CARGAR BASES DE DATOS CSV ---
-  const parseCSV = (text) => {
-    const lines = text.split('\n');
-    return lines.map(line => {
-      const result = [];
-      let current = '';
-      let inQuotes = false;
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        if (char === '"') inQuotes = !inQuotes;
-        else if (char === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
-        else current += char;
-      }
-      result.push(current.trim());
-      return result;
-    });
-  };
-
-  const loadCsvDatabases = async () => {
-    let loadedIe = { ...DB_IE };
-    let loadedPersonal = { ...DB_PERSONAL };
-
-    const fetchUrlIe = localStorage.getItem('minedu_csv_ie');
-    const fetchUrlPersonal = localStorage.getItem('minedu_csv_personal');
-
-    if (fetchUrlIe) {
-      try {
-        const res = await fetch(fetchUrlIe);
-        const text = await res.text();
-        const rows = parseCSV(text);
-        if (rows.length > 1) {
-          const headers = rows[0].map(h => h.toLowerCase().replace(/[^a-z]/g, ''));
-          const iCod = headers.findIndex(h => h.includes('codigo'));
-          const iDre = headers.findIndex(h => h.includes('dre') || h.includes('ugel'));
-          const iIe = headers.findIndex(h => h.includes('institucion') || h.includes('ie'));
-          const iLugar = headers.findIndex(h => h.includes('lugar'));
-          const iNivel = headers.findIndex(h => h.includes('nivel'));
-          const iDistrito = headers.findIndex(h => h.includes('distrito'));
-
-          if (iCod !== -1) {
-            loadedIe = {};
-            for (let i = 1; i < rows.length; i++) {
-              const r = rows[i];
-              if (r[iCod]) {
-                loadedIe[r[iCod].trim()] = {
-                  dreUgel: iDre !== -1 ? r[iDre] : '',
-                  ie: iIe !== -1 ? r[iIe] : '',
-                  lugar: iLugar !== -1 ? r[iLugar] : '',
-                  nivel: iNivel !== -1 ? r[iNivel] : '',
-                  distrito: iDistrito !== -1 ? r[iDistrito] : ''
-                };
-              }
-            }
-          }
-        }
-      } catch (e) { console.error("Error CSV IE", e); }
-    }
-
-    if (fetchUrlPersonal) {
-      try {
-        const res = await fetch(fetchUrlPersonal);
-        const text = await res.text();
-        const rows = parseCSV(text);
-        if (rows.length > 1) {
-          const headers = rows[0].map(h => h.toLowerCase().replace(/[^a-z]/g, ''));
-          const iDni = headers.findIndex(h => h.includes('dni') || h.includes('documento'));
-          const iNom = headers.findIndex(h => h.includes('nombre') || h.includes('apellido'));
-          const iCargo = headers.findIndex(h => h.includes('cargo'));
-          const iCond = headers.findIndex(h => h.includes('condicion'));
-          const iJor = headers.findIndex(h => h.includes('jornada') || h.includes('horas'));
-
-          if (iDni !== -1) {
-            loadedPersonal = {};
-            for (let i = 1; i < rows.length; i++) {
-              const r = rows[i];
-              if (r[iDni]) {
-                loadedPersonal[r[iDni].trim()] = {
-                  nombres: iNom !== -1 ? r[iNom] : '',
-                  cargo: iCargo !== -1 ? r[iCargo] : '',
-                  condicion: iCond !== -1 ? r[iCond] : '',
-                  jornada: iJor !== -1 ? r[iJor] : ''
-                };
-              }
-            }
-          }
-        }
-      } catch (e) { console.error("Error CSV Personal", e); }
-    }
-
-    setDbIe(loadedIe);
-    setDbPersonal(loadedPersonal);
-  };
-
-  useEffect(() => {
-    loadCsvDatabases();
-  }, []);
-
-  // --- FUNCIONES AUXILIARES ---
-  const showNotification = (msg, type = 'success') => {
-    setNotification({ msg, type });
-    setTimeout(() => setNotification(null), 4000);
-  };
-
-  const handleLogout = () => {
-    setRole(null);
-    setCurrentView('DASHBOARD');
-  };
-
-  const createNewReport = () => {
-    const today = new Date();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    setFormData({
-      id: Date.now().toString(),
-      codigoModular: '', dreUgel: '', mesAno: `${today.getFullYear()}-${month}`,
-      ie: '', lugar: '', nivel: '', distrito: '', tipo: '', provincia: '',
-      empleados: [
-        { id: Date.now().toString(), dni: '', nombres: '', cargo: '', condicion: '', jornada: '', asistencia: {}, tardanzasH: '', tardanzasM: '', permisosSGH: '', permisosSGM: '', huelgaParoDias: '', observaciones: '' }
-      ]
-    });
-    setActiveTab('ANEXO3');
-    setCurrentView('FORM_EDIT');
-  };
-
-  const saveCurrentReport = () => {
-    if (!formData.ie || !formData.mesAno) {
-      showNotification("Debe ingresar la I.E. y el Mes/Año", "error");
-      return;
-    }
-    const reportData = { ...formData, updatedAt: new Date().toISOString() };
-    const existingIndex = reports.findIndex(r => r.id === formData.id);
-    const newReportsList = [...reports];
-    
-    if (existingIndex !== -1) newReportsList[existingIndex] = reportData;
-    else newReportsList.push(reportData);
-
-    saveReportsToSheets(newReportsList);
-    setCurrentView('DASHBOARD');
-  };
-
-  const removeReport = (id) => {
-    if (window.confirm("¿Desea eliminar definitivamente este reporte?")) {
-      const newReportsList = reports.filter(r => r.id !== id);
-      saveReportsToSheets(newReportsList);
-    }
-  };
-
-  const addEmployee = () => {
-    setFormData(prev => ({
-      ...prev,
-      empleados: [...prev.empleados, { id: Date.now().toString(), dni: '', nombres: '', cargo: '', condicion: '', jornada: '', asistencia: {}, tardanzasH: '', tardanzasM: '', permisosSGH: '', permisosSGM: '', huelgaParoDias: '', observaciones: '' }]
-    }));
-  };
-
-  const removeEmployee = (id) => {
-    setFormData(prev => ({
-      ...prev,
-      empleados: prev.empleados.filter(emp => emp.id !== id)
-    }));
-  };
-
-  // --- AUTOCOMPLETADOS ---
-  const handleIeLookup = (val) => {
-    // Si somos administrador no permitimos modificar campos
-    if (role === 'ADMIN') return;
-    
-    // Primero, siempre actualizamos el valor en el estado mientras se escribe
-    setFormData(prev => ({ ...prev, codigoModular: val }));
-
-    // Realizamos la validación y autocompletado en caliente solo si se completan los 7 dígitos
-    if (val.trim().length === 7) {
-        const data = dbIe[val.trim()]; // Buscamos en nuestra base de datos cargada de Google Sheets
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Asistencia MINEDU - Director y UGEL</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome para Iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
         
-        if (data) {
-            setFormData(prev => ({ 
-                ...prev, 
-                codigoModular: val, 
-                dreUgel: data.dreUgel || '',
-                ie: data.ie || '',
-                lugar: data.lugar || '',
-                nivel: data.nivel || '',
-                distrito: data.distrito || ''
-            }));
-            showNotification("Institución Educativa completada automáticamente", "success");
-        } else {
-             showNotification("Código Modular no encontrado en la Base de Datos", "error");
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #93c5fd; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #2563eb; }
+
+        /* Animaciones */
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-    }
-  };
 
-  const handleDniLookup = (empId, dniValue) => {
-    let updateFields = { dni: dniValue };
-    if (dniValue.length === 8 && dbPersonal[dniValue]) {
-      const match = dbPersonal[dniValue];
-      updateFields = { ...updateFields, nombres: match.nombres, cargo: match.cargo || '', condicion: match.condicion, jornada: match.jornada };
-      showNotification("Personal autocompletado", "success");
-    }
-    
-    setFormData(prev => ({
-      ...prev,
-      empleados: prev.empleados.map(emp => emp.id === empId ? { ...emp, ...updateFields } : emp)
-    }));
-  };
-
-  const updateEmployee = (empId, field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      empleados: prev.empleados.map(emp => emp.id === empId ? { ...emp, [field]: value.toUpperCase() } : emp)
-    }));
-  };
-
-  const updateAttendance = (empId, day, value) => {
-    setFormData(prev => ({
-      ...prev,
-      empleados: prev.empleados.map(emp => {
-        if (emp.id === empId) return { ...emp, asistencia: { ...emp.asistencia, [day]: value.toUpperCase() } };
-        return emp;
-      })
-    }));
-  };
-
-  // --- CÁLCULOS ---
-  const monthDays = useMemo(() => {
-    if (!formData.mesAno) return [];
-    const [year, month] = formData.mesAno.split('-');
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const days = [];
-    const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-    for (let i = 1; i <= daysInMonth; i++) {
-      const d = new Date(year, parseInt(month) - 1, i);
-      const dow = d.getDay(); 
-      days.push({ day: i, isWeekend: dow === 0 || dow === 6, dayName: dayNames[dow] });
-    }
-    return days;
-  }, [formData.mesAno]);
-
-  const calculateAnexo4 = (empleado) => {
-    let inasistenciasDias = 0; let permisosSGDias = 0;
-    Object.values(empleado.asistencia).forEach(val => {
-      if (val === 'I' || val === '3T') inasistenciasDias++;
-      if (val === 'LS') permisosSGDias++;
-    });
-    return { inasistenciasDias, permisosSGDias };
-  };
-
-  const exportToCSV = (report) => {
-    let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
-    csvContent += `DRE/UGEL:,${report.dreUgel},,MES Y AÑO:,${report.mesAno}\n`;
-    csvContent += `INSTITUCION EDUCATIVA:,${report.ie},,LUGAR:,${report.lugar}\n`;
-    csvContent += `CODIGO MODULAR:,${report.codigoModular},,NIVEL:,${report.nivel}\n\n`;
-    csvContent += "N°,DNI,APELLIDOS Y NOMBRES,CARGO,CONDICIÓN,Jor. Lab.,Inasistencias (Dias),Tardanzas (Horas),Tardanzas (Minutos),Permisos SG (Horas),Permisos SG (Minutos),Permisos SG (Dias),Huelga/Paro (Dias),Observaciones\n";
-    
-    report.empleados.forEach((emp, index) => {
-      const calcs = calculateAnexo4(emp);
-      csvContent += `${index + 1},${emp.dni},"${emp.nombres}",${emp.cargo},${emp.condicion},${emp.jornada},${calcs.inasistenciasDias},${emp.tardanzasH || 0},${emp.tardanzasM || 0},${emp.permisosSGH || 0},${emp.permisosSGM || 0},${calcs.permisosSGDias},${emp.huelgaParoDias || 0},"${emp.observaciones || ''}"\n`;
-    });
-
-    const link = document.createElement("a");
-    link.setAttribute("href", encodeURI(csvContent));
-    link.setAttribute("download", `Consolidado_UGEL_${(report.ie || 'IE').replace(/ /g, "_")}_${report.mesAno}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  // ==========================================
-  // RENDERIZADO DE COMPONENTES
-  // ==========================================
-
-  function renderLoginView() {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[75vh]">
-        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-lg w-full text-center border border-gray-150 relative overflow-hidden animate-fade-in">
-          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-red-600 to-blue-700"></div>
-          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Escudo_nacional_del_Per%C3%BA.svg/150px-Escudo_nacional_del_Per%C3%BA.svg.png" alt="Escudo de Perú" className="h-20 mx-auto mb-4 opacity-90" />
-          <h1 className="text-2xl font-black text-slate-800 mb-1">Mesa de Asistencia Digital</h1>
-          <p className="text-red-600 font-bold text-xs uppercase tracking-wider mb-4">MINEDU - UGEL</p>
-          <p className="text-gray-500 mb-6 text-sm leading-relaxed">
-            Plataforma web con diseño institucional para el llenado y consolidación en tiempo real de los Anexos 03 y 04.
-          </p>
-          
-          <div className="space-y-4">
-            <button 
-              onClick={() => { setRole('DIRECTOR'); setCurrentView('DASHBOARD'); }}
-              className="w-full flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition"
-            >
-              <Users size={20} />
-              Módulo del Director (Llenar y Enviar)
-            </button>
-            
-            <button 
-              onClick={() => { setRole('ADMIN'); setCurrentView('DASHBOARD'); }}
-              className="w-full flex items-center justify-center gap-3 bg-red-700 hover:bg-red-800 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition"
-            >
-              <Eye size={20} />
-              Módulo Administrador UGEL (Consolidar)
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  function renderSettingsView() {
-    return (
-      <div className="max-w-3xl mx-auto bg-white p-6 rounded-2xl shadow-sm border border-gray-200 animate-fade-in space-y-6">
-        <div className="flex justify-between items-center border-b pb-4">
-          <div className="flex items-center gap-2">
-            <Database className="text-red-600" size={24} />
-            <h2 className="text-xl font-black text-slate-800">Vincular Base de Datos (Google Sheets)</h2>
-          </div>
-          <button 
-            onClick={() => setCurrentView('DASHBOARD')} 
-            className="text-xs font-bold text-gray-500 hover:text-slate-800 uppercase"
-          >
-            ← Regresar al Panel
-          </button>
-        </div>
-
-        <div className="bg-blue-50 text-blue-800 p-4 rounded-xl text-xs flex gap-2 leading-relaxed">
-          <Info size={18} className="flex-shrink-0 mt-0.5" />
-          <div>
-            <strong className="block mb-1">Configuración de Bases de Datos:</strong>
-            <p className="mb-2">Para el autocompletado automático, publique sus padrones de Google Sheets como <strong>CSV</strong> (Archivo &gt; Compartir &gt; Publicar en la web &gt; Valores separados por comas) y pegue los enlaces en los campos correspondientes a continuación.</p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-gray-700 uppercase mb-2 flex items-center gap-1.5">
-              <Link2 size={14} className="text-gray-400" />
-              1. URL de Web App (Para guardar Asistencias)
-            </label>
-            <input 
-              type="text" 
-              placeholder="https://script.google.com/macros/s/.../exec" 
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:border-red-500 outline-none" 
-              value={sheetUrl}
-              onChange={e => setSheetUrl(e.target.value)}
-            />
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-4 mt-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase mb-2 flex items-center gap-1.5">
-                <Link2 size={14} className="text-gray-400" />
-                2. URL CSV - Base de Datos I.E. (Padrón Colegios)
-              </label>
-              <input 
-                type="text" 
-                placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv" 
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:border-red-500 outline-none" 
-                value={sheetUrlIe}
-                onChange={e => setSheetUrlIe(e.target.value)}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase mb-2 flex items-center gap-1.5">
-                <Link2 size={14} className="text-gray-400" />
-                3. URL CSV - Base de Datos Personal (Padrón DNI)
-              </label>
-              <input 
-                type="text" 
-                placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv" 
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:border-red-500 outline-none" 
-                value={sheetUrlPersonal}
-                onChange={e => setSheetUrlPersonal(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="pt-4 flex justify-end gap-3 border-t mt-4">
-            <button 
-              type="button" 
-              onClick={() => {
-                localStorage.setItem('minedu_gsheet_url', sheetUrl);
-                localStorage.setItem('minedu_csv_ie', sheetUrlIe);
-                localStorage.setItem('minedu_csv_personal', sheetUrlPersonal);
-                loadCsvDatabases();
-                showNotification("Bases de datos vinculadas con éxito", "success");
-                setCurrentView('DASHBOARD');
-              }} 
-              className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 transition shadow-md"
-            >
-              <Save size={14} /> Guardar e Inicializar Conexiones
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  function renderHeaderDataForm(readOnly = false) {
-    return (
-      <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm no-print">
-        <div className="flex flex-wrap items-center gap-2 lg:col-span-3 bg-red-50 p-3 rounded-lg border border-red-100">
-          <label className="font-bold text-red-900">CÓDIGO MODULAR DE LA I.E.:</label>
-          <div className="flex gap-2">
-            {/* Input modificado para búsqueda automática onChange o onInput en vez de botón */}
-            <input 
-              type="text" 
-              placeholder="Escriba los 7 dígitos..." 
-              className="border border-red-200 rounded-lg px-3 py-1.5 outline-none focus:border-red-500 w-44 bg-white font-bold text-red-900" 
-              value={formData.codigoModular || ''} 
-              onChange={e => handleIeLookup(e.target.value)} 
-              readOnly={readOnly}
-              maxLength="7" 
-            />
-          </div>
-          <span className="text-xs text-red-700 italic ml-2 hidden lg:inline">Ejemplos para probar la búsqueda automática: <strong>0123456</strong>, <strong>0987654</strong></span>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label className="font-bold text-gray-700 text-[10px] uppercase">DRE/UGEL:</label>
-          <input type="text" className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none" value={formData.dreUgel} onChange={e => setFormData({...formData, dreUgel: e.target.value})} readOnly={readOnly} />
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label className="font-bold text-gray-700 text-[10px] uppercase">MES Y AÑO DE ASISTENCIA:</label>
-          <input type="month" className="border border-blue-300 rounded-lg px-3 py-2 bg-white focus:border-blue-500 outline-none font-bold text-blue-900" value={formData.mesAno} onChange={e => setFormData({...formData, mesAno: e.target.value})} readOnly={readOnly} />
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label className="font-bold text-gray-700 text-[10px] uppercase">INSTITUCIÓN EDUCATIVA:</label>
-          <input type="text" className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 font-bold focus:bg-white focus:border-blue-500 outline-none" value={formData.ie} onChange={e => setFormData({...formData, ie: e.target.value})} readOnly={readOnly} />
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label className="font-bold text-gray-700 text-[10px] uppercase">LUGAR:</label>
-          <input type="text" className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none" value={formData.lugar} onChange={e => setFormData({...formData, lugar: e.target.value})} readOnly={readOnly} />
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label className="font-bold text-gray-700 text-[10px] uppercase">NIVEL EDUCATIVO:</label>
-          <input type="text" className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none" value={formData.nivel} onChange={e => setFormData({...formData, nivel: e.target.value})} readOnly={readOnly} />
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label className="font-bold text-gray-700 text-[10px] uppercase">DISTRITO:</label>
-          <input type="text" className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none" value={formData.distrito} onChange={e => setFormData({...formData, distrito: e.target.value})} readOnly={readOnly} />
-        </div>
-      </div>
-    );
-  }
-
-  function renderPrintHeader(title, subtitle) {
-    return (
-      <div className="hidden print:block text-center mb-6">
-        <h2 className="font-black text-xl uppercase tracking-wider text-red-700">{title}</h2>
-        <p className="text-xs font-bold text-gray-600 uppercase">{subtitle}</p>
-        <div className="grid grid-cols-4 text-left mt-4 text-[10px] border border-black p-3 rounded">
-          <div><strong>DRE/UGEL:</strong> {formData.dreUgel}</div>
-          <div><strong>CÓD. MODULAR:</strong> {formData.codigoModular}</div>
-          <div><strong>MES Y AÑO:</strong> {formData.mesAno}</div>
-          <div><strong>I.E.:</strong> {formData.ie}</div>
-          <div><strong>LUGAR:</strong> {formData.lugar}</div>
-          <div><strong>NIVEL:</strong> {formData.nivel}</div>
-          <div><strong>DISTRITO:</strong> {formData.distrito}</div>
-          <div><strong>PROVINCIA:</strong> {formData.provincia}</div>
-        </div>
-      </div>
-    );
-  }
-
-  function renderFirmasSection() {
-    return (
-      <div className="mt-8 no-print print:block">
-        <div className="flex justify-start px-4 mb-16">
-          <label className="text-xs font-bold text-gray-700">Lugar y fecha: </label>
-          <input type="text" className="ml-2 border-b border-gray-400 outline-none w-64 text-xs bg-transparent focus:border-blue-600 text-gray-800" placeholder="................................................................" />
-        </div>
-        <div className="grid grid-cols-2 gap-8 text-center text-xs pb-8">
-          <div>
-            <div className="border-t border-black pt-2 mx-12"></div>
-            <p className="font-bold text-blue-900">DIRECTOR(A) DE LA I.E.</p>
-            <p className="text-gray-500 mt-1 italic no-print">Firma Digital / Sello</p>
-          </div>
-          <div>
-            <div className="border-t border-black pt-2 mx-12"></div>
-            <p className="font-bold text-blue-900">CONEI / APAFA</p>
-            <p className="text-gray-500 mt-1 italic no-print">Visto Bueno (V°B°)</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  function renderAnexo3View(readOnly = false) {
-    return (
-      <div id="anexo-3-print-view" className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-fade-in">
-        <div className="p-4 bg-gray-50 border-b border-gray-200 flex flex-wrap justify-between items-center gap-2 no-print">
-          <div>
-            <h2 className="font-extrabold text-lg text-blue-900">ANEXO 03</h2>
-            <p className="text-xs text-gray-500 font-bold uppercase">FORMATO 01: REPORTE DE ASISTENCIA DETALLADO</p>
-          </div>
-          <div className="flex gap-2">
-            {!readOnly && (
-              <button onClick={addEmployee} className="px-4 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 shadow-sm transition">
-                + Agregar Personal
-              </button>
-            )}
-            <button onClick={() => setPrintTarget('ANEXO3')} className="px-4 py-1.5 bg-red-100 text-red-800 text-xs font-bold rounded-lg hover:bg-red-200 transition">
-              <Printer size={14} className="inline mr-1" /> Imprimir PDF
-            </button>
-          </div>
-        </div>
-        
-        {renderPrintHeader("ANEXO 03", "FORMATO 01: REPORTE DE ASISTENCIA DETALLADO")}
-
-        <div className="overflow-x-auto p-4">
-          <table className="w-full text-[10px] sm:text-xs border-collapse text-center">
-            <thead>
-              <tr className="bg-blue-50 text-blue-900 font-bold">
-                <th className="border border-gray-300 p-1 w-8">N°</th>
-                <th className="border border-gray-300 p-1 w-24">DNI</th>
-                <th className="border border-gray-300 p-1 min-w-[220px]">APELLIDOS Y NOMBRES</th>
-                <th className="border border-gray-300 p-1">CARGO</th>
-                <th className="border border-gray-300 p-1">CONDICIÓN</th>
-                <th className="border border-gray-300 p-1 w-12">Jor. Lab.</th>
-                <th colSpan={monthDays.length} className="border border-gray-300 bg-red-50 text-red-900 p-1">DÍAS CALENDARIOS</th>
-                <th className="border border-gray-300 bg-amber-50 text-amber-900 p-1 w-12">MIN.</th>
-                <th className="border border-gray-300 p-1 w-32">OBSERVACIONES</th>
-                {!readOnly && <th className="border border-gray-300 p-1 no-print">X</th>}
-              </tr>
-              <tr className="bg-gray-50 text-[9px]">
-                <th colSpan="6" className="border border-gray-300"></th>
-                {monthDays.map(d => (
-                  <th key={d.day} className={`border border-gray-300 p-1 w-6 font-bold ${d.isWeekend ? 'bg-red-200 text-red-900' : 'bg-blue-50 text-blue-800'}`}>
-                    {d.day}<br/><span className="text-[7px] uppercase font-normal">{d.dayName}</span>
-                  </th>
-                ))}
-                <th colSpan={!readOnly ? 3 : 2} className="border border-gray-300"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {formData.empleados.map((emp, index) => (
-                <tr key={emp.id} className="hover:bg-blue-50/30 transition-colors">
-                  <td className="border border-gray-300 p-1 font-bold bg-gray-50">{index + 1}</td>
-                  <td className="border border-gray-300 p-0">
-                    <input type="text" maxLength="8" className="w-full h-full p-1 text-center bg-transparent outline-none font-bold text-blue-900" value={emp.dni} onChange={e => { updateEmployee(emp.id, 'dni', e.target.value); if(e.target.value.length === 8) handleDniLookup(emp.id, e.target.value); }} onFocus={() => setActiveCellInfo({row: index+1, col: 'DNI', val: emp.dni})} readOnly={readOnly} placeholder="DNI" />
-                  </td>
-                  <td className="border border-gray-300 p-0 text-left">
-                    <input type="text" className="w-full h-full p-1 bg-transparent outline-none font-semibold text-slate-800" value={emp.nombres} onChange={e => updateEmployee(emp.id, 'nombres', e.target.value)} onFocus={() => setActiveCellInfo({row: index+1, col: 'NOMBRES', val: emp.nombres})} readOnly={readOnly} />
-                  </td>
-                  <td className="border border-gray-300 p-0">
-                    <input type="text" className="w-full h-full p-1 text-center bg-transparent outline-none text-xs" value={emp.cargo} onChange={e => updateEmployee(emp.id, 'cargo', e.target.value)} onFocus={() => setActiveCellInfo({row: index+1, col: 'CARGO', val: emp.cargo})} readOnly={readOnly} />
-                  </td>
-                  <td className="border border-gray-300 p-0">
-                    <input type="text" className="w-full h-full p-1 text-center bg-transparent outline-none text-xs" value={emp.condicion} onChange={e => updateEmployee(emp.id, 'condicion', e.target.value)} onFocus={() => setActiveCellInfo({row: index+1, col: 'CONDICION', val: emp.condicion})} readOnly={readOnly} />
-                  </td>
-                  <td className="border border-gray-300 p-0">
-                    <input type="text" className="w-full h-full p-1 text-center bg-transparent outline-none font-bold text-xs" value={emp.jornada} onChange={e => updateEmployee(emp.id, 'jornada', e.target.value)} onFocus={() => setActiveCellInfo({row: index+1, col: 'JORNADA', val: emp.jornada})} readOnly={readOnly} />
-                  </td>
-                  {monthDays.map(d => (
-                    <td key={d.day} className={`border border-gray-300 p-0 ${d.isWeekend ? 'bg-red-50 text-red-500' : emp.asistencia[d.day] ? 'bg-blue-100 font-bold text-blue-900' : ''}`}>
-                      {readOnly || d.isWeekend ? (
-                        <span className="block w-full text-center py-1 font-bold">{d.isWeekend ? '-' : (emp.asistencia[d.day] || '')}</span>
-                      ) : (
-                        <input type="text" maxLength="2" className="w-full h-full p-1 outline-none text-center uppercase bg-transparent text-xs font-bold" value={emp.asistencia[d.day] || ''} onChange={e => updateAttendance(emp.id, d.day, e.target.value)} onFocus={() => setActiveCellInfo({row: index+1, col: `DIA ${d.day}`, val: emp.asistencia[d.day]||''})} />
-                      )}
-                    </td>
-                  ))}
-                  <td className="border border-gray-300 p-0 bg-amber-50/30">
-                    <input type="number" min="0" className="w-full h-full p-1 outline-none text-center bg-transparent text-xs font-bold" value={emp.tardanzasM || ''} onChange={e => updateEmployee(emp.id, 'tardanzasM', e.target.value)} onFocus={() => setActiveCellInfo({row: index+1, col: 'MIN TARDANZA', val: emp.tardanzasM})} readOnly={readOnly} />
-                  </td>
-                  <td className="border border-gray-300 p-0">
-                    <input type="text" className="w-full h-full p-1 outline-none text-left bg-transparent text-[10px]" value={emp.observaciones || ''} onChange={e => updateEmployee(emp.id, 'observaciones', e.target.value)} onFocus={() => setActiveCellInfo({row: index+1, col: 'OBSERVACIONES', val: emp.observaciones})} readOnly={readOnly} />
-                  </td>
-                  {!readOnly && (
-                    <td className="border border-gray-300 p-1 no-print">
-                      <button onClick={() => removeEmployee(emp.id)} className="text-red-500 hover:text-red-700 bg-red-50 px-2 py-1 rounded"><Trash2 size={14}/></button>
-                    </td>
-                  )}
-                </tr>
-              ))}
-              {formData.empleados.length === 0 && (<tr><td colSpan={monthDays.length + 9} className="p-6 text-center text-gray-500">No hay personal registrado en este formato.</td></tr>)}
-            </tbody>
-          </table>
-
-          <div className="mt-6 border border-gray-200 rounded-lg p-3 bg-slate-50 text-[10px] flex flex-wrap gap-4 justify-center no-print">
-            <div className="font-bold text-slate-700 mr-2">Códigos de Asistencia:</div>
-            <div className="bg-white px-2 py-1 rounded border border-gray-150"><span className="font-bold text-blue-700">A</span>: Día laborado</div>
-            <div className="bg-white px-2 py-1 rounded border border-gray-150"><span className="font-bold text-red-600">I</span>: Inasistencia</div>
-            <div className="bg-white px-2 py-1 rounded border border-gray-150"><span className="font-bold text-amber-500">3T</span>: 3ra Tardanza</div>
-            <div className="bg-white px-2 py-1 rounded border border-gray-150"><span className="font-bold text-blue-700">J</span>: Justificada</div>
-            <div className="bg-white px-2 py-1 rounded border border-gray-150"><span className="font-bold text-blue-700">LS</span>: Licencia S/G</div>
-          </div>
-
-          {renderFirmasSection()}
-        </div>
-      </div>
-    );
-  }
-
-  function renderAnexo4View(readOnly = false) {
-    return (
-      <div id="anexo-4-print-view" className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-fade-in">
-        <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center no-print">
-          <div>
-            <h2 className="font-extrabold text-lg text-red-800">ANEXO 04</h2>
-            <p className="text-xs text-gray-500 font-bold uppercase">FORMATO 02: REPORTE DE INASISTENCIAS Y TARDANZAS</p>
-          </div>
-          <button onClick={() => setPrintTarget('ANEXO4')} className="px-4 py-1.5 bg-blue-100 text-blue-800 text-xs font-bold rounded-lg hover:bg-blue-200 transition">
-            <Printer size={14} className="inline mr-1" /> Imprimir PDF
-          </button>
-        </div>
-
-        {renderPrintHeader("ANEXO 04", "FORMATO 02: REPORTE DE INASISTENCIAS Y TARDANZAS")}
-
-        <div className="p-4 bg-yellow-50 text-xs border-b border-yellow-200 text-yellow-800 flex items-start gap-2 no-print leading-relaxed">
-          <Info size={16} className="mt-0.5 flex-shrink-0" />
-          <span><strong>Llenado Automatizado:</strong> Las columnas <strong className="text-red-700">Inasistencias (Días)</strong> y <strong className="text-blue-700">Permisos SG (Días)</strong> se calculan de manera inteligente según las marcas del Anexo 3. Solo debes rellenar las horas o minutos correspondientes.</span>
-        </div>
-
-        <div className="overflow-x-auto p-4">
-          <table className="w-full text-xs border-collapse text-center">
-            <thead>
-              <tr className="bg-red-50 text-red-900 font-bold">
-                <th rowSpan={2} className="border border-red-200 p-2 w-8">N°</th>
-                <th rowSpan={2} className="border border-red-200 p-2 w-24">DNI</th>
-                <th rowSpan={2} className="border border-red-200 p-2 min-w-[200px] text-left">APELLIDOS Y NOMBRES</th>
-                <th rowSpan={2} className="border border-red-200 p-2">CARGO</th>
-                <th rowSpan={2} className="border border-red-200 p-2">CONDICIÓN</th>
-                <th rowSpan={2} className="border border-red-200 p-2 w-12">Jor. Lab.</th>
-                <th className="border border-red-200 bg-red-100 p-1 font-bold">Inasistencias</th>
-                <th colSpan={2} className="border border-red-200 bg-amber-50 p-1 font-bold text-amber-900">Tardanzas</th>
-                <th colSpan={3} className="border border-red-200 bg-blue-50 p-1 font-bold text-blue-900">Permisos SG</th>
-                <th className="border border-red-200 bg-red-50 p-1 font-bold">Huelga/Paro</th>
-                <th rowSpan={2} className="border border-red-200 p-2 w-48">Observaciones</th>
-              </tr>
-              <tr className="bg-white text-[10px]">
-                <th className="border border-red-200 bg-red-50 p-1">Días</th>
-                <th className="border border-red-200 bg-amber-50 text-amber-700 p-1">Horas</th>
-                <th className="border border-red-200 bg-amber-50 text-amber-700 p-1">Minutos</th>
-                <th className="border border-red-200 bg-blue-50 text-blue-700 p-1">Horas</th>
-                <th className="border border-red-200 bg-blue-50 text-blue-700 p-1">Minutos</th>
-                <th className="border border-red-200 bg-blue-50 text-blue-700 p-1">Días</th>
-                <th className="border border-red-200 bg-red-50 p-1">Días</th>
-              </tr>
-            </thead>
-            <tbody>
-              {formData.empleados.map((emp, index) => {
-                const calcs = calculateAnexo4(emp);
-                return (
-                  <tr key={emp.id} className="hover:bg-red-50/30 transition-colors">
-                    <td className="border border-gray-300 p-2 font-bold">{index + 1}</td>
-                    <td className="border border-gray-300 p-2 font-semibold text-slate-700">{emp.dni}</td>
-                    <td className="border border-gray-300 p-2 text-left font-semibold text-slate-800">{emp.nombres}</td>
-                    <td className="border border-gray-300 p-2 text-xs">{emp.cargo}</td>
-                    <td className="border border-gray-300 p-2 text-xs">{emp.condicion}</td>
-                    <td className="border border-gray-300 p-2 font-bold">{emp.jornada}</td>
-                    
-                    <td className="border border-gray-300 p-2 bg-red-50 font-bold text-red-700">{calcs.inasistenciasDias || '0'}</td>
-                    
-                    <td className="border border-gray-300 p-0 w-12 bg-amber-50/30">
-                      <input type="number" min="0" className="w-full h-full p-2 text-center outline-none bg-transparent" value={emp.tardanzasH || ''} onChange={e => updateEmployee(emp.id, 'tardanzasH', e.target.value)} readOnly={readOnly} />
-                    </td>
-                    <td className="border border-gray-300 p-0 w-12 bg-amber-50/30">
-                      <input type="number" min="0" className="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value={emp.tardanzasM || ''} onChange={e => updateEmployee(emp.id, 'tardanzasM', e.target.value)} readOnly={readOnly} />
-                    </td>
-                    
-                    <td className="border border-gray-300 p-0 w-12 bg-blue-50/30">
-                      <input type="number" min="0" className="w-full h-full p-2 text-center outline-none bg-transparent" value={emp.permisosSGH || ''} onChange={e => updateEmployee(emp.id, 'permisosSGH', e.target.value)} readOnly={readOnly} />
-                    </td>
-                    <td className="border border-gray-300 p-0 w-12 bg-blue-50/30">
-                      <input type="number" min="0" className="w-full h-full p-2 text-center outline-none bg-transparent" value={emp.permisosSGM || ''} onChange={e => updateEmployee(emp.id, 'permisosSGM', e.target.value)} readOnly={readOnly} />
-                    </td>
-                    <td className="border border-gray-300 p-2 bg-blue-50 font-bold text-blue-700">{calcs.permisosSGDias || '0'}</td>
-                    
-                    <td className="border border-gray-300 p-0 w-12 bg-red-50/30">
-                      <input type="number" min="0" className="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-red-700" value={emp.huelgaParoDias || ''} onChange={e => updateEmployee(emp.id, 'huelgaParoDias', e.target.value)} readOnly={readOnly} />
-                    </td>
-                    <td className="border border-gray-300 p-0">
-                      <input type="text" className="w-full h-full p-2 text-left outline-none bg-transparent text-xs" value={emp.observaciones || ''} onChange={e => updateEmployee(emp.id, 'observaciones', e.target.value)} readOnly={readOnly} />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {renderFirmasSection()}
-        </div>
-      </div>
-    );
-  }
-
-  function renderDirectorDashboard() {
-    return (
-      <div className="animate-fade-in space-y-6">
-        {currentView === 'DASHBOARD' && (
-          <div>
-            <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
-              <div>
-                <h2 className="text-xl font-black text-slate-800">Panel del Director de Institución Educativa</h2>
-                <p className="text-xs text-gray-500 font-bold uppercase">Gestión de Reportes y Envíos a UGEL</p>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => fetchReportsFromSheets()} className="bg-blue-50 text-blue-700 border border-blue-200 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 transition">
-                  <RefreshCw size={15} className={isSyncing ? "animate-spin" : ""} /> Sincronizar
-                </button>
-                <button onClick={createNewReport} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-md transition flex items-center gap-2">
-                  <FileText size={15} /> Crear Reporte Mensual
-                </button>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="p-4 bg-gray-50 border-b border-gray-200 text-xs font-bold text-slate-600 flex justify-between">
-                <span>HISTORIAL DE REPORTES EN LA NUBE</span>
-                <span className="text-blue-600 flex items-center gap-1"><Cloud size={14} /> Sheets</span>
-              </div>
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-100 border-b border-gray-200 text-xs font-bold text-slate-700">
-                    <th className="p-4">I.E. / Código Modular</th>
-                    <th className="p-4">Mes / Año</th>
-                    <th className="p-4">Personal</th>
-                    <th className="p-4 text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reports.map(report => (
-                    <tr key={report.id} className="border-b border-gray-150 hover:bg-slate-50 transition">
-                      <td className="p-4">
-                        <div className="font-extrabold text-slate-800">{report.ie || 'Sin Nombre'}</div>
-                        <div className="text-xs text-blue-600 font-bold uppercase">{report.codigoModular}</div>
-                      </td>
-                      <td className="p-4 text-slate-600 font-bold">{report.mesAno}</td>
-                      <td className="p-4 text-slate-500 font-semibold">{report.empleados?.length || 0} res.</td>
-                      <td className="p-4 text-right flex justify-end gap-2">
-                        <button onClick={() => { setFormData(report); setCurrentView('FORM_EDIT'); setActiveTab('ANEXO3'); }} className="bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3 py-1.5 rounded-lg text-xs transition">
-                          Editar
-                        </button>
-                        <button onClick={() => removeReport(report.id)} className="bg-red-50 text-red-600 hover:bg-red-100 font-bold p-1.5 rounded-lg text-xs transition">
-                          <Trash2 size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {reports.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="p-12 text-center text-gray-500 italic">
-                        No hay reportes de asistencia. Crea uno nuevo para empezar.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {currentView === 'FORM_EDIT' && (
-          <div className="max-w-[1400px] mx-auto space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-4 no-print bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-              <button onClick={() => setCurrentView('DASHBOARD')} className="text-slate-500 hover:text-slate-800 flex items-center gap-1 font-bold text-xs uppercase">
-                ← Volver al panel
-              </button>
-              <div className="flex bg-gray-100 p-1.5 rounded-xl gap-1">
-                <button onClick={() => setActiveTab('ANEXO3')} className={`px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition ${activeTab === 'ANEXO3' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-slate-800'}`}>
-                  Anexo 03
-                </button>
-                <button onClick={() => setActiveTab('ANEXO4')} className={`px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition ${activeTab === 'ANEXO4' ? 'bg-white text-red-700 shadow-sm' : 'text-gray-500 hover:text-slate-800'}`}>
-                  Anexo 04
-                </button>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={saveCurrentReport} className="bg-blue-600 text-white font-black px-6 py-2.5 rounded-lg text-xs flex items-center gap-2 hover:bg-blue-700 transition shadow-md">
-                  <Cloud size={16} /> Guardar en Nube
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-gray-100 border border-gray-200 px-4 py-2 flex items-center gap-2 text-xs rounded-xl no-print">
-              <div className="bg-white border border-gray-300 rounded px-2.5 py-1 font-mono text-gray-700 font-bold min-w-[140px] text-center">
-                {activeCellInfo.row ? `FILA ${activeCellInfo.row} - ${activeCellInfo.col}` : 'CELDA INACTIVA'}
-              </div>
-              <div className="text-gray-400 font-light text-base">|</div>
-              <div className="flex-1 flex items-center bg-white border border-gray-300 rounded px-3 py-1">
-                <span className="font-mono text-gray-400 mr-2 select-none italic font-bold">fx</span>
-                <input type="text" className="w-full bg-transparent outline-none text-gray-800 font-mono" value={activeCellInfo.val} readOnly placeholder="Seleccione una celda..." />
-              </div>
-            </div>
-
-            {renderHeaderDataForm()}
-            
-            {activeTab === 'ANEXO3' ? renderAnexo3View() : renderAnexo4View()}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  function renderAdminDashboard() {
-    return (
-      <div className="animate-fade-in space-y-6">
-        {currentView === 'DASHBOARD' && (
-          <div className="space-y-6">
-            <div className="flex flex-wrap justify-between items-center gap-4">
-              <div>
-                <h2 className="text-xl font-black text-slate-800">Consolidado General de la UGEL (Administrador)</h2>
-                <p className="text-xs text-gray-500 font-bold uppercase">Sincronización en Tiempo Real Activa</p>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <button onClick={() => setCurrentView('SETTINGS')} className="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition shadow-sm">
-                  <Database size={15} /> Configurar Base de Datos
-                </button>
-                <div className="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg font-bold border border-blue-200 text-xs">
-                  <Cloud size={18} className="animate-pulse" /> Recibiendo Reportes
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="p-4 bg-gray-50 border-b border-gray-200 text-xs font-bold text-slate-600">
-                REPORTES RECIBIDOS EN LA BASE DE DATOS
-              </div>
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-100 border-b border-gray-200 text-xs font-bold text-slate-700">
-                    <th className="p-4">Institución Educativa</th>
-                    <th className="p-4">Mes / Año</th>
-                    <th className="p-4">Personal</th>
-                    <th className="p-4 text-center">Acciones y Exportación</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reports.map(report => (
-                    <tr key={report.id} className="border-b border-gray-150 hover:bg-slate-50 transition">
-                      <td className="p-4">
-                        <div className="font-extrabold text-slate-800">{report.ie || 'Sin Nombre'}</div>
-                        <div className="text-xs text-slate-500 font-bold uppercase">{report.codigoModular} - {report.distrito} - {report.nivel}</div>
-                      </td>
-                      <td className="p-4 text-slate-600 font-bold">{report.mesAno}</td>
-                      <td className="p-4 text-slate-500 font-semibold">{report.empleados?.length || 0} registrados</td>
-                      <td className="p-4 flex items-center justify-center gap-2">
-                        <button onClick={() => { setFormData(report); setCurrentView('ADMIN_VIEW'); setActiveTab('ANEXO3'); }} className="bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3.5 py-2 rounded-lg text-xs transition">
-                          Revisar
-                        </button>
-                        <button onClick={() => exportToCSV(report)} className="bg-green-50 text-green-700 hover:bg-green-100 font-extrabold px-3 py-2 rounded-lg text-xs transition">
-                          Excel
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {reports.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="p-12 text-center text-gray-500 italic">
-                        Esperando que los directores envíen sus reportes.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {currentView === 'ADMIN_VIEW' && (
-          <div className="max-w-[1400px] mx-auto space-y-4">
-            <div className="flex flex-wrap justify-between items-center gap-4 no-print bg-white p-4 rounded-xl border border-gray-200">
-              <button onClick={() => setCurrentView('DASHBOARD')} className="text-slate-500 hover:text-slate-800 flex items-center gap-1 font-bold text-xs uppercase">
-                ← Volver al Consolidador
-              </button>
-              
-              <div className="flex bg-gray-100 p-1.5 rounded-xl gap-1">
-                <button onClick={() => setActiveTab('ANEXO3')} className={`px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition ${activeTab === 'ANEXO3' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-slate-800'}`}>
-                  Anexo 03
-                </button>
-                <button onClick={() => setActiveTab('ANEXO4')} className={`px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition ${activeTab === 'ANEXO4' ? 'bg-white text-red-700 shadow-sm' : 'text-gray-500 hover:text-slate-800'}`}>
-                  Anexo 04
-                </button>
-              </div>
-
-              <button onClick={() => exportToCSV(formData)} className="bg-green-600 text-white font-bold px-5 py-2 rounded-lg text-xs flex items-center gap-1.5 hover:bg-green-700 transition">
-                <Download size={14} /> Exportar Excel (.csv)
-              </button>
-            </div>
-
-            {renderHeaderDataForm(true)}
-
-            {activeTab === 'ANEXO3' ? renderAnexo3View(true) : renderAnexo4View(true)}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div className={`min-h-screen bg-slate-50 font-sans text-slate-800 ${printTarget ? `print-${printTarget.toLowerCase()}` : ''}`}>
-      
-      {notification && (
-        <div className={`fixed top-4 right-4 z-50 px-6 py-3.5 rounded-xl shadow-xl font-bold text-white flex items-center gap-2 animate-bounce-in ${notification.type === 'error' ? 'bg-red-600' : notification.type === 'info' ? 'bg-blue-600' : 'bg-green-600'}`}>
-          {notification.type === 'error' ? <AlertTriangle size={18} /> : notification.type === 'info' ? <Cloud size={18} /> : <CheckCircle size={18} />}
-          {notification.msg}
-        </div>
-      )}
-
-      {/* HEADER GLOBAL */}
-      {role && (
-        <header className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-40 no-print shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="bg-red-700 text-white font-black p-2 rounded-lg text-sm uppercase flex items-center gap-1.5 shadow-md">
-              MINEDU
-            </div>
-            <div className="h-6 w-px bg-gray-300 hidden sm:block"></div>
-            <h1 className="font-extrabold text-blue-900 hidden sm:block tracking-tight text-sm uppercase">Asistencia Digital</h1>
-            {role === 'ADMIN' && (
-              <div className="ml-2 bg-red-100 text-red-800 border border-red-200 px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider items-center gap-1">
-                 Solo Lectura
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <div className="font-extrabold text-xs uppercase tracking-wide text-slate-800">{role === 'ADMIN' ? 'Especialista UGEL' : 'Director de I.E.'}</div>
-              <div className="text-blue-600 font-bold text-[10px] uppercase flex items-center justify-end gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span> {sheetUrl ? 'Nube Conectada' : 'Local'}
-              </div>
-            </div>
-            <button onClick={handleLogout} className="text-slate-400 hover:text-red-600 transition" title="Cerrar Módulo">
-              <LogOut size={20} />
-            </button>
-          </div>
-        </header>
-      )}
-
-      <main className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto">
-        {currentView === 'SETTINGS' ? renderSettingsView() : (!role ? renderLoginView() : role === 'DIRECTOR' ? renderDirectorDashboard() : renderAdminDashboard())}
-      </main>
-
-      <style dangerouslySetInnerHTML={{__html: `
+        /* Reglas de impresión */
         @media print {
-          body { background-color: white !important; }
-          .no-print { display: none !important; }
-          @page { size: landscape; margin: 8mm; }
-          table { width: 100% !important; page-break-inside: auto; }
-          tr { page-break-inside: avoid; page-break-after: auto; }
-          thead { display: table-header-group; }
-          .print\\:overflow-visible { overflow: visible !important; }
-          .print\\:block { display: block !important; }
-          .print\\:flex { display: flex !important; }
-          .print\\:justify-around { justify-content: space-around !important; }
-          .print\\:hidden { display: none !important; }
-          
-          .print-anexo3 #viewAnexo4 { display: none !important; }
-          .print-anexo3 .border-t-4 { display: none !important; }
-          
-          .print-anexo4 #viewAnexo3 { display: none !important; }
-          .print-anexo4 .border-t-4 { display: none !important; }
+            body { background-color: white !important; }
+            .no-print { display: none !important; }
+            @page { size: landscape; margin: 8mm; }
+            .print-table { width: 100% !important; page-break-inside: auto; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+            #appView { display: block !important; height: auto !important; }
+            main { padding: 0 !important; }
         }
-        .animate-fade-in { animation: fadeIn 0.2s ease-out; }
-        .animate-bounce-in { animation: bounceIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes bounceIn { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-      `}} />
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- ==========================================
+         VISTA 1: LOGIN (SELECCIÓN DE ROL)
+         ========================================== -->
+    <div id="loginView" class="flex flex-col items-center justify-center h-full w-full absolute inset-0 z-50 bg-slate-50">
+        <div class="bg-white p-8 rounded-2xl shadow-xl max-w-lg w-full text-center border border-gray-100 relative overflow-hidden animate-fade-in">
+            <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-red-600 to-blue-700"></div>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Escudo_nacional_del_Per%C3%BA.svg/150px-Escudo_nacional_del_Per%C3%BA.svg.png" alt="Escudo de Perú" class="h-20 mx-auto mb-4 opacity-90" />
+            <h1 class="text-2xl font-black text-slate-800 mb-1">Mesa de Asistencia Digital</h1>
+            <p class="text-red-600 font-bold text-xs uppercase tracking-wider mb-4">MINEDU - UGEL</p>
+            <p class="text-gray-500 mb-6 text-sm leading-relaxed">
+                Plataforma web oficial para el llenado y consolidación en tiempo real de los <strong>Anexos 03 y 04</strong>.
+            </p>
+            
+            <div class="space-y-4">
+                <button onclick="setRole('DIRECTOR')" class="w-full flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition">
+                    <i class="fa-solid fa-users text-lg"></i>
+                    Ingresar como Director (Llenar y Enviar)
+                </button>
+                
+                <button onclick="setRole('ADMIN')" class="w-full flex items-center justify-center gap-3 bg-red-700 hover:bg-red-800 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition">
+                    <i class="fa-solid fa-eye text-lg"></i>
+                    Ingresar como Administrador UGEL
+                </button>
+            </div>
+        </div>
     </div>
-  );
-}
+
+    <!-- ==========================================
+         VISTA 2: APLICACIÓN PRINCIPAL (GRID)
+         ========================================== -->
+    <div id="appView" class="hidden flex-col h-full w-full animate-fade-in">
+        <!-- CABECERA -->
+        <header class="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-40 no-print shadow-sm shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="bg-red-700 text-white font-black p-2 rounded-lg text-sm uppercase flex items-center gap-1.5 shadow-md">
+                    <i class="fa-solid fa-file-signature"></i> MINEDU
+                </div>
+                <div class="h-6 w-px bg-gray-300 hidden sm:block"></div>
+                <h1 class="font-extrabold text-blue-900 hidden sm:block tracking-tight text-sm uppercase">Mesa de Asistencia Digital</h1>
+                
+                <!-- Badge de Administrador -->
+                <div id="adminBadge" class="hidden ml-2 bg-red-100 text-red-800 border border-red-200 px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider items-center gap-1">
+                    <i class="fa-solid fa-eye"></i> Solo Lectura
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-right">
+                    <div id="headerRole" class="font-extrabold text-xs uppercase tracking-wide text-slate-800">Director de I.E.</div>
+                    <div id="cloud-status" class="text-red-600 font-bold text-[10px] uppercase flex items-center justify-end gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Base no vinculada
+                    </div>
+                </div>
+                <button onclick="logout()" class="text-slate-400 hover:text-red-600 p-2 transition" title="Cerrar Sesión">
+                    <i class="fa-solid fa-power-off text-lg"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- AREA DE TRABAJO SCROLLABLE -->
+        <main class="flex-grow overflow-y-auto custom-scrollbar p-4 md:p-6 bg-slate-50">
+            <div class="max-w-[1400px] mx-auto flex flex-col gap-4">
+                
+                <!-- CONTROLES SUPERIORES Y TABS -->
+                <div class="flex flex-wrap items-center justify-between gap-4 no-print bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                    <div class="flex bg-gray-100 p-1.5 rounded-xl gap-1">
+                        <button id="btnTab3" onclick="switchTab('ANEXO3')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-blue-700 shadow-sm">
+                            Anexo 03 (Asistencia)
+                        </button>
+                        <button id="btnTab4" onclick="switchTab('ANEXO4')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition text-gray-500 hover:text-slate-800">
+                            Anexo 04 (Inasistencias)
+                        </button>
+                    </div>
+                    
+                    <div class="flex gap-2 items-center">
+                        <!-- Botón exclusivo para Administrador -->
+                        <button id="btnAdminConfig" onclick="toggleModal('modalConfig')" class="hidden bg-red-600 text-white font-bold px-4 py-2 rounded-lg text-xs flex items-center gap-2 hover:bg-red-700 transition shadow-sm">
+                            <i class="fa-solid fa-database"></i> Configurar Bases
+                        </button>
+
+                        <button id="btnLoadData" onclick="loadFromSheets()" class="bg-blue-50 border border-blue-200 text-blue-800 font-bold px-4 py-2 rounded-lg text-xs flex items-center gap-2 hover:bg-blue-100 transition">
+                            <i class="fa-solid fa-cloud-arrow-down"></i> <span id="textLoadBtn">Descargar Datos</span>
+                        </button>
+                        <button id="btnExport" onclick="exportarExcel()" class="bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold px-4 py-2 rounded-lg text-xs flex items-center gap-2 hover:bg-emerald-100 transition" title="Descargar en Excel">
+                            <i class="fa-solid fa-file-csv"></i> Excel
+                        </button>
+                        <button id="btnSaveCloud" onclick="saveToSheets(false)" class="bg-blue-600 text-white font-black px-6 py-2 rounded-lg text-xs flex items-center gap-2 hover:bg-blue-700 transition shadow-md">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> Guardar en Nube
+                        </button>
+                    </div>
+                </div>
+
+                <!-- FORMULARIO DE CABECERA (DATOS I.E.) -->
+                <div id="formCabecera" class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm no-print">
+                    <div class="flex flex-wrap items-center gap-2 lg:col-span-3 bg-gradient-to-r from-red-50 to-white p-3 rounded-lg border border-red-100">
+                        <label class="font-bold text-red-900">CÓDIGO MODULAR DE LA I.E.:</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="meta-cod" placeholder="Escriba los 7 dígitos..." maxlength="7" class="border border-gray-300 rounded-lg px-3 py-1.5 outline-none focus:border-red-500 w-44 bg-white font-bold text-red-900" oninput="handleIeLookup(this.value)">
+                        </div>
+                        <span class="text-xs text-red-700 italic ml-2 hidden lg:inline" id="hintCodModular">Se autocompletará al ingresar los 7 números.</span>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="font-bold text-gray-700 text-[10px] uppercase">DRE/UGEL:</label>
+                        <input type="text" id="meta-dre" class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none" oninput="appData.dreUgel = this.value; triggerAutoSave();">
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="font-bold text-gray-700 text-[10px] uppercase">MES Y AÑO DE ASISTENCIA:</label>
+                        <input type="month" id="meta-mes" class="border border-blue-300 rounded-lg px-3 py-2 bg-white focus:border-blue-500 outline-none font-bold text-blue-900" onchange="appData.mesAno = this.value; renderTables(); triggerAutoSave();">
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="font-bold text-gray-700 text-[10px] uppercase">INSTITUCIÓN EDUCATIVA:</label>
+                        <input type="text" id="meta-ie" class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 font-bold text-red-900 focus:bg-white focus:border-blue-500 outline-none" oninput="appData.ie = this.value; triggerAutoSave();">
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="font-bold text-gray-700 text-[10px] uppercase">LUGAR:</label>
+                        <input type="text" id="meta-lugar" class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none" oninput="appData.lugar = this.value; triggerAutoSave();">
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="font-bold text-gray-700 text-[10px] uppercase">NIVEL EDUCATIVO:</label>
+                        <input type="text" id="meta-nivel" class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none" oninput="appData.nivel = this.value; triggerAutoSave();">
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="font-bold text-gray-700 text-[10px] uppercase">DISTRITO:</label>
+                        <input type="text" id="meta-distrito" class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none" oninput="appData.distrito = this.value; triggerAutoSave();">
+                    </div>
+                </div>
+
+                <!-- CONTENEDOR DE TABLAS (ANEXOS) -->
+                <div id="viewAnexo3" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="p-4 bg-gray-50 border-b border-gray-200 flex flex-wrap justify-between items-center gap-2 no-print">
+                        <div>
+                            <h2 class="font-extrabold text-lg text-blue-900">ANEXO 03</h2>
+                            <p class="text-[10px] text-gray-500 font-bold uppercase">FORMATO 01: REPORTE DE ASISTENCIA DETALLADO</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="btnAddStaff" onclick="addEmployee()" class="px-4 py-1.5 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition">
+                                <i class="fa-solid fa-plus"></i> Agregar Personal
+                            </button>
+                            <button onclick="window.print()" class="px-4 py-1.5 bg-blue-100 text-blue-800 text-xs font-bold rounded-lg hover:bg-blue-200 transition">
+                                <i class="fa-solid fa-print"></i> PDF / Imprimir
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="printHeaderA3" class="hidden print:block text-center mb-6 pt-4">
+                        <h2 class="font-black text-xl uppercase tracking-wider text-red-800">ANEXO 03</h2>
+                        <p class="text-xs font-bold text-gray-600 uppercase">FORMATO 01: REPORTE DE ASISTENCIA DETALLADO</p>
+                        <div class="grid grid-cols-4 text-left mt-4 text-[10px] border border-black p-3 rounded" id="metaPrintA3"></div>
+                    </div>
+
+                    <div class="overflow-x-auto custom-scrollbar p-4">
+                        <table class="w-full text-[10px] sm:text-xs border-collapse text-center print-table">
+                            <thead id="headAnexo3"></thead>
+                            <tbody id="bodyAnexo3"></tbody>
+                        </table>
+
+                        <div class="mt-6 border border-gray-200 rounded-lg p-3 bg-slate-50 text-[10px] flex flex-wrap gap-4 justify-center no-print">
+                            <div class="font-bold text-slate-700 mr-2">Códigos de Asistencia:</div>
+                            <div class="bg-white px-2 py-1 rounded border border-gray-150"><span class="font-bold text-blue-700">A</span>: Día laborado</div>
+                            <div class="bg-white px-2 py-1 rounded border border-gray-150"><span class="font-bold text-red-600">I</span>: Inasistencia</div>
+                            <div class="bg-white px-2 py-1 rounded border border-gray-150"><span class="font-bold text-amber-500">3T</span>: 3ra Tardanza</div>
+                            <div class="bg-white px-2 py-1 rounded border border-gray-150"><span class="font-bold text-blue-700">J</span>: Justificada</div>
+                            <div class="bg-white px-2 py-1 rounded border border-gray-150"><span class="font-bold text-blue-700">LS</span>: Licencia S/G</div>
+                        </div>
+
+                        <!-- Firmas -->
+                        <div class="mt-8 no-print print:block">
+                            <div class="flex justify-start px-4 mb-16">
+                                <label class="text-xs font-bold text-gray-700">Lugar y fecha: </label>
+                                <input type="text" class="ml-2 border-b border-gray-400 outline-none w-64 text-xs bg-transparent focus:border-blue-600 text-gray-800" placeholder="................................................................">
+                            </div>
+                            <div class="grid grid-cols-2 gap-8 text-center text-xs pb-8">
+                                <div><div class="border-t border-black pt-2 mx-12"></div><p class="font-bold text-blue-900">DIRECTOR(A) DE LA I.E.</p><p class="text-gray-500 mt-1 italic no-print">Firma Digital / Sello</p></div>
+                                <div><div class="border-t border-black pt-2 mx-12"></div><p class="font-bold text-blue-900">CONEI / APAFA</p><p class="text-gray-500 mt-1 italic no-print">Visto Bueno (V°B°)</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="viewAnexo4" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="p-4 bg-gray-50 border-b border-gray-200 flex flex-wrap justify-between items-center gap-2 no-print">
+                        <div>
+                            <h2 class="font-extrabold text-lg text-red-800">ANEXO 04</h2>
+                            <p class="text-[10px] text-gray-500 font-bold uppercase">FORMATO 02: REPORTE DE INASISTENCIAS Y TARDANZAS</p>
+                        </div>
+                        <button onclick="window.print()" class="px-4 py-1.5 bg-blue-100 text-blue-800 text-xs font-bold rounded-lg hover:bg-blue-200 transition">
+                            <i class="fa-solid fa-print"></i> PDF / Imprimir
+                        </button>
+                    </div>
+
+                    <div id="printHeaderA4" class="hidden print:block text-center mb-6 pt-4">
+                        <h2 class="font-black text-xl uppercase tracking-wider text-red-800">ANEXO 04</h2>
+                        <p class="text-xs font-bold text-gray-600 uppercase">FORMATO 02: REPORTE DE INASISTENCIAS, TARDANZAS Y PERMISOS</p>
+                        <div class="grid grid-cols-4 text-left mt-4 text-[10px] border border-black p-3 rounded" id="metaPrintA4"></div>
+                    </div>
+
+                    <div class="overflow-x-auto custom-scrollbar p-4">
+                        <table class="w-full text-xs border-collapse text-center print-table">
+                            <thead>
+                                <tr class="bg-blue-50 text-blue-900 font-bold">
+                                    <th rowspan="2" class="border border-blue-200 p-2 w-8">N°</th>
+                                    <th rowspan="2" class="border border-blue-200 p-2 w-24">DNI</th>
+                                    <th rowspan="2" class="border border-blue-200 p-2 min-w-[200px] text-left">APELLIDOS Y NOMBRES</th>
+                                    <th rowspan="2" class="border border-blue-200 p-2">CARGO</th>
+                                    <th rowspan="2" class="border border-blue-200 p-2">CONDICIÓN</th>
+                                    <th rowspan="2" class="border border-blue-200 p-2 w-12">Jor. Lab.</th>
+                                    <th class="border border-blue-200 bg-red-100 p-1 text-red-900 font-bold">Inasistencias</th>
+                                    <th colspan="2" class="border border-blue-200 bg-amber-50 p-1 text-amber-900 font-bold">Tardanzas</th>
+                                    <th colspan="3" class="border border-blue-200 bg-blue-100 p-1 text-blue-900 font-bold">Permisos SG</th>
+                                    <th class="border border-blue-200 bg-red-50 p-1 text-red-900 font-bold">Huelga/Paro</th>
+                                    <th rowspan="2" class="border border-blue-200 p-2 w-48">Observaciones</th>
+                                </tr>
+                                <tr class="bg-white text-[10px]">
+                                    <th class="border border-blue-200 bg-red-50 p-1 font-bold text-red-700">Días</th>
+                                    <th class="border border-blue-200 bg-amber-50 p-1 text-amber-700">Horas</th>
+                                    <th class="border border-blue-200 bg-amber-50 p-1 text-amber-700">Minutos</th>
+                                    <th class="border border-blue-200 bg-blue-50 p-1 text-blue-700">Horas</th>
+                                    <th class="border border-blue-200 bg-blue-50 p-1 text-blue-700">Minutos</th>
+                                    <th class="border border-blue-200 bg-blue-50 p-1 font-bold text-blue-700">Días</th>
+                                    <th class="border border-blue-200 bg-red-50 p-1 text-red-700">Días</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bodyAnexo4"></tbody>
+                        </table>
+                        
+                        <!-- Firmas -->
+                        <div class="mt-8 no-print print:block">
+                            <div class="flex justify-start px-4 mb-16">
+                                <label class="text-xs font-bold text-gray-700">Lugar y fecha: </label>
+                                <input type="text" class="ml-2 border-b border-gray-400 outline-none w-64 text-xs bg-transparent focus:border-blue-600 text-gray-800" placeholder="................................................................">
+                            </div>
+                            <div class="grid grid-cols-2 gap-8 text-center text-xs pb-8">
+                                <div><div class="border-t border-black pt-2 mx-12"></div><p class="font-bold text-blue-900">DIRECTOR(A) DE LA I.E.</p><p class="text-gray-500 mt-1 italic no-print">Firma Digital / Sello</p></div>
+                                <div><div class="border-t border-black pt-2 mx-12"></div><p class="font-bold text-blue-900">CONEI / APAFA</p><p class="text-gray-500 mt-1 italic no-print">Visto Bueno (V°B°)</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL: CONFIGURACIÓN GOOGLE SHEETS (SOLO ADMIN) -->
+    <div id="modalConfig" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4 z-[100] hidden">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border flex flex-col overflow-hidden">
+            <div class="bg-blue-700 text-white p-5 flex justify-between items-center">
+                <h3 class="text-base font-bold flex items-center gap-2"><i class="fa-solid fa-database"></i> Configuración de Conexiones</h3>
+                <button onclick="toggleModal('modalConfig')" class="text-white hover:text-red-200 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 text-sm flex flex-col gap-4 overflow-y-auto max-h-[70vh] custom-scrollbar">
+                
+                <div class="bg-red-50 text-red-900 p-3 rounded-lg text-xs border border-red-200">
+                    <strong>1. Base de Guardado Principal:</strong> Pega la URL de tu App Script para guardar los reportes.
+                </div>
+                <div>
+                    <label class="block font-bold text-blue-900 mb-1">URL App Script (Guardar Datos):</label>
+                    <input type="text" id="inputSheetsUrl" class="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 font-mono text-xs" placeholder="https://script.google.com/macros/s/.../exec">
+                </div>
+
+                <div class="bg-blue-50 text-blue-900 p-3 rounded-lg text-xs border border-blue-200 mt-4">
+                    <strong>2. Autocompletado:</strong> Pega las URLs de tus hojas de Google Sheets publicadas como CSV para autocompletar Colegios y DNI.
+                </div>
+                <div>
+                    <label class="block font-bold text-blue-900 mb-1">URL CSV - Padrón de I.E.:</label>
+                    <input type="text" id="inputCsvIe" class="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 font-mono text-xs" placeholder="https://docs.google.com/spreadsheets/.../pub?output=csv">
+                </div>
+                <div>
+                    <label class="block font-bold text-blue-900 mb-1">URL CSV - Padrón Personal:</label>
+                    <input type="text" id="inputCsvPersonal" class="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 font-mono text-xs" placeholder="https://docs.google.com/spreadsheets/.../pub?output=csv">
+                </div>
+
+                <div class="flex justify-end gap-2 mt-4">
+                    <button onclick="toggleModal('modalConfig')" class="px-4 py-2 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300">Cancelar</button>
+                    <button onclick="saveConfig()" class="px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700"><i class="fa-solid fa-save"></i> Guardar y Enlazar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-blue-900 text-white py-3 px-5 rounded-xl shadow-2xl flex items-center gap-2 text-xs transition duration-300 transform translate-y-20 opacity-0 z-[200]">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-green-400"></i>
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- LOGICA JAVASCRIPT NATIVA -->
+    <script>
+        // --- BASES DE DATOS DE PRUEBA (FALLBACK) ---
+        const DB_IE_FALLBACK = {
+            '0123456': { dreUgel: 'UGEL 01 - SAN JUAN DE MIRAFLORES', ie: '6004 S. ANTUNEZ DE MAYOLO', lugar: 'LIMA', nivel: 'SECUNDARIA', distrito: 'VILLA EL SALVADOR' }
+        };
+        const DB_PERSONAL_FALLBACK = {
+            '40001122': { nombres: 'QUISPE MENDOZA, JUAN', cargo: 'PROFESOR', condicion: 'NOMBRADO', jornada: '30' }
+        };
+
+        let dbIe = { ...DB_IE_FALLBACK };
+        let dbPersonal = { ...DB_PERSONAL_FALLBACK };
+
+        // --- ESTADO PRINCIPAL ---
+        let currentRole = null; // 'DIRECTOR' o 'ADMIN'
+        let appData = {
+            codigoModular: '', dreUgel: '', mesAno: '',
+            ie: '', lugar: '', nivel: '', distrito: '',
+            empleados: []
+        };
+        let activeTab = 'ANEXO3';
+        let autoSaveTimeout = null; 
+
+        // Variables de URLs almacenadas localmente
+        let googleSheetsUrl = localStorage.getItem('minedu_sheets_db_url') || "";
+        let csvIeUrl = localStorage.getItem('minedu_csv_ie_url') || "";
+        let csvPersonalUrl = localStorage.getItem('minedu_csv_personal_url') || "";
+
+        window.onload = () => {
+            initMesAno();
+            document.getElementById('inputSheetsUrl').value = googleSheetsUrl;
+            document.getElementById('inputCsvIe').value = csvIeUrl;
+            document.getElementById('inputCsvPersonal').value = csvPersonalUrl;
+            loadCsvDbs(); // Intentar cargar los CSV en segundo plano al iniciar
+        };
+
+        // --- PARSER Y CARGA DE CSVS PARA AUTOCOMPLETADO ---
+        function parseCSV(text) {
+            const lines = text.split('\n');
+            return lines.map(line => {
+                const result = [];
+                let current = '';
+                let inQuotes = false;
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    if (char === '"') inQuotes = !inQuotes;
+                    else if (char === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
+                    else current += char;
+                }
+                result.push(current.trim());
+                return result;
+            });
+        }
+
+        async function loadCsvDbs() {
+            if (csvIeUrl) {
+                try {
+                    const res = await fetch(csvIeUrl);
+                    const text = await res.text();
+                    const rows = parseCSV(text);
+                    if(rows.length > 1) {
+                        const headers = rows[0].map(h => h.toLowerCase().replace(/[^a-z]/g, ''));
+                        const iCod = headers.findIndex(h => h.includes('codigo'));
+                        const iDre = headers.findIndex(h => h.includes('dre') || h.includes('ugel'));
+                        const iIe = headers.findIndex(h => h.includes('institucion') || h.includes('ie'));
+                        const iLugar = headers.findIndex(h => h.includes('lugar'));
+                        const iNivel = headers.findIndex(h => h.includes('nivel'));
+                        const iDistrito = headers.findIndex(h => h.includes('distrito'));
+                        
+                        if (iCod !== -1) {
+                            dbIe = {}; 
+                            for(let i=1; i<rows.length; i++) {
+                                if(rows[i][iCod]) {
+                                    dbIe[rows[i][iCod].trim()] = {
+                                        dreUgel: iDre!==-1 ? rows[i][iDre] : '',
+                                        ie: iIe!==-1 ? rows[i][iIe] : '',
+                                        lugar: iLugar!==-1 ? rows[i][iLugar] : '',
+                                        nivel: iNivel!==-1 ? rows[i][iNivel] : '',
+                                        distrito: iDistrito!==-1 ? rows[i][iDistrito] : ''
+                                    };
+                                }
+                            }
+                        }
+                    }
+                } catch(e) { console.error("Error cargando CSV IE", e); }
+            }
+
+            if (csvPersonalUrl) {
+                try {
+                    const res = await fetch(csvPersonalUrl);
+                    const text = await res.text();
+                    const rows = parseCSV(text);
+                    if(rows.length > 1) {
+                        const headers = rows[0].map(h => h.toLowerCase().replace(/[^a-z]/g, ''));
+                        const iDni = headers.findIndex(h => h.includes('dni') || h.includes('documento'));
+                        const iNom = headers.findIndex(h => h.includes('nombre') || h.includes('apellido'));
+                        const iCargo = headers.findIndex(h => h.includes('cargo'));
+                        const iCond = headers.findIndex(h => h.includes('condicion'));
+                        const iJor = headers.findIndex(h => h.includes('jornada') || h.includes('horas'));
+                        
+                        if (iDni !== -1) {
+                            dbPersonal = {};
+                            for(let i=1; i<rows.length; i++) {
+                                if(rows[i][iDni]) {
+                                    dbPersonal[rows[i][iDni].trim()] = {
+                                        nombres: iNom!==-1 ? rows[i][iNom] : '',
+                                        cargo: iCargo!==-1 ? rows[i][iCargo] : '',
+                                        condicion: iCond!==-1 ? rows[i][iCond] : '',
+                                        jornada: iJor!==-1 ? rows[i][iJor] : ''
+                                    };
+                                }
+                            }
+                        }
+                    }
+                } catch(e) { console.error("Error cargando CSV Personal", e); }
+            }
+        }
+
+        // --- MANEJO DE ROLES (LOGIN/LOGOUT) ---
+        function setRole(role) {
+            currentRole = role;
+            document.getElementById('loginView').classList.add('hidden');
+            document.getElementById('appView').classList.remove('hidden');
+            document.getElementById('appView').classList.add('flex');
+            
+            document.getElementById('headerRole').innerText = role === 'DIRECTOR' ? 'Director de I.E.' : 'Especialista UGEL';
+            
+            if(role === 'ADMIN') {
+                // MODO SOLO LECTURA (ADMIN)
+                document.getElementById('btnSaveCloud').classList.add('hidden');
+                document.getElementById('btnAddStaff').classList.add('hidden');
+                document.getElementById('adminBadge').classList.remove('hidden');
+                document.getElementById('hintCodModular').classList.add('hidden');
+                document.getElementById('textLoadBtn').innerText = "Revisar Consolidado";
+                
+                // Mostrar botón de Configuración Exclusivo
+                document.getElementById('btnAdminConfig').classList.remove('hidden');
+                document.getElementById('btnExport').classList.remove('hidden');
+                
+                // Bloquear inputs
+                document.querySelectorAll('#formCabecera input').forEach(inp => inp.readOnly = true);
+            } else {
+                // MODO EDICIÓN (DIRECTOR)
+                document.getElementById('btnSaveCloud').classList.remove('hidden');
+                document.getElementById('btnAddStaff').classList.remove('hidden');
+                document.getElementById('adminBadge').classList.add('hidden');
+                document.getElementById('hintCodModular').classList.remove('hidden');
+                document.getElementById('textLoadBtn').innerText = "Recuperar mis datos";
+                
+                // Ocultar botón de Configuración Exclusivo
+                document.getElementById('btnAdminConfig').classList.add('hidden');
+                document.getElementById('btnExport').classList.add('hidden');
+
+                // Desbloquear inputs
+                document.querySelectorAll('#formCabecera input').forEach(inp => inp.readOnly = false);
+            }
+            
+            updateCloudStatus();
+            renderTables();
+            
+            if(googleSheetsUrl) loadFromSheets(true);
+        }
+
+        function logout() {
+            currentRole = null;
+            document.getElementById('appView').classList.add('hidden');
+            document.getElementById('appView').classList.remove('flex');
+            document.getElementById('loginView').classList.remove('hidden');
+            clearTimeout(autoSaveTimeout);
+        }
+
+        // --- FUNCIONES CORE ---
+        function initMesAno() {
+            const today = new Date();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            appData.mesAno = `${today.getFullYear()}-${month}`;
+            document.getElementById('meta-mes').value = appData.mesAno;
+        }
+
+        function getMonthDays() {
+            if (!appData.mesAno) return [];
+            const [year, month] = appData.mesAno.split('-');
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const days = [];
+            const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+            for (let i = 1; i <= daysInMonth; i++) {
+                const date = new Date(year, parseInt(month) - 1, i);
+                const dow = date.getDay();
+                days.push({ day: i, isWeekend: dow === 0 || dow === 6, dayName: dayNames[dow] });
+            }
+            return days;
+        }
+
+        function generateId() { return Date.now().toString() + Math.floor(Math.random()*1000); }
+
+        function addEmployee() {
+            if (currentRole === 'ADMIN') return;
+            appData.empleados.push({
+                id: generateId(), dni: '', nombres: '', cargo: '', condicion: '', jornada: '',
+                asistencia: {}, tardanzasH: '', tardanzasM: '', permisosSGH: '', permisosSGM: '', huelgaParoDias: '', observaciones: ''
+            });
+            renderTables();
+            triggerAutoSave();
+        }
+
+        function removeEmployee(id) {
+            if (currentRole === 'ADMIN') return;
+            appData.empleados = appData.empleados.filter(e => e.id !== id);
+            renderTables();
+            triggerAutoSave();
+        }
+
+        function updateEmp(id, field, value) {
+            if (currentRole === 'ADMIN') return;
+            const emp = appData.empleados.find(e => e.id === id);
+            if (emp) { emp[field] = value.toUpperCase(); triggerAutoSave(); }
+        }
+
+        function updateAsist(id, day, value) {
+            if (currentRole === 'ADMIN') return;
+            const emp = appData.empleados.find(e => e.id === id);
+            if (emp) { emp.asistencia[day] = value.toUpperCase(); triggerAutoSave(); }
+        }
+
+        // --- AUTOCOMPLETADO EXACTO ---
+        function handleIeLookup(val) {
+            if (currentRole === 'ADMIN') return;
+            appData.codigoModular = val;
+
+            if (val.trim().length === 7) {
+                const data = dbIe[val.trim()];
+                if (data) {
+                    appData.dreUgel = data.dreUgel || ''; document.getElementById('meta-dre').value = appData.dreUgel;
+                    appData.ie = data.ie || ''; document.getElementById('meta-ie').value = appData.ie;
+                    appData.lugar = data.lugar || ''; document.getElementById('meta-lugar').value = appData.lugar;
+                    appData.nivel = data.nivel || ''; document.getElementById('meta-nivel').value = appData.nivel;
+                    appData.distrito = data.distrito || ''; document.getElementById('meta-distrito').value = appData.distrito;
+                    showToast("I.E. autocompletada con éxito", "success");
+                } else {
+                    showToast("Código Modular no encontrado en el Padrón", "error");
+                }
+            }
+            triggerAutoSave();
+        }
+
+        function handleDniLookup(id, val) {
+            if (currentRole === 'ADMIN') return;
+            updateEmp(id, 'dni', val);
+            if (val.trim().length === 8) {
+                const data = dbPersonal[val.trim()];
+                if (data) {
+                    const emp = appData.empleados.find(e => e.id === id);
+                    if(emp) {
+                        emp.nombres = data.nombres || '';
+                        emp.cargo = data.cargo || '';
+                        emp.condicion = data.condicion || '';
+                        emp.jornada = data.jornada || '';
+                        renderTables(); 
+                        showToast("Personal autocompletado", "success");
+                        triggerAutoSave();
+                    }
+                }
+            }
+        }
+
+        // --- RENDERIZADO DE TABLAS ---
+        function renderTables() {
+            updateMetaPrint();
+            if (activeTab === 'ANEXO3') renderAnexo3();
+            else renderAnexo4();
+        }
+
+        function updateMetaPrint() {
+            const metaHtml = `
+                <div><strong>DRE/UGEL:</strong> ${appData.dreUgel}</div>
+                <div><strong>CÓDIGO MODULAR:</strong> ${appData.codigoModular}</div>
+                <div><strong>MES Y AÑO:</strong> ${appData.mesAno}</div>
+                <div><strong>I.E.:</strong> ${appData.ie}</div>
+                <div><strong>LUGAR:</strong> ${appData.lugar}</div>
+                <div><strong>NIVEL:</strong> ${appData.nivel}</div>
+                <div><strong>DISTRITO:</strong> ${appData.distrito}</div>
+            `;
+            document.getElementById('metaPrintA3').innerHTML = metaHtml;
+            document.getElementById('metaPrintA4').innerHTML = metaHtml;
+        }
+
+        function renderAnexo3() {
+            const days = getMonthDays();
+            const thead = document.getElementById('headAnexo3');
+            const tbody = document.getElementById('bodyAnexo3');
+            const isReadonly = currentRole === 'ADMIN' ? 'readonly' : '';
+            
+            let headHTML = `
+                <tr class="bg-blue-50 text-blue-900 font-bold border-b border-blue-200">
+                    <th class="p-2 border-r border-blue-200 sticky left-0 bg-blue-50 w-8">N°</th>
+                    <th class="p-2 border-r border-blue-200 sticky left-8 bg-blue-50 w-24">DNI</th>
+                    <th class="p-2 border-r border-blue-200 sticky left-32 bg-blue-50 min-w-[220px]">APELLIDOS Y NOMBRES</th>
+                    <th class="p-2 border-r border-blue-200">CARGO</th>
+                    <th class="p-2 border-r border-blue-200">CONDICIÓN</th>
+                    <th class="p-2 border-r border-blue-200 w-12">Jor. Lab.</th>
+                    <th colspan="${days.length}" class="p-1 border-r border-blue-200 tracking-widest">DÍAS CALENDARIOS</th>
+                    <th class="p-1 border-r border-blue-200 bg-amber-100 text-amber-900 w-12">MIN.</th>
+                    <th class="p-1 border-r border-blue-200 bg-gray-100 w-32">OBSERVACIONES</th>
+                    ${currentRole === 'DIRECTOR' ? `<th class="p-1 no-print border-blue-200">X</th>` : ''}
+                </tr>
+                <tr class="bg-white text-[9px]">
+                    <th colspan="6" class="border-r border-blue-200 sticky left-0 bg-white"></th>
+            `;
+            days.forEach(d => {
+                const bg = d.isWeekend ? 'bg-red-100 text-red-800' : 'bg-blue-50 text-blue-800';
+                headHTML += `<th class="border border-blue-200 p-1 w-6 font-bold ${bg}">${d.day}<br/><span class="text-[7px] font-normal">${d.dayName}</span></th>`;
+            });
+            headHTML += `<th class="border border-blue-200 bg-amber-50"></th><th class="border border-blue-200 bg-gray-50"></th>${currentRole === 'DIRECTOR' ? '<th class="no-print border border-blue-200"></th>' : ''}</tr>`;
+            thead.innerHTML = headHTML;
+
+            if (appData.empleados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="${days.length + (currentRole === 'DIRECTOR' ? 9 : 8)}" class="p-8 text-center text-slate-400 italic">No hay personal registrado en este formato.</td></tr>`;
+                return;
+            }
+
+            let bodyHTML = '';
+            appData.empleados.forEach((emp, index) => {
+                bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border-b border-blue-100">
+                    <td class="border-r border-blue-200 p-1 font-bold sticky left-0 bg-white">${index + 1}</td>
+                    <td class="border-r border-blue-200 p-0 sticky left-8 bg-white"><input type="text" maxlength="8" ${isReadonly} class="w-full h-full p-1.5 text-center bg-transparent outline-none font-bold text-blue-900" value="${emp.dni}" oninput="handleDniLookup('${emp.id}', this.value)"></td>
+                    <td class="border-r border-blue-200 p-0 sticky left-32 bg-white"><input type="text" ${isReadonly} class="w-full h-full p-1.5 bg-transparent outline-none font-bold text-slate-800" value="${emp.nombres}" oninput="updateEmp('${emp.id}', 'nombres', this.value)"></td>
+                    <td class="border-r border-blue-200 p-0"><input type="text" ${isReadonly} class="w-full h-full p-1 text-center bg-transparent outline-none text-xs" value="${emp.cargo}" oninput="updateEmp('${emp.id}', 'cargo', this.value)"></td>
+                    <td class="border-r border-blue-200 p-0"><input type="text" ${isReadonly} class="w-full h-full p-1 text-center bg-transparent outline-none text-xs" value="${emp.condicion}" oninput="updateEmp('${emp.id}', 'condicion', this.value)"></td>
+                    <td class="border-r border-blue-200 p-0"><input type="text" ${isReadonly} class="w-full h-full p-1 text-center bg-transparent outline-none font-bold text-xs" value="${emp.jornada}" oninput="updateEmp('${emp.id}', 'jornada', this.value)"></td>
+                `;
+                days.forEach(d => {
+                    const isWknd = d.isWeekend;
+                    const val = emp.asistencia[d.day] || '';
+                    const bg = isWknd ? 'bg-red-50 text-red-500' : (val ? 'bg-blue-100 font-bold text-blue-900' : 'bg-transparent');
+                    
+                    if (isWknd) {
+                        bodyHTML += `<td class="border border-blue-200 p-0 ${bg}"><span class="block w-full text-center py-1 font-bold">-</span></td>`;
+                    } else {
+                        bodyHTML += `<td class="border border-blue-200 p-0 ${bg}"><input type="text" maxlength="2" ${isReadonly} class="w-full h-full p-1 outline-none text-center uppercase bg-transparent text-xs font-bold" value="${val}" oninput="updateAsist('${emp.id}', ${d.day}, this.value)"></td>`;
+                    }
+                });
+
+                bodyHTML += `
+                    <td class="border-r border-blue-200 p-0 bg-amber-50/30"><input type="number" ${isReadonly} class="w-full h-full p-1 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
+                    <td class="border-r border-blue-200 p-0"><input type="text" ${isReadonly} class="w-full h-full p-1 outline-none bg-transparent text-[10px]" value="${emp.observaciones}" oninput="updateEmp('${emp.id}', 'observaciones', this.value)"></td>
+                    ${currentRole === 'DIRECTOR' ? `<td class="p-1 no-print border-b border-blue-100"><button onclick="removeEmployee('${emp.id}')" class="text-red-500 hover:text-red-700 bg-red-50 px-2 py-1 rounded"><i class="fa-solid fa-trash"></i></button></td>` : ''}
+                </tr>`;
+            });
+            tbody.innerHTML = bodyHTML;
+        }
+
+        function renderAnexo4() {
+            const tbody = document.getElementById('bodyAnexo4');
+            const isReadonly = currentRole === 'ADMIN' ? 'readonly' : '';
+
+            if (appData.empleados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="14" class="p-8 text-center text-slate-400 italic">No hay personal para consolidar.</td></tr>`;
+                return;
+            }
+
+            let bodyHTML = '';
+            appData.empleados.forEach((emp, index) => {
+                let inasist = 0; let permisos = 0;
+                Object.values(emp.asistencia).forEach(v => {
+                    if(v==='I' || v==='3T') inasist++;
+                    if(v==='LS') permisos++;
+                });
+
+                bodyHTML += `<tr class="hover:bg-red-50/30 transition-colors border-b border-blue-100">
+                    <td class="border-r border-blue-200 p-2 font-bold">${index + 1}</td>
+                    <td class="border-r border-blue-200 p-2 font-bold text-blue-900">${emp.dni}</td>
+                    <td class="border-r border-blue-200 p-2 text-left font-bold text-slate-800">${emp.nombres}</td>
+                    <td class="border-r border-blue-200 p-2 text-xs">${emp.cargo}</td>
+                    <td class="border-r border-blue-200 p-2 text-xs">${emp.condicion}</td>
+                    <td class="border-r border-blue-200 p-2 font-bold">${emp.jornada}</td>
+                    
+                    <td class="border-r border-blue-200 p-2 bg-red-50 font-bold text-red-700">${inasist}</td>
+                    
+                    <td class="border-r border-blue-200 p-0 bg-amber-50/30"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.tardanzasH}" oninput="updateEmp('${emp.id}', 'tardanzasH', this.value)"></td>
+                    <td class="border-r border-blue-200 p-0 bg-amber-50/30"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
+                    
+                    <td class="border-r border-blue-200 p-0 bg-blue-50/30"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGH}" oninput="updateEmp('${emp.id}', 'permisosSGH', this.value)"></td>
+                    <td class="border-r border-blue-200 p-0 bg-blue-50/30"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGM}" oninput="updateEmp('${emp.id}', 'permisosSGM', this.value)"></td>
+                    <td class="border-r border-blue-200 p-2 bg-blue-50 font-bold text-blue-700">${permisos}</td>
+                    
+                    <td class="border-r border-blue-200 p-0 bg-red-50/30"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-red-700" value="${emp.huelgaParoDias}" oninput="updateEmp('${emp.id}', 'huelgaParoDias', this.value)"></td>
+                    <td class="border-r border-blue-200 p-0"><input type="text" ${isReadonly} class="w-full h-full p-2 outline-none text-left bg-transparent text-[10px]" value="${emp.observaciones}" oninput="updateEmp('${emp.id}', 'observaciones', this.value)"></td>
+                </tr>`;
+            });
+            tbody.innerHTML = bodyHTML;
+        }
+
+        // --- MANEJO DE TABS ---
+        function switchTab(tabId) {
+            activeTab = tabId;
+            document.getElementById('viewAnexo3').classList.add('hidden');
+            document.getElementById('viewAnexo4').classList.add('hidden');
+            document.getElementById('btnTab3').className = "px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition text-gray-500 hover:text-slate-800";
+            document.getElementById('btnTab4').className = "px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition text-gray-500 hover:text-slate-800";
+
+            if (tabId === 'ANEXO3') {
+                document.getElementById('viewAnexo3').classList.remove('hidden');
+                document.getElementById('btnTab3').className = "px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-blue-700 shadow-sm";
+            } else {
+                document.getElementById('viewAnexo4').classList.remove('hidden');
+                document.getElementById('btnTab4').className = "px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-red-700 shadow-sm";
+            }
+            renderTables();
+        }
+
+        // --- GOOGLE SHEETS API Y CONFIGURACIÓN ---
+        function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
+        
+        function saveConfig() {
+            const url = document.getElementById('inputSheetsUrl').value.trim();
+            const urlIe = document.getElementById('inputCsvIe').value.trim();
+            const urlPersonal = document.getElementById('inputCsvPersonal').value.trim();
+            
+            localStorage.setItem('minedu_sheets_db_url', url);
+            localStorage.setItem('minedu_csv_ie_url', urlIe);
+            localStorage.setItem('minedu_csv_personal_url', urlPersonal);
+            
+            googleSheetsUrl = url;
+            csvIeUrl = urlIe;
+            csvPersonalUrl = urlPersonal;
+            
+            showToast("Bases vinculadas y guardadas. Cargando...", "success");
+            loadCsvDbs();
+            updateCloudStatus();
+            toggleModal('modalConfig');
+        }
+
+        function updateCloudStatus(statusStr = '') {
+            const status = document.getElementById('cloud-status');
+            if (statusStr === 'syncing') {
+                status.innerHTML = `<i class="fa-solid fa-arrows-rotate fa-spin text-blue-500"></i> <span class="text-blue-600">Guardando...</span>`;
+            } else if (googleSheetsUrl) {
+                status.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> <span class="text-green-700">${currentRole === 'ADMIN' ? 'Conectado a Sheets' : 'Guardado en Sheets'}</span>`;
+            } else {
+                status.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> <span class="text-red-600">Base no vinculada</span>`;
+            }
+        }
+
+        function triggerAutoSave() {
+            if (!googleSheetsUrl || currentRole === 'ADMIN') return;
+            updateCloudStatus('syncing');
+            clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(() => {
+                saveToSheets(true); 
+            }, 1500);
+        }
+
+        async function saveToSheets(isSilent = false) {
+            if (currentRole === 'ADMIN') return;
+            if (!googleSheetsUrl) {
+                if (!isSilent) showToast("Primero debe vincular la base de datos", "error");
+                return;
+            }
+            
+            if (!isSilent) showToast("Guardando en Google Sheets...", "info");
+            updateCloudStatus('syncing');
+
+            try {
+                const res = await fetch(googleSheetsUrl, {
+                    method: 'POST',
+                    body: JSON.stringify(appData)
+                });
+                const data = await res.json();
+                
+                if (data.status === "success") {
+                    updateCloudStatus();
+                    if (!isSilent) showToast("Guardado Exitoso en la Nube", "success");
+                } else {
+                    updateCloudStatus();
+                    if (!isSilent) showToast("Error devuelto por la base de datos", "error");
+                }
+            } catch (err) {
+                updateCloudStatus();
+                if (!isSilent) showToast("Error de conexión al guardar", "error");
+            }
+        }
+
+        async function loadFromSheets(isSilent = false) {
+            if (!googleSheetsUrl) {
+                if(!isSilent) showToast("Base no vinculada", "error");
+                return;
+            }
+            
+            if (!isSilent) showToast("Descargando base de datos...", "info");
+            try {
+                const res = await fetch(googleSheetsUrl);
+                const data = await res.json();
+                
+                if (data && data.empleados) {
+                    appData = data;
+                    
+                    document.getElementById('meta-cod').value = appData.codigoModular || '';
+                    document.getElementById('meta-dre').value = appData.dreUgel || '';
+                    document.getElementById('meta-mes').value = appData.mesAno || '';
+                    document.getElementById('meta-ie').value = appData.ie || '';
+                    document.getElementById('meta-lugar').value = appData.lugar || '';
+                    document.getElementById('meta-nivel').value = appData.nivel || '';
+                    document.getElementById('meta-distrito').value = appData.distrito || '';
+                    
+                    renderTables();
+                    if (!isSilent) showToast("Datos cargados y sincronizados", "success");
+                } else {
+                    if (!isSilent) showToast("La base de datos en Sheets está vacía", "info");
+                }
+            } catch (err) {
+                if (!isSilent) showToast("Error de conexión al descargar", "error");
+            }
+        }
+
+        // --- EXPORTAR EXCEL ---
+        function exportarExcel() {
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
+            csvContent += `DRE/UGEL:,${appData.dreUgel},,MES Y AÑO:,${appData.mesAno}\n`;
+            csvContent += `INSTITUCION EDUCATIVA:,${appData.ie},,LUGAR:,${appData.lugar}\n`;
+            csvContent += `CODIGO MODULAR:,${appData.codigoModular},,NIVEL:,${appData.nivel}\n\n`;
+            csvContent += "N°,DNI,APELLIDOS Y NOMBRES,CARGO,CONDICIÓN,Jor. Lab.,Inasistencias (Dias),Tardanzas (Horas),Tardanzas (Minutos),Permisos SG (Horas),Permisos SG (Minutos),Permisos SG (Dias),Huelga/Paro (Dias),Observaciones\n";
+            
+            appData.empleados.forEach((emp, index) => {
+                let inasist = 0; let permisos = 0;
+                Object.values(emp.asistencia).forEach(v => {
+                    if(v==='I' || v==='3T') inasist++;
+                    if(v==='LS') permisos++;
+                });
+
+                csvContent += `${index + 1},${emp.dni},"${emp.nombres}",${emp.cargo},${emp.condicion},${emp.jornada},${inasist},${emp.tardanzasH || 0},${emp.tardanzasM || 0},${emp.permisosSGH || 0},${emp.permisosSGM || 0},${permisos},${emp.huelgaParoDias || 0},"${emp.observaciones || ''}"\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Consolidado_UGEL_${(appData.ie || 'IE').replace(/ /g, "_")}_${appData.mesAno}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("Excel exportado correctamente", "success");
+        }
+
+        function showToast(msg, type) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').innerText = msg;
+            toast.className = `fixed bottom-6 right-6 text-white py-3 px-5 rounded-xl shadow-2xl flex items-center gap-2 text-xs transition duration-300 transform z-[200] ${type === 'error' ? 'bg-red-700' : 'bg-blue-800'}`;
+            
+            setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
+        }
+    </script>
+</body>
+</html>
