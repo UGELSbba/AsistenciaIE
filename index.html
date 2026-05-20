@@ -586,17 +586,13 @@
                         <td class="p-4 text-center">
                             <div class="flex justify-center gap-2">
                                 <button onclick="openReport('${rep.id}')" class="bg-blue-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-blue-700 transition">
-                                    ${currentRole === 'ADMIN' ? 'Revisar' : 'Editar'}
+                                    Editar
                                 </button>
-                                ${currentRole === 'DIRECTOR' ? `
-                                <button onclick="deleteReportLocally('${rep.id}')" class="bg-red-50 text-red-600 hover:bg-red-100 font-bold p-1.5 rounded-lg text-xs transition">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
-                                ` : `
+                                ${currentRole === 'ADMIN' ? `
                                 <button onclick="exportSingleReport('${rep.id}')" class="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-emerald-700 transition">
                                     Excel
                                 </button>
-                                `}
+                                ` : ''}
                             </div>
                         </td>
                     </tr>
@@ -633,7 +629,7 @@
         function openReport(reportId) {
             const rep = reportsDatabase.find(r => r.id === reportId);
             if (rep) {
-                appData = JSON.parse(JSON.stringify(rep)); // Clonación profunda para evitar mutaciones directas indeseadas
+                appData = JSON.parse(JSON.stringify(rep)); 
 
                 document.getElementById('meta-cod').value = appData.codigoModular || '';
                 document.getElementById('meta-dre').value = appData.dreUgel || '';
@@ -653,35 +649,7 @@
             clearTimeout(autoSaveTimeout);
             document.getElementById('dashboardSection').classList.remove('hidden');
             document.getElementById('editorSection').classList.add('hidden');
-            loadFromSheets(true); // Sincroniza y actualiza la lista al salir
-        }
-
-        function deleteReportLocally(reportId) {
-            if (window.confirm("¿Estás seguro de que deseas eliminar definitivamente este reporte de la nube?")) {
-                // Para simplificar, filtramos localmente y enviamos la actualización completa
-                reportsDatabase = reportsDatabase.filter(r => r.id !== reportId);
-                saveAllToSheets();
-            }
-        }
-
-        // --- SISTEMA DE RESGUARDO MULTI-REPORTE ---
-        async function saveAllToSheets() {
-            if (!googleSheetsUrl) return;
-            showToast("Guardando cambios en Google Sheets...", "info");
-            try {
-                // Enviamos la base de datos completa de reportes empaquetada
-                const res = await fetch(googleSheetsUrl, {
-                    method: 'POST',
-                    body: JSON.stringify({ reports: reportsDatabase })
-                });
-                const data = await res.json();
-                if (data.status === "success") {
-                    showToast("Base de datos de la UGEL sincronizada", "success");
-                    renderDashboard();
-                }
-            } catch(e) {
-                showToast("Fallo al sincronizar base general", "error");
-            }
+            loadFromSheets(true); 
         }
 
         // --- FUNCIONES CORE ---
@@ -1010,10 +978,11 @@
             }
 
             try {
-                // Mandamos el paquete completo de reportes a la hoja de Google Sheets
+                // CORRECCIÓN CLAVE: Mandamos el reporte individual (appData) en lugar del objeto wrapper completo.
+                // Esto permite que 'doPost' en Apps Script capture con éxito ID_Reporte, Codigo_Modular, Institucion_Educativa, Mes_Ano.
                 const res = await fetch(googleSheetsUrl, {
                     method: 'POST',
-                    body: JSON.stringify({ reports: reportsDatabase })
+                    body: JSON.stringify(appData)
                 });
                 const data = await res.json();
                 
