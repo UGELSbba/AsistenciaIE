@@ -120,6 +120,18 @@
                         </div>
                     </div>
 
+                    <!-- BUSCADOR CON CÓDIGO MODULAR (SOLO PARA ADMINISTRADOR) -->
+                    <div id="adminSearchContainer" class="hidden items-center gap-3 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                        <div class="flex items-center gap-2 text-red-700 font-bold text-xs uppercase">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <span>Buscador por Código Modular:</span>
+                        </div>
+                        <input type="text" id="adminSearchCod" placeholder="Escribe el código modular de 7 dígitos..." maxlength="7" oninput="filterAdminReports(this.value)" class="border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-red-500 w-72 bg-white font-bold text-red-900 shadow-inner" />
+                        <button onclick="clearAdminFilter()" class="bg-gray-100 hover:bg-gray-200 text-slate-700 font-bold px-3 py-1.5 rounded-lg text-xs transition border border-gray-300">
+                            Limpiar Filtro
+                        </button>
+                    </div>
+
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                         <div class="p-4 bg-gray-50 border-b border-gray-200 text-xs font-bold text-slate-600">
                             HISTORIAL DE REPORTES REGISTRADOS EN TU GOOGLE SHEET
@@ -394,6 +406,7 @@
         // --- ESTADO PRINCIPAL ---
         let currentRole = null; // 'DIRECTOR' o 'ADMIN'
         let reportsDatabase = []; // Lista completa de reportes de la nube
+        let adminFilterQuery = ""; // Query de filtrado por Código Modular para Administrador
         
         let appData = {
             id: '',
@@ -511,10 +524,11 @@
             if(role === 'ADMIN') {
                 document.getElementById('btnAdminConfig').classList.remove('hidden');
                 document.getElementById('btnCreateReport').classList.add('hidden');
+                document.getElementById('adminSearchContainer').classList.remove('hidden'); // Mostrar buscador exclusivo
                 document.getElementById('dashboardTitle').innerText = "Consolidado General de la UGEL";
                 document.getElementById('adminBadge').classList.remove('hidden');
                 
-                // Muestra columnas de consolidación y desactiva edición en editor
+                // Configurar el editor para que solo sea de lectura para el administrador
                 document.getElementById('btnSaveCloud').classList.add('hidden');
                 document.getElementById('btnAddStaff').classList.add('hidden');
                 document.getElementById('btnExport').classList.remove('hidden');
@@ -525,10 +539,11 @@
             } else {
                 document.getElementById('btnAdminConfig').classList.add('hidden');
                 document.getElementById('btnCreateReport').classList.remove('hidden');
+                document.getElementById('adminSearchContainer').classList.add('hidden'); // Ocultar buscador exclusivo
                 document.getElementById('dashboardTitle').innerText = "Panel del Director de I.E.";
                 document.getElementById('adminBadge').classList.add('hidden');
                 
-                // Modos normales en editor
+                // Configurar el editor para escritura para el director
                 document.getElementById('btnSaveCloud').classList.remove('hidden');
                 document.getElementById('btnAddStaff').classList.remove('hidden');
                 document.getElementById('btnExport').classList.add('hidden');
@@ -555,18 +570,38 @@
             clearTimeout(autoSaveTimeout);
         }
 
+        // --- FILTRADO DE REPORTES PARA EL ADMINISTRADOR ---
+        function filterAdminReports(val) {
+            adminFilterQuery = val.trim();
+            renderDashboard();
+        }
+
+        function clearAdminFilter() {
+            document.getElementById('adminSearchCod').value = "";
+            adminFilterQuery = "";
+            renderDashboard();
+        }
+
         // --- DASHBOARD E INDEPENDENCIA ---
         function renderDashboard() {
             const tableBody = document.getElementById('reportsTableBody');
             document.getElementById('dashboardSection').classList.remove('hidden');
             document.getElementById('editorSection').classList.add('hidden');
 
-            if (reportsDatabase.length === 0) {
+            // Filtrar reportes si es administrador y ha ingresado una consulta
+            let filteredReports = reportsDatabase;
+            if (currentRole === 'ADMIN' && adminFilterQuery) {
+                filteredReports = reportsDatabase.filter(rep => 
+                    rep.codigoModular && rep.codigoModular.includes(adminFilterQuery)
+                );
+            }
+
+            if (filteredReports.length === 0) {
                 tableBody.innerHTML = `
                     <tr>
                         <td colspan="4" class="p-12 text-center text-gray-400 italic">
                             <i class="fa-solid fa-folder-open text-3xl mb-2 block"></i>
-                            No hay reportes de asistencia en el servidor. ¡Crea el primero!
+                            No se encontraron reportes registrados${adminFilterQuery ? ' para el Código Modular ingresado.' : '.'}
                         </td>
                     </tr>
                 `;
@@ -574,7 +609,10 @@
             }
 
             let html = '';
-            reportsDatabase.forEach((rep, idx) => {
+            filteredReports.forEach((rep, idx) => {
+                const btnText = currentRole === 'ADMIN' ? 'Visualizar Anexos' : 'Editar';
+                const btnColor = currentRole === 'ADMIN' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-blue-600 hover:bg-blue-700';
+
                 html += `
                     <tr class="border-b border-gray-150 hover:bg-slate-50 transition">
                         <td class="p-4">
@@ -585,8 +623,8 @@
                         <td class="p-4 text-slate-500 font-semibold">${rep.empleados ? rep.empleados.length : 0} integrantes</td>
                         <td class="p-4 text-center">
                             <div class="flex justify-center gap-2">
-                                <button onclick="openReport('${rep.id}')" class="bg-blue-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-blue-700 transition">
-                                    Editar
+                                <button onclick="openReport('${rep.id}')" class="${btnColor} text-white font-bold px-3.5 py-1.5 rounded-lg text-xs transition">
+                                    ${btnText}
                                 </button>
                                 ${currentRole === 'ADMIN' ? `
                                 <button onclick="exportSingleReport('${rep.id}')" class="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-emerald-700 transition">
@@ -978,8 +1016,6 @@
             }
 
             try {
-                // CORRECCIÓN CLAVE: Mandamos el reporte individual (appData) en lugar del objeto wrapper completo.
-                // Esto permite que 'doPost' en Apps Script capture con éxito ID_Reporte, Codigo_Modular, Institucion_Educativa, Mes_Ano.
                 const res = await fetch(googleSheetsUrl, {
                     method: 'POST',
                     body: JSON.stringify(appData)
