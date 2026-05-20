@@ -706,6 +706,8 @@
             return days;
         }
 
+        function generateId() { return Date.now().toString() + Math.floor(Math.random()*1000); }
+
         function addEmployee() {
             if (currentRole === 'ADMIN') return;
             appData.empleados.push({
@@ -797,6 +799,26 @@
                     }
                 }
             }
+        }
+
+        // --- MANEJO DE TABS ---
+        function switchTab(tabId) {
+            activeTab = tabId;
+            document.getElementById('viewAnexo3').classList.add('hidden');
+            document.getElementById('viewAnexo4').classList.add('hidden');
+            
+            // Restablecer estilos de botones
+            document.getElementById('btnTab3').className = "px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition text-gray-500 hover:text-slate-800";
+            document.getElementById('btnTab4').className = "px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition text-gray-500 hover:text-slate-800";
+
+            if (tabId === 'ANEXO3') {
+                document.getElementById('viewAnexo3').classList.remove('hidden');
+                document.getElementById('btnTab3').className = "px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-blue-700 shadow-sm";
+            } else {
+                document.getElementById('viewAnexo4').classList.remove('hidden');
+                document.getElementById('btnTab4').className = "px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-red-700 shadow-sm";
+            }
+            renderTables();
         }
 
         // --- RENDERIZADO DE TABLAS ---
