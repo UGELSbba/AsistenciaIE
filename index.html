@@ -363,7 +363,7 @@
                     <input type="text" id="inputSheetsUrl" class="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 font-mono text-xs" placeholder="https://script.google.com/macros/s/.../exec">
                 </div>
 
-                <div class="bg-blue-50 text-blue-900 p-3 rounded-lg text-xs border border-blue-200 mt-4">
+                <div class="bg-blue-50 text-blue-900 p-3 rounded-lg text-xs border border-red-200 mt-4">
                     <strong>2. Autocompletado desde Google Sheets:</strong> Pega las URLs de tus hojas de Google Sheets publicadas como CSV para autocompletar Colegios y DNI.
                     <br><em class="text-[10px] block mt-1">Nota: Las columnas de tu tabla en Sheets deben llamarse: <b>codigo, dre, institucion, lugar, nivel, distrito</b>.</em>
                 </div>
@@ -627,8 +627,14 @@
                                     ${btnText}
                                 </button>
                                 ${currentRole === 'ADMIN' ? `
-                                <button onclick="exportSingleReport('${rep.id}')" class="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-emerald-700 transition">
+                                <button onclick="exportSingleReport('${rep.id}')" class="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-emerald-700 transition" title="Exportar a Excel">
                                     Excel
+                                </button>
+                                <button onclick="printReportFromDashboard('${rep.id}', 'ANEXO3')" class="bg-blue-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-blue-700 transition" title="Imprimir Anexo 03">
+                                    <i class="fa-solid fa-print"></i> A3
+                                </button>
+                                <button onclick="printReportFromDashboard('${rep.id}', 'ANEXO4')" class="bg-red-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-red-700 transition" title="Imprimir Anexo 04">
+                                    <i class="fa-solid fa-print"></i> A4
                                 </button>
                                 ` : ''}
                             </div>
@@ -637,6 +643,69 @@
                 `;
             });
             tableBody.innerHTML = html;
+        }
+
+        // --- IMPRESIÓN DIRECTA DESDE EL DASHBOARD ---
+        function printReportFromDashboard(reportId, tabType) {
+            const rep = reportsDatabase.find(r => r.id === reportId);
+            if (!rep) return;
+            
+            // Guardar estado actual antes de la impresión temporal
+            const prevAppData = JSON.stringify(appData);
+            const prevActiveTab = activeTab;
+            const prevSectionHidden = document.getElementById('editorSection').classList.contains('hidden');
+
+            // Cargar datos del reporte seleccionado en la variable activa
+            appData = JSON.parse(JSON.stringify(rep));
+            activeTab = tabType;
+            
+            // Forzar actualización de campos del formulario para impresión
+            document.getElementById('meta-cod').value = appData.codigoModular || '';
+            document.getElementById('meta-dre').value = appData.dreUgel || '';
+            document.getElementById('meta-mes').value = appData.mesAno || '';
+            document.getElementById('meta-ie').value = appData.ie || '';
+            document.getElementById('meta-lugar').value = appData.lugar || '';
+            document.getElementById('meta-nivel').value = appData.nivel || '';
+            document.getElementById('meta-distrito').value = appData.distrito || '';
+
+            renderTables();
+
+            // Desocultar temporalmente el editor y ocultar el dashboard para capturar la vista de impresión
+            document.getElementById('editorSection').classList.remove('hidden');
+            document.getElementById('dashboardSection').classList.add('hidden');
+
+            // Asegurar que solo se visualice el anexo correspondiente
+            if (tabType === 'ANEXO3') {
+                document.getElementById('viewAnexo3').classList.remove('hidden');
+                document.getElementById('viewAnexo4').classList.add('hidden');
+            } else {
+                document.getElementById('viewAnexo4').classList.remove('hidden');
+                document.getElementById('viewAnexo3').classList.add('hidden');
+            }
+
+            // Pequeña espera asíncrona para asegurar el correcto renderizado antes de disparar la impresión
+            setTimeout(() => {
+                window.print();
+                
+                // Restaurar el estado previo de la aplicación
+                appData = JSON.parse(prevAppData);
+                activeTab = prevActiveTab;
+                if (prevSectionHidden) {
+                    document.getElementById('editorSection').classList.add('hidden');
+                    document.getElementById('dashboardSection').classList.remove('hidden');
+                }
+                
+                // Forzar de nuevo el renderizado con el reporte previo
+                document.getElementById('meta-cod').value = appData.codigoModular || '';
+                document.getElementById('meta-dre').value = appData.dreUgel || '';
+                document.getElementById('meta-mes').value = appData.mesAno || '';
+                document.getElementById('meta-ie').value = appData.ie || '';
+                document.getElementById('meta-lugar').value = appData.lugar || '';
+                document.getElementById('meta-nivel').value = appData.nivel || '';
+                document.getElementById('meta-distrito').value = appData.distrito || '';
+                
+                renderTables();
+            }, 250);
         }
 
         function createNewReport() {
@@ -698,6 +767,7 @@
             document.getElementById('meta-mes').value = appData.mesAno;
         }
 
+        // Generar días calendario del mes seleccionado
         function getMonthDays() {
             if (!appData.mesAno) return [];
             const [year, month] = appData.mesAno.split('-');
