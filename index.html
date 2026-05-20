@@ -554,6 +554,7 @@
             if (emp) { emp[field] = value.toUpperCase(); triggerAutoSave(); }
         }
 
+        // --- ACTUALIZACIÓN DE ESTADO SIN PERDER FOCO ---
         function updateAsist(id, day, value) {
             if (currentRole === 'ADMIN') return;
             const emp = appData.empleados.find(e => e.id === id);
@@ -565,16 +566,30 @@
             if (currentRole === 'ADMIN') return;
             appData.codigoModular = val;
 
-            if (val.trim().length === 7) {
+            // Si el campo está vacío, limpiar campos autocompletados de inmediato
+            if (val.trim().length === 0) {
+                clearIeFields();
+            } else if (val.trim().length === 7) {
                 buscarIE();
             }
             triggerAutoSave();
         }
 
+        function clearIeFields() {
+            appData.dreUgel = ''; document.getElementById('meta-dre').value = '';
+            appData.ie = ''; document.getElementById('meta-ie').value = '';
+            appData.lugar = ''; document.getElementById('meta-lugar').value = '';
+            appData.nivel = ''; document.getElementById('meta-nivel').value = '';
+            appData.distrito = ''; document.getElementById('meta-distrito').value = '';
+        }
+
         function buscarIE() {
             if (currentRole === 'ADMIN') return;
             const val = document.getElementById('meta-cod').value.trim();
-            if (val.length === 0) return;
+            if (val.length === 0) {
+                clearIeFields();
+                return;
+            }
 
             const data = dbIe[val];
             if (data) {
@@ -587,6 +602,7 @@
                 triggerAutoSave();
             } else {
                 showToast("Código Modular no encontrado en el Padrón (Sheets)", "error");
+                clearIeFields();
             }
         }
 
@@ -713,7 +729,7 @@
                     if(v==='LS') permisos++;
                 });
 
-                bodyHTML += `<tr class="hover:bg-red-50/30 transition-colors border-b border-blue-100">
+                bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border-b border-blue-100">
                     <td class="border-r border-blue-200 p-2 font-bold">${index + 1}</td>
                     <td class="border-r border-blue-200 p-2 font-bold text-blue-900">${emp.dni}</td>
                     <td class="border-r border-blue-200 p-2 text-left font-bold text-slate-800">${emp.nombres}</td>
