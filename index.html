@@ -170,7 +170,7 @@
                                 <button id="btnTab3" onclick="switchTab('ANEXO3')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-blue-700 shadow-sm">
                                     Anexo 03 (Asistencia)
                                 </button>
-                                <button id="btnTab4" onclick="switchTab('ANEXO4')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-red-700 shadow-sm">
+                                <button id="btnTab4" onclick="switchTab('ANEXO4')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition text-gray-500 hover:text-slate-800">
                                     Anexo 04 (Inasistencias)
                                 </button>
                             </div>
@@ -202,7 +202,7 @@
                         <!-- Campos deshabilitados de solo lectura para el panel del Director y del Admin -->
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">DRE/UGEL:</label>
-                            <input type="text" id="meta-dre" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500" oninput="appData.dreUgel = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-dre" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold" oninput="appData.dreUgel = this.value; triggerAutoSave();">
                         </div>
 
                         <div class="flex flex-col gap-1">
@@ -217,17 +217,17 @@
 
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">LUGAR:</label>
-                            <input type="text" id="meta-lugar" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500" oninput="appData.lugar = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-lugar" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold" oninput="appData.lugar = this.value; triggerAutoSave();">
                         </div>
 
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">NIVEL EDUCATIVO:</label>
-                            <input type="text" id="meta-nivel" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500" oninput="appData.nivel = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-nivel" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold" oninput="appData.nivel = this.value; triggerAutoSave();">
                         </div>
 
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">DISTRITO:</label>
-                            <input type="text" id="meta-distrito" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500" oninput="appData.distrito = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-distrito" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold" oninput="appData.distrito = this.value; triggerAutoSave();">
                         </div>
                     </div>
 
@@ -239,7 +239,7 @@
                                 <p class="text-[10px] text-gray-500 font-bold uppercase">FORMATO 01: REPORTE DE ASISTENCIA DETALLADO</p>
                             </div>
                             <div class="flex gap-2">
-                                <button id="btnAddStaff" onclick="addEmployee()" class="px-4 py-1.5 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition">
+                                <button id="btnAddStaff" onclick="addEmployee()" class="px-4 py-1.5 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition shadow-sm">
                                     <i class="fa-solid fa-plus"></i> Agregar Personal
                                 </button>
                                 <button onclick="window.print()" class="px-4 py-1.5 bg-blue-100 text-blue-800 text-xs font-bold rounded-lg hover:bg-blue-200 transition">
@@ -255,13 +255,13 @@
                         </div>
 
                         <div class="overflow-x-auto custom-scrollbar p-4">
-                            <table class="w-full text-[10px] sm:text-xs border-collapse text-center print-table">
+                            <table class="w-full text-[10px] sm:text-xs border-collapse text-center print-table table-fixed">
                                 <thead id="headAnexo3"></thead>
                                 <tbody id="bodyAnexo3"></tbody>
                             </table>
 
                             <!-- SECCIÓN LEYENDA (Actualizada según especificación de MINEDU) -->
-                            <div class="mt-6 border border-gray-200 rounded-lg p-4 bg-slate-50 text-[10px] no-print">
+                            <div class="mt-6 border border-gray-200 rounded-lg p-4 bg-slate-50 text-[10px] no-print animate-fade-in">
                                 <div class="font-extrabold text-slate-800 uppercase mb-2 border-b border-gray-200 pb-1 flex items-center gap-1.5">
                                     <i class="fa-solid fa-circle-info text-blue-600"></i> Leyenda:
                                 </div>
@@ -412,6 +412,9 @@
 
         let dbIe = { ...DB_IE_FALLBACK };
         let dbPersonal = { ...DB_PERSONAL_FALLBACK };
+
+        // Códigos válidos para el control de asistencia en calendario
+        const CODIGOS_VALIDOS = ['A', 'I', '3T', 'J', 'LS', 'PS', 'T', 'H', 'F'];
 
         // --- ESTADO PRINCIPAL ---
         let currentRole = null; // 'DIRECTOR' o 'ADMIN'
@@ -852,13 +855,33 @@
         function updateEmp(id, field, value) {
             if (currentRole === 'ADMIN') return;
             const emp = appData.empleados.find(e => e.id === id);
-            if (emp) { emp[field] = value.toUpperCase(); triggerAutoSave(); }
+            if (emp) { 
+                emp[field] = value.toUpperCase(); 
+                triggerAutoSave(); 
+            }
         }
 
+        // Validación estricta para que solo se ingresen códigos de la leyenda
         function updateAsist(id, day, value) {
             if (currentRole === 'ADMIN') return;
             const emp = appData.empleados.find(e => e.id === id);
-            if (emp) { emp.asistencia[day] = value.toUpperCase(); triggerAutoSave(); }
+            if (emp) {
+                const upperVal = value.toUpperCase().trim();
+                
+                if (upperVal === '') {
+                    emp.asistencia[day] = '';
+                    triggerAutoSave();
+                    renderTables();
+                } else if (CODIGOS_VALIDOS.includes(upperVal)) {
+                    emp.asistencia[day] = upperVal;
+                    triggerAutoSave();
+                    renderTables();
+                } else {
+                    // Si el código no es válido, emitir toast y reestablecer la tabla
+                    showToast(`Código "${upperVal}" no válido. Use la leyenda.`, "error");
+                    renderTables();
+                }
+            }
         }
 
         // --- AUTOCOMPLETADO EXACTO ---
@@ -973,26 +996,26 @@
             const isReadonly = currentRole === 'ADMIN' ? 'readonly' : '';
             
             let headHTML = `
-                <tr class="bg-blue-50 text-blue-900 font-bold border-b border-blue-200">
-                    <th class="p-2 border-r border-blue-200 sticky left-0 bg-blue-50 w-8">N°</th>
-                    <th class="p-2 border-r border-blue-200 sticky left-8 bg-blue-50 w-24">DNI</th>
-                    <th class="p-2 border-r border-blue-200 sticky left-32 bg-blue-50 min-w-[220px]">APELLIDOS Y NOMBRES</th>
-                    <th class="p-2 border-r border-blue-200">CARGO</th>
-                    <th class="p-2 border-r border-blue-200">CONDICIÓN</th>
-                    <th class="p-2 border-r border-blue-200 w-12">Jor. Lab.</th>
-                    <th colspan="${days.length}" class="p-1 border-r border-blue-200 tracking-widest">DÍAS CALENDARIOS</th>
-                    <th class="p-1 border-r border-blue-200 bg-amber-100 text-amber-900 w-12">MIN.</th>
-                    <th class="p-1 border-r border-blue-200 bg-gray-100 w-32">OBSERVACIONES</th>
-                    ${currentRole === 'DIRECTOR' ? `<th class="p-1 no-print border-blue-200">X</th>` : ''}
+                <tr class="bg-blue-50 text-blue-900 font-bold border border-gray-300">
+                    <th class="p-2 border border-gray-300 sticky left-0 bg-blue-50 w-10 text-center">N°</th>
+                    <th class="p-2 border border-gray-300 sticky left-10 bg-blue-50 w-24 text-center">DNI</th>
+                    <th class="p-2 border border-gray-300 sticky left-34 bg-blue-50 min-w-[200px] text-left">APELLIDOS Y NOMBRES</th>
+                    <th class="p-2 border border-gray-300 text-left min-w-[140px]">CARGO</th>
+                    <th class="p-2 border border-gray-300 text-center w-24">CONDICIÓN</th>
+                    <th class="p-2 border border-gray-300 text-center w-12">Jor. Lab.</th>
+                    <th colspan="${days.length}" class="p-1 border border-gray-300 text-center tracking-widest bg-red-50 text-red-900">DÍAS CALENDARIOS</th>
+                    <th class="p-1 border border-gray-300 bg-amber-100 text-amber-900 w-12 text-center">MIN.</th>
+                    <th class="p-1 border border-gray-300 bg-gray-100 w-32 text-left">OBSERVACIONES</th>
+                    ${currentRole === 'DIRECTOR' ? `<th class="p-1 no-print border border-gray-300 w-10 text-center">X</th>` : ''}
                 </tr>
                 <tr class="bg-white text-[9px]">
-                    <th colspan="6" class="border-r border-blue-200 sticky left-0 bg-white"></th>
+                    <th colspan="6" class="border border-gray-300 sticky left-0 bg-white"></th>
             `;
             days.forEach(d => {
                 const bg = d.isWeekend ? 'bg-red-100 text-red-800' : 'bg-blue-50 text-blue-800';
-                headHTML += `<th class="border border-blue-200 p-1 w-6 font-bold ${bg}">${d.day}<br/><span class="text-[7px] font-normal">${d.dayName}</span></th>`;
+                headHTML += `<th class="border border-gray-300 p-1 w-6 font-bold ${bg}">${d.day}<br/><span class="text-[7px] font-normal">${d.dayName}</span></th>`;
             });
-            headHTML += `<th class="border border-blue-200 bg-amber-50"></th><th class="border border-blue-200 bg-gray-50"></th>${currentRole === 'DIRECTOR' ? '<th class="no-print border border-blue-200"></th>' : ''}</tr>`;
+            headHTML += `<th class="border border-gray-300 bg-amber-50"></th><th class="border border-gray-300 bg-gray-50"></th>${currentRole === 'DIRECTOR' ? '<th class="no-print border border-gray-300"></th>' : ''}</tr>`;
             thead.innerHTML = headHTML;
 
             if (appData.empleados.length === 0) {
@@ -1002,13 +1025,24 @@
 
             let bodyHTML = '';
             appData.empleados.forEach((emp, index) => {
-                bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border-b border-blue-100">
-                    <td class="border-r border-blue-200 p-1 font-bold sticky left-0 bg-white">${index + 1}</td>
-                    <td class="border-r border-blue-200 p-0 sticky left-8 bg-white"><input type="text" maxlength="8" ${isReadonly} class="w-full h-full p-1.5 text-center bg-transparent outline-none font-bold text-blue-900" value="${emp.dni}" oninput="handleDniLookup('${emp.id}', this.value)"></td>
-                    <td class="border-r border-blue-200 p-0 sticky left-32 bg-white"><input type="text" ${isReadonly} class="w-full h-full p-1.5 bg-transparent outline-none font-bold text-slate-800" value="${emp.nombres}" oninput="updateEmp('${emp.id}', 'nombres', this.value)"></td>
-                    <td class="border-r border-blue-200 p-0"><input type="text" ${isReadonly} class="w-full h-full p-1 text-center bg-transparent outline-none text-xs" value="${emp.cargo}" oninput="updateEmp('${emp.id}', 'cargo', this.value)"></td>
-                    <td class="border-r border-blue-200 p-0"><input type="text" ${isReadonly} class="w-full h-full p-1 text-center bg-transparent outline-none text-xs" value="${emp.condicion}" oninput="updateEmp('${emp.id}', 'condicion', this.value)"></td>
-                    <td class="border-r border-blue-200 p-0"><input type="text" ${isReadonly} class="w-full h-full p-1 text-center bg-transparent outline-none font-bold text-xs" value="${emp.jornada}" oninput="updateEmp('${emp.id}', 'jornada', this.value)"></td>
+                bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors">
+                    <!-- Columnas de datos de personal adaptadas con text-wrap y separación por líneas para visualizar el texto completo -->
+                    <td class="border border-gray-300 p-2 font-bold sticky left-0 bg-white text-center w-10 align-middle">${index + 1}</td>
+                    <td class="border border-gray-300 p-1 sticky left-10 bg-white text-center w-24 align-middle">
+                        <textarea rows="2" ${isReadonly} class="w-full text-center bg-transparent outline-none font-bold text-blue-900 resize-none overflow-hidden text-xs py-1" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; handleDniLookup('${emp.id}', this.value)">${emp.dni}</textarea>
+                    </td>
+                    <td class="border border-gray-300 p-1 sticky left-34 bg-white text-left min-w-[200px] align-middle">
+                        <textarea rows="2" ${isReadonly} class="w-full bg-transparent outline-none font-bold text-slate-800 resize-none overflow-hidden text-xs py-1 leading-normal" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; updateEmp('${emp.id}', 'nombres', this.value)">${emp.nombres}</textarea>
+                    </td>
+                    <td class="border border-gray-300 p-1 text-left min-w-[140px] align-middle">
+                        <textarea rows="2" ${isReadonly} class="w-full bg-transparent outline-none text-xs resize-none overflow-hidden py-1 leading-normal" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; updateEmp('${emp.id}', 'cargo', this.value)">${emp.cargo}</textarea>
+                    </td>
+                    <td class="border border-gray-300 p-1 text-center w-24 align-middle">
+                        <textarea rows="2" ${isReadonly} class="w-full bg-transparent outline-none text-xs text-center resize-none overflow-hidden py-1 leading-normal" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; updateEmp('${emp.id}', 'condicion', this.value)">${emp.condicion}</textarea>
+                    </td>
+                    <td class="border border-gray-300 p-1 text-center w-12 align-middle">
+                        <input type="text" ${isReadonly} class="w-full text-center bg-transparent outline-none font-bold text-xs" value="${emp.jornada}" oninput="updateEmp('${emp.id}', 'jornada', this.value)" />
+                    </td>
                 `;
                 days.forEach(d => {
                     const isWknd = d.isWeekend;
@@ -1016,19 +1050,27 @@
                     const bg = isWknd ? 'bg-red-50 text-red-500' : (val ? 'bg-blue-100 font-bold text-blue-900' : 'bg-transparent');
                     
                     if (isWknd) {
-                        bodyHTML += `<td class="border border-blue-200 p-0 ${bg}"><span class="block w-full text-center py-1 font-bold">-</span></td>`;
+                        bodyHTML += `<td class="border border-gray-300 p-0 ${bg} align-middle"><span class="block w-full text-center py-2 font-bold">-</span></td>`;
                     } else {
-                        bodyHTML += `<td class="border border-blue-200 p-0 ${bg}"><input type="text" maxlength="2" ${isReadonly} class="w-full h-full p-1 outline-none text-center uppercase bg-transparent text-xs font-bold" value="${val}" oninput="updateAsist('${emp.id}', ${d.day}, this.value)"></td>`;
+                        bodyHTML += `<td class="border border-gray-300 p-0 ${bg} align-middle">
+                            <input type="text" maxlength="2" ${isReadonly} class="w-full h-10 p-0 outline-none text-center uppercase bg-transparent text-xs font-bold" value="${val}" onchange="updateAsist('${emp.id}', ${d.day}, this.value)" />
+                        </td>`;
                     }
                 });
 
                 bodyHTML += `
-                    <td class="border-r border-blue-200 p-0 bg-amber-50/30"><input type="number" ${isReadonly} class="w-full h-full p-1 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
-                    <td class="border-r border-blue-200 p-0"><input type="text" ${isReadonly} class="w-full h-full p-1 outline-none bg-transparent text-[10px]" value="${emp.observaciones}" oninput="updateEmp('${emp.id}', 'observaciones', this.value)"></td>
-                    ${currentRole === 'DIRECTOR' ? `<td class="p-1 no-print border-b border-blue-100"><button onclick="removeEmployee('${emp.id}')" class="text-red-500 hover:text-red-700 bg-red-50 px-2 py-1 rounded"><i class="fa-solid fa-trash"></i></button></td>` : ''}
+                    <td class="border border-gray-300 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-10 p-1 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
+                    <td class="border border-gray-300 p-1 align-middle"><textarea rows="2" ${isReadonly} class="w-full bg-transparent outline-none text-[10px] resize-none overflow-hidden leading-normal py-1" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; updateEmp('${emp.id}', 'observaciones', this.value)">${emp.observaciones}</textarea></td>
+                    ${currentRole === 'DIRECTOR' ? `<td class="p-1 no-print border border-gray-300 align-middle text-center w-10"><button onclick="removeEmployee('${emp.id}')" class="text-red-500 hover:text-red-700 bg-red-50 px-2 py-2 rounded-lg transition"><i class="fa-solid fa-trash"></i></button></td>` : ''}
                 </tr>`;
             });
             tbody.innerHTML = bodyHTML;
+            
+            // Autoajustar altura de las textareas dinámicamente después de renderizar
+            document.querySelectorAll('#bodyAnexo3 textarea').forEach(textarea => {
+                textarea.style.height = '';
+                textarea.style.height = textarea.scrollHeight + 'px';
+            });
         }
 
         // --- CONSOLIDACIÓN DINÁMICA DE ASISTENCIA A ANEXO 04 ---
@@ -1074,29 +1116,34 @@
                 // Cálculo de indicadores automatizados
                 const calcs = calculateAnexo4(emp);
 
-                bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border-b border-blue-100">
-                    <td class="border-r border-blue-200 p-2 font-bold">${index + 1}</td>
-                    <td class="border-r border-blue-200 p-2 font-bold text-blue-900">${emp.dni}</td>
-                    <td class="border-r border-blue-200 p-2 text-left font-bold text-slate-800">${emp.nombres}</td>
-                    <td class="border-r border-blue-200 p-2 text-xs">${emp.cargo}</td>
-                    <td class="border-r border-blue-200 p-2 text-xs">${emp.condicion}</td>
-                    <td class="border-r border-blue-200 p-2 font-bold">${emp.jornada}</td>
+                bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-gray-300">
+                    <td class="border border-gray-300 p-2 font-bold text-center align-middle">${index + 1}</td>
+                    <td class="border border-gray-300 p-2 font-bold text-blue-900 text-center align-middle">${emp.dni}</td>
+                    <td class="border border-gray-300 p-2 text-left font-bold text-slate-800 align-middle leading-normal text-wrap">${emp.nombres}</td>
+                    <td class="border border-gray-300 p-2 text-left text-xs align-middle leading-normal text-wrap">${emp.cargo}</td>
+                    <td class="border border-gray-300 p-2 text-center text-xs align-middle leading-normal text-wrap">${emp.condicion}</td>
+                    <td class="border border-gray-300 p-2 font-bold text-center align-middle">${emp.jornada}</td>
                     
-                    <td class="border-r border-blue-200 p-2 bg-red-50 font-bold text-red-700">${calcs.inasistenciasDias}</td>
+                    <td class="border border-gray-300 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias}</td>
                     
-                    <td class="border-r border-blue-200 p-0 bg-amber-50/30"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.tardanzasH || ''}" oninput="updateEmp('${emp.id}', 'tardanzasH', this.value)"></td>
-                    <td class="border-r border-blue-200 p-0 bg-amber-50/30"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM || ''}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
+                    <td class="border border-gray-300 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-10 p-2 text-center outline-none bg-transparent" value="${emp.tardanzasH || ''}" oninput="updateEmp('${emp.id}', 'tardanzasH', this.value)"></td>
+                    <td class="border border-gray-300 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM || ''}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
                     
-                    <td class="border-r border-blue-200 p-0 bg-blue-50/30"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGH || ''}" oninput="updateEmp('${emp.id}', 'permisosSGH', this.value)"></td>
-                    <td class="border-r border-blue-200 p-0 bg-blue-50/30"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGM || ''}" oninput="updateEmp('${emp.id}', 'permisosSGM', this.value)"></td>
-                    <td class="border-r border-blue-200 p-2 bg-blue-50 font-bold text-blue-700">${calcs.permisosSGDias}</td>
+                    <td class="border border-gray-300 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGH || ''}" oninput="updateEmp('${emp.id}', 'permisosSGH', this.value)"></td>
+                    <td class="border border-gray-300 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGM || ''}" oninput="updateEmp('${emp.id}', 'permisosSGM', this.value)"></td>
+                    <td class="border border-gray-300 p-2 bg-blue-50 font-bold text-blue-700 text-center align-middle">${calcs.permisosSGDias}</td>
                     
                     <!-- Campo Huelga/Paro se automatiza desde el código 'H' (Anexo 03) -->
-                    <td class="border-r border-blue-200 p-2 bg-red-50 font-bold text-red-700">${calcs.huelgaDias}</td>
-                    <td class="border-r border-blue-200 p-0"><input type="text" ${isReadonly} class="w-full h-full p-2 outline-none text-left bg-transparent text-[10px]" value="${emp.observaciones || ''}" oninput="updateEmp('${emp.id}', 'observaciones', this.value)"></td>
+                    <td class="border border-gray-300 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.huelgaDias}</td>
+                    <td class="border border-gray-300 p-1 align-middle"><textarea rows="2" ${isReadonly} class="w-full bg-transparent outline-none text-[10px] resize-none overflow-hidden leading-normal py-1" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; updateEmp('${emp.id}', 'observaciones', this.value)">${emp.observaciones || ''}</textarea></td>
                 </tr>`;
             });
             tbody.innerHTML = bodyHTML;
+            
+            document.querySelectorAll('#bodyAnexo4 textarea').forEach(textarea => {
+                textarea.style.height = '';
+                textarea.style.height = textarea.scrollHeight + 'px';
+            });
         }
 
         // --- GOOGLE SHEETS API Y CONFIGURACIÓN ---
