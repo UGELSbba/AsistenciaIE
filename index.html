@@ -199,9 +199,10 @@
                             <span class="text-xs text-red-700 italic ml-2 hidden lg:inline" id="hintCodModular">Se autocompletará al ingresar los 7 números o pulsar Buscar.</span>
                         </div>
 
+                        <!-- Campos bloqueados de solo lectura para el panel del Director y del Admin -->
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">DRE/UGEL:</label>
-                            <input type="text" id="meta-dre" class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none" oninput="appData.dreUgel = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-dre" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none" oninput="appData.dreUgel = this.value; triggerAutoSave();">
                         </div>
 
                         <div class="flex flex-col gap-1">
@@ -211,22 +212,22 @@
 
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">INSTITUCIÓN EDUCATIVA:</label>
-                            <input type="text" id="meta-ie" class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 font-bold text-red-900 focus:bg-white focus:border-blue-500 outline-none" oninput="appData.ie = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-ie" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed font-bold text-red-900 outline-none" oninput="appData.ie = this.value; triggerAutoSave();">
                         </div>
 
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">LUGAR:</label>
-                            <input type="text" id="meta-lugar" class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none" oninput="appData.lugar = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-lugar" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none" oninput="appData.lugar = this.value; triggerAutoSave();">
                         </div>
 
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">NIVEL EDUCATIVO:</label>
-                            <input type="text" id="meta-nivel" class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none" oninput="appData.nivel = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-nivel" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none" oninput="appData.nivel = this.value; triggerAutoSave();">
                         </div>
 
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">DISTRITO:</label>
-                            <input type="text" id="meta-distrito" class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none" oninput="appData.distrito = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-distrito" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none" oninput="appData.distrito = this.value; triggerAutoSave();">
                         </div>
                     </div>
 
@@ -372,7 +373,7 @@
                     <input type="text" id="inputSheetsUrl" class="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 font-mono text-xs" placeholder="https://script.google.com/macros/s/.../exec">
                 </div>
 
-                <div class="bg-blue-50 text-blue-900 p-3 rounded-lg text-xs border border-blue-200 mt-4">
+                <div class="bg-blue-50 text-blue-900 p-3 rounded-lg text-xs border border-red-200 mt-4">
                     <strong>2. Autocompletado desde Google Sheets:</strong> Pega las URLs de tus hojas de Google Sheets publicadas como CSV para autocompletar Colegios y DNI.
                     <br><em class="text-[10px] block mt-1">Nota: Las columnas de tu tabla en Sheets deben llamarse: <b>codigo, dre, institucion, lugar, nivel, distrito</b>.</em>
                 </div>
