@@ -630,9 +630,9 @@
                     <tr class="border-b border-gray-150 hover:bg-slate-50 transition">
                         <td class="p-4">
                             <div class="font-extrabold text-slate-800">${rep.ie || 'Colegio sin Nombre'}</div>
-                            <div class="text-xs text-blue-600 font-bold uppercase">{rep.codigoModular || 'Sin Código'} - ${rep.nivel || ''}</div>
+                            <div class="text-xs text-blue-600 font-bold uppercase">${rep.codigoModular || 'Sin Código'} - ${rep.nivel || ''}</div>
                         </td>
-                        <td class="p-4 text-slate-600 font-bold">{rep.mesAno || 'Sin Fecha'}</td>
+                        <td class="p-4 text-slate-600 font-bold">${rep.mesAno || 'Sin Fecha'}</td>
                         <td class="p-4 text-slate-500 font-semibold">${rep.empleados ? rep.empleados.length : 0} integrantes</td>
                         <td class="p-4 text-center">
                             <div class="flex justify-center gap-2">
@@ -1004,30 +1004,31 @@
             const tbody = document.getElementById('bodyAnexo3');
             const isReadonly = currentRole === 'ADMIN' ? 'readonly' : '';
             
+            // Render Headers con fusion rowspan="2" para evitar espacios en blanco debajo de los metadatos del personal
             let headHTML = `
                 <tr class="bg-blue-50 text-blue-900 font-bold border border-slate-400">
-                    <th class="p-2 border border-slate-400 sticky left-0 bg-blue-50 text-center">N°</th>
-                    <th class="p-2 border border-slate-400 sticky left-10 bg-blue-50 text-center">DNI</th>
-                    <th class="p-2 border border-slate-400 sticky left-34 bg-blue-50 text-left">APELLIDOS Y NOMBRES</th>
-                    <th class="p-2 border border-slate-400 text-left">CARGO</th>
-                    <th class="p-2 border border-slate-400 text-center">CONDICIÓN</th>
-                    <th class="p-2 border border-slate-400 text-center">Jor. Lab.</th>
-                    <th colspan="${days.length}" class="p-1 border border-slate-400 text-center tracking-widest bg-red-50 text-red-900">DÍAS CALENDARIOS</th>
-                    <th class="p-1 border border-slate-400 bg-amber-100 text-amber-900 text-center">MIN.</th>
-                    <th class="p-1 border border-slate-400 bg-gray-100 text-left">OBSERVACIONES</th>
+                    <th rowspan="2" class="p-2 border border-slate-400 sticky left-0 bg-blue-50 text-center align-middle">N°</th>
+                    <th rowspan="2" class="p-2 border border-slate-400 sticky left-10 bg-blue-50 text-center align-middle">DNI</th>
+                    <th rowspan="2" class="p-2 border border-slate-400 sticky left-34 bg-blue-50 text-left align-middle">APELLIDOS Y NOMBRES</th>
+                    <th rowspan="2" class="p-2 border border-slate-400 text-left align-middle">CARGO</th>
+                    <th rowspan="2" class="p-2 border border-slate-400 text-center align-middle">CONDICIÓN</th>
+                    <th rowspan="2" class="p-2 border border-slate-400 text-center align-middle">Jor. Lab.</th>
+                    <th colSpan="${days.length}" class="p-1 border border-slate-400 text-center tracking-widest bg-red-50 text-red-900 align-middle">DÍAS CALENDARIOS</th>
+                    <th rowspan="2" class="p-1 border border-slate-400 bg-amber-100 text-amber-900 text-center align-middle">MIN.</th>
+                    <th rowspan="2" class="p-1 border border-slate-400 bg-gray-100 text-left align-middle">OBSERVACIONES</th>
+                    ${currentRole === 'DIRECTOR' ? `<th rowspan="2" class="p-1 no-print border border-slate-400 text-center align-middle">Acción</th>` : ''}
                 </tr>
                 <tr class="bg-white text-[9px] border border-slate-400">
-                    <th colspan="6" class="border border-slate-400 sticky left-0 bg-white"></th>
             `;
             days.forEach(d => {
                 const bg = d.isWeekend ? 'bg-red-100 text-red-800' : 'bg-blue-50 text-blue-800';
                 headHTML += `<th class="border border-slate-400 p-1 w-6 font-bold ${bg}">${d.day}<br/><span class="text-[7px] font-normal">${d.dayName}</span></th>`;
             });
-            headHTML += `<th class="border border-slate-400 bg-amber-50"></th><th class="border border-slate-400 bg-gray-50"></th></tr>`;
+            headHTML += `</tr>`;
             thead.innerHTML = headHTML;
 
             if (appData.empleados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${days.length + 8}" class="p-8 text-center text-slate-400 italic">No hay personal registrado en este formato.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${days.length + (currentRole === 'DIRECTOR' ? 10 : 9)}" class="p-8 text-center text-slate-400 italic">No hay personal registrado en este formato.</td></tr>`;
                 return;
             }
 
@@ -1079,17 +1080,19 @@
                 });
 
                 bodyHTML += `
-                    <td class="border border-slate-400 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-10 p-1 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
+                    <td class="border border-slate-400 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-10 p-1 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM}"></td>
                     
-                    <td class="border border-slate-400 p-1 align-middle flex items-center justify-between gap-2">
+                    <td class="border border-slate-400 p-1 align-middle">
                         <input type="text" size="${sizeObs}" ${isReadonly} class="bg-transparent outline-none text-[10px] py-1 whitespace-nowrap" value="${emp.observaciones}" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustInputWidth(this, 13);" placeholder="Observaciones" />
-                        
-                        <!-- Icono Eliminar integrado perfectamente al final de la celda de Observaciones -->
-                        ${currentRole === 'DIRECTOR' ? `
-                        <button onclick="removeEmployee('${emp.id}')" class="text-red-500 hover:text-red-700 bg-red-50 p-1.5 rounded-md transition no-print" title="Eliminar Personal">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>` : ''}
                     </td>
+                    
+                    <!-- Columna independiente para el botón de eliminar al final de la fila -->
+                    ${currentRole === 'DIRECTOR' ? `
+                    <td class="border border-slate-400 p-1 no-print align-middle text-center w-12">
+                        <button onclick="removeEmployee('${emp.id}')" class="text-red-500 hover:text-red-700 bg-red-50 p-1.5 rounded-lg transition" title="Eliminar Personal">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>` : ''}
                 </tr>`;
             });
             tbody.innerHTML = bodyHTML;
@@ -1197,6 +1200,7 @@
             }
         }
 
+        // ... rest of script ...
         function triggerAutoSave() {
             if (!googleSheetsUrl || currentRole === 'ADMIN') return;
             updateCloudStatus('syncing');
