@@ -255,7 +255,8 @@
                         </div>
 
                         <div class="overflow-x-auto custom-scrollbar p-4">
-                            <table class="w-full text-[10px] sm:text-xs border-collapse text-center print-table table-fixed">
+                            <!-- table-auto permite que las columnas crezcan linealmente según su contenido -->
+                            <table class="w-full text-[10px] sm:text-xs border-collapse text-center print-table table-auto">
                                 <thead id="headAnexo3"></thead>
                                 <tbody id="bodyAnexo3"></tbody>
                             </table>
@@ -310,29 +311,29 @@
                         </div>
 
                         <div class="overflow-x-auto custom-scrollbar p-4">
-                            <table class="w-full text-xs border-collapse text-center print-table">
+                            <table class="w-full text-xs border border-slate-300 border-collapse text-center print-table table-auto">
                                 <thead>
                                     <tr class="bg-blue-50 text-blue-900 font-bold">
-                                        <th rowspan="2" class="border border-blue-200 p-2 w-8">N°</th>
-                                        <th rowspan="2" class="border border-blue-200 p-2 w-24">DNI</th>
-                                        <th rowspan="2" class="border border-blue-200 p-2 min-w-[200px] text-left">APELLIDOS Y NOMBRES</th>
-                                        <th rowspan="2" class="border border-blue-200 p-2">CARGO</th>
-                                        <th rowspan="2" class="border border-blue-200 p-2">CONDICIÓN</th>
-                                        <th rowspan="2" class="border border-blue-200 p-2 w-12">Jor. Lab.</th>
-                                        <th class="border border-blue-200 bg-red-100 p-1 text-red-900 font-bold">Inasistencias</th>
-                                        <th colspan="2" class="border border-blue-200 bg-amber-50 p-1 text-amber-900 font-bold">Tardanzas</th>
-                                        <th colspan="3" class="border border-blue-200 bg-blue-100 p-1 text-blue-900 font-bold">Permisos SG</th>
-                                        <th class="border border-blue-200 bg-red-50 p-1 text-red-900 font-bold">Huelga/Paro</th>
-                                        <th rowspan="2" class="border border-blue-200 p-2 w-48">Observaciones</th>
+                                        <th rowspan="2" class="border border-slate-300 p-2 w-8">N°</th>
+                                        <th rowspan="2" class="border border-slate-300 p-2 w-24">DNI</th>
+                                        <th rowspan="2" class="border border-slate-300 p-2 min-w-[200px] text-left">APELLIDOS Y NOMBRES</th>
+                                        <th rowspan="2" class="border border-slate-300 p-2">CARGO</th>
+                                        <th rowspan="2" class="border border-slate-300 p-2">CONDICIÓN</th>
+                                        <th rowspan="2" class="border border-slate-300 p-2 w-12">Jor. Lab.</th>
+                                        <th class="border border-slate-300 bg-red-100 p-1 text-red-900 font-bold">Inasistencias</th>
+                                        <th colspan="2" class="border border-slate-300 bg-amber-50 p-1 text-amber-900 font-bold">Tardanzas</th>
+                                        <th colspan="3" class="border border-slate-300 bg-blue-100 p-1 text-blue-900 font-bold">Permisos SG</th>
+                                        <th class="border border-slate-300 bg-red-50 p-1 text-red-900 font-bold">Huelga/Paro</th>
+                                        <th rowspan="2" class="border border-slate-300 p-2 w-48">Observaciones</th>
                                     </tr>
                                     <tr class="bg-white text-[10px]">
-                                        <th class="border border-blue-200 bg-red-50 p-1 font-bold text-red-700">Días</th>
-                                        <th class="border border-blue-200 bg-amber-50 p-1 text-amber-700">Horas</th>
-                                        <th class="border border-blue-200 bg-amber-50 p-1 text-amber-700">Minutos</th>
-                                        <th class="border border-blue-200 bg-blue-50 p-1 text-blue-700">Horas</th>
-                                        <th class="border border-blue-200 bg-blue-50 p-1 text-blue-700">Minutos</th>
-                                        <th class="border border-blue-200 bg-blue-50 p-1 font-bold text-blue-700">Días</th>
-                                        <th class="border border-blue-200 bg-red-50 p-1 text-red-700">Días</th>
+                                        <th class="border border-slate-300 bg-red-50 p-1 font-bold text-red-700">Días</th>
+                                        <th class="border border-slate-300 bg-amber-50 p-1 text-amber-700">Horas</th>
+                                        <th class="border border-slate-300 bg-amber-50 p-1 text-amber-700">Minutos</th>
+                                        <th class="border border-slate-300 bg-blue-50 p-1 text-blue-700">Horas</th>
+                                        <th class="border border-slate-300 bg-blue-50 p-1 text-blue-700">Minutos</th>
+                                        <th class="border border-slate-300 bg-blue-50 p-1 font-bold text-blue-700">Días</th>
+                                        <th class="border border-slate-300 bg-red-50 p-1 text-red-700">Días</th>
                                     </tr>
                                 </thead>
                                 <tbody id="bodyAnexo4"></tbody>
@@ -928,6 +929,28 @@
             }
         }
 
+        // Ajustar dinámicamente el tamaño de fuente para que todo quepa en una sola línea bien distribuido
+        function adjustInputFontSize(input) {
+            const tempSpan = document.createElement('span');
+            tempSpan.style.font = window.getComputedStyle(input).font;
+            tempSpan.style.visibility = 'hidden';
+            tempSpan.style.whiteSpace = 'nowrap';
+            tempSpan.innerText = input.value || input.placeholder || '';
+            document.body.appendChild(tempSpan);
+            
+            const textWidth = tempSpan.offsetWidth;
+            const inputWidth = input.offsetWidth - 16; // Margen de seguridad para padding
+            document.body.removeChild(tempSpan);
+
+            if (textWidth > inputWidth && inputWidth > 0) {
+                const ratio = inputWidth / textWidth;
+                const newSize = Math.max(8, Math.floor(12 * ratio)); // Límite mínimo de fuente de 8px
+                input.style.fontSize = `${newSize}px`;
+            } else {
+                input.style.fontSize = ''; // Reestablecer al valor original de Tailwind
+            }
+        }
+
         function handleDniLookup(id, val) {
             if (currentRole === 'ADMIN') return;
             updateEmp(id, 'dni', val);
@@ -996,26 +1019,26 @@
             const isReadonly = currentRole === 'ADMIN' ? 'readonly' : '';
             
             let headHTML = `
-                <tr class="bg-blue-50 text-blue-900 font-bold border border-gray-300">
-                    <th class="p-2 border border-gray-300 sticky left-0 bg-blue-50 w-10 text-center">N°</th>
-                    <th class="p-2 border border-gray-300 sticky left-10 bg-blue-50 w-24 text-center">DNI</th>
-                    <th class="p-2 border border-gray-300 sticky left-34 bg-blue-50 min-w-[200px] text-left">APELLIDOS Y NOMBRES</th>
-                    <th class="p-2 border border-gray-300 text-left min-w-[140px]">CARGO</th>
-                    <th class="p-2 border border-gray-300 text-center w-24">CONDICIÓN</th>
-                    <th class="p-2 border border-gray-300 text-center w-12">Jor. Lab.</th>
-                    <th colspan="${days.length}" class="p-1 border border-gray-300 text-center tracking-widest bg-red-50 text-red-900">DÍAS CALENDARIOS</th>
-                    <th class="p-1 border border-gray-300 bg-amber-100 text-amber-900 w-12 text-center">MIN.</th>
-                    <th class="p-1 border border-gray-300 bg-gray-100 w-32 text-left">OBSERVACIONES</th>
-                    ${currentRole === 'DIRECTOR' ? `<th class="p-1 no-print border border-gray-300 w-10 text-center">X</th>` : ''}
+                <tr class="bg-blue-50 text-blue-900 font-bold border border-slate-300">
+                    <th class="p-2 border border-slate-300 sticky left-0 bg-blue-50 w-10 text-center">N°</th>
+                    <th class="p-2 border border-slate-300 sticky left-10 bg-blue-50 w-24 text-center">DNI</th>
+                    <th class="p-2 border border-slate-300 sticky left-34 bg-blue-50 min-w-[280px] text-left">APELLIDOS Y NOMBRES</th>
+                    <th class="p-2 border border-slate-300 text-left min-w-[200px]">CARGO</th>
+                    <th class="p-2 border border-slate-300 text-center w-32">CONDICIÓN</th>
+                    <th class="p-2 border border-slate-300 text-center w-14">Jor. Lab.</th>
+                    <th colspan="${days.length}" class="p-1 border border-slate-300 text-center tracking-widest bg-red-50 text-red-900">DÍAS CALENDARIOS</th>
+                    <th class="p-1 border border-slate-300 bg-amber-100 text-amber-900 w-12 text-center">MIN.</th>
+                    <th class="p-1 border border-slate-300 bg-gray-100 min-w-[150px] text-left">OBSERVACIONES</th>
+                    ${currentRole === 'DIRECTOR' ? `<th class="p-1 no-print border border-slate-300 w-10 text-center">X</th>` : ''}
                 </tr>
                 <tr class="bg-white text-[9px]">
-                    <th colspan="6" class="border border-gray-300 sticky left-0 bg-white"></th>
+                    <th colspan="6" class="border border-slate-300 sticky left-0 bg-white"></th>
             `;
             days.forEach(d => {
                 const bg = d.isWeekend ? 'bg-red-100 text-red-800' : 'bg-blue-50 text-blue-800';
-                headHTML += `<th class="border border-gray-300 p-1 w-6 font-bold ${bg}">${d.day}<br/><span class="text-[7px] font-normal">${d.dayName}</span></th>`;
+                headHTML += `<th class="border border-slate-300 p-1 w-6 font-bold ${bg}">${d.day}<br/><span class="text-[7px] font-normal">${d.dayName}</span></th>`;
             });
-            headHTML += `<th class="border border-gray-300 bg-amber-50"></th><th class="border border-gray-300 bg-gray-50"></th>${currentRole === 'DIRECTOR' ? '<th class="no-print border border-gray-300"></th>' : ''}</tr>`;
+            headHTML += `<th class="border border-slate-300 bg-amber-50"></th><th class="border border-slate-300 bg-gray-50"></th>${currentRole === 'DIRECTOR' ? '<th class="no-print border border-slate-300"></th>' : ''}</tr>`;
             thead.innerHTML = headHTML;
 
             if (appData.empleados.length === 0) {
@@ -1026,21 +1049,21 @@
             let bodyHTML = '';
             appData.empleados.forEach((emp, index) => {
                 bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors">
-                    <!-- Columnas de datos de personal adaptadas con text-wrap y separación por líneas para visualizar el texto completo -->
-                    <td class="border border-gray-300 p-2 font-bold sticky left-0 bg-white text-center w-10 align-middle">${index + 1}</td>
-                    <td class="border border-gray-300 p-1 sticky left-10 bg-white text-center w-24 align-middle">
-                        <textarea rows="2" ${isReadonly} class="w-full text-center bg-transparent outline-none font-bold text-blue-900 resize-none overflow-hidden text-xs py-1" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; handleDniLookup('${emp.id}', this.value)">${emp.dni}</textarea>
+                    <!-- Columnas de datos de personal adaptadas de forma lineal, sin saltos de linea y separadas claramente por lineas de borde slate -->
+                    <td class="border border-slate-300 p-2 font-bold sticky left-0 bg-white text-center w-10 align-middle">${index + 1}</td>
+                    <td class="border border-slate-300 p-1 sticky left-10 bg-white text-center w-24 align-middle">
+                        <input type="text" maxlength="8" ${isReadonly} class="w-full text-center bg-transparent outline-none font-bold text-blue-900 text-xs py-1 whitespace-nowrap" value="${emp.dni}" oninput="handleDniLookup('${emp.id}', this.value)" />
                     </td>
-                    <td class="border border-gray-300 p-1 sticky left-34 bg-white text-left min-w-[200px] align-middle">
-                        <textarea rows="2" ${isReadonly} class="w-full bg-transparent outline-none font-bold text-slate-800 resize-none overflow-hidden text-xs py-1 leading-normal" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; updateEmp('${emp.id}', 'nombres', this.value)">${emp.nombres}</textarea>
+                    <td class="border border-slate-300 p-1 sticky left-34 bg-white text-left min-w-[280px] align-middle">
+                        <input type="text" ${isReadonly} class="w-full bg-transparent outline-none font-bold text-slate-800 text-xs py-1 whitespace-nowrap truncate" value="${emp.nombres}" oninput="updateEmp('${emp.id}', 'nombres', this.value); adjustInputFontSize(this);" onfocus="adjustInputFontSize(this);" placeholder="Nombres Completos" />
                     </td>
-                    <td class="border border-gray-300 p-1 text-left min-w-[140px] align-middle">
-                        <textarea rows="2" ${isReadonly} class="w-full bg-transparent outline-none text-xs resize-none overflow-hidden py-1 leading-normal" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; updateEmp('${emp.id}', 'cargo', this.value)">${emp.cargo}</textarea>
+                    <td class="border border-slate-300 p-1 text-left min-w-[200px] align-middle">
+                        <input type="text" ${isReadonly} class="w-full bg-transparent outline-none text-xs py-1 whitespace-nowrap truncate" value="${emp.cargo}" oninput="updateEmp('${emp.id}', 'cargo', this.value); adjustInputFontSize(this);" onfocus="adjustInputFontSize(this);" placeholder="Cargo de Función" />
                     </td>
-                    <td class="border border-gray-300 p-1 text-center w-24 align-middle">
-                        <textarea rows="2" ${isReadonly} class="w-full bg-transparent outline-none text-xs text-center resize-none overflow-hidden py-1 leading-normal" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; updateEmp('${emp.id}', 'condicion', this.value)">${emp.condicion}</textarea>
+                    <td class="border border-slate-300 p-1 text-center w-32 align-middle">
+                        <input type="text" ${isReadonly} class="w-full bg-transparent outline-none text-xs text-center py-1 whitespace-nowrap truncate" value="${emp.condicion}" oninput="updateEmp('${emp.id}', 'condicion', this.value); adjustInputFontSize(this);" onfocus="adjustInputFontSize(this);" placeholder="Condición" />
                     </td>
-                    <td class="border border-gray-300 p-1 text-center w-12 align-middle">
+                    <td class="border border-slate-300 p-1 text-center w-14 align-middle">
                         <input type="text" ${isReadonly} class="w-full text-center bg-transparent outline-none font-bold text-xs" value="${emp.jornada}" oninput="updateEmp('${emp.id}', 'jornada', this.value)" />
                     </td>
                 `;
@@ -1050,26 +1073,25 @@
                     const bg = isWknd ? 'bg-red-50 text-red-500' : (val ? 'bg-blue-100 font-bold text-blue-900' : 'bg-transparent');
                     
                     if (isWknd) {
-                        bodyHTML += `<td class="border border-gray-300 p-0 ${bg} align-middle"><span class="block w-full text-center py-2 font-bold">-</span></td>`;
+                        bodyHTML += `<td class="border border-slate-300 p-0 ${bg} align-middle"><span class="block w-full text-center py-2 font-bold">-</span></td>`;
                     } else {
-                        bodyHTML += `<td class="border border-gray-300 p-0 ${bg} align-middle">
+                        bodyHTML += `<td class="border border-slate-300 p-0 ${bg} align-middle">
                             <input type="text" maxlength="2" ${isReadonly} class="w-full h-10 p-0 outline-none text-center uppercase bg-transparent text-xs font-bold" value="${val}" onchange="updateAsist('${emp.id}', ${d.day}, this.value)" />
                         </td>`;
                     }
                 });
 
                 bodyHTML += `
-                    <td class="border border-gray-300 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-10 p-1 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
-                    <td class="border border-gray-300 p-1 align-middle"><textarea rows="2" ${isReadonly} class="w-full bg-transparent outline-none text-[10px] resize-none overflow-hidden leading-normal py-1" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; updateEmp('${emp.id}', 'observaciones', this.value)">${emp.observaciones}</textarea></td>
-                    ${currentRole === 'DIRECTOR' ? `<td class="p-1 no-print border border-gray-300 align-middle text-center w-10"><button onclick="removeEmployee('${emp.id}')" class="text-red-500 hover:text-red-700 bg-red-50 px-2 py-2 rounded-lg transition"><i class="fa-solid fa-trash"></i></button></td>` : ''}
+                    <td class="border border-slate-300 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-10 p-1 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
+                    <td class="border border-slate-300 p-1 align-middle min-w-[150px]"><input type="text" ${isReadonly} class="w-full bg-transparent outline-none text-[10px] py-1 whitespace-nowrap" value="${emp.observaciones}" oninput="updateEmp('${emp.id}', 'observaciones', this.value)"></td>
+                    ${currentRole === 'DIRECTOR' ? `<td class="p-1 no-print border border-slate-300 align-middle text-center w-10"><button onclick="removeEmployee('${emp.id}')" class="text-red-500 hover:text-red-700 bg-red-50 px-2 py-2 rounded-lg transition"><i class="fa-solid fa-trash"></i></button></td>` : ''}
                 </tr>`;
             });
             tbody.innerHTML = bodyHTML;
             
-            // Autoajustar altura de las textareas dinámicamente después de renderizar
-            document.querySelectorAll('#bodyAnexo3 textarea').forEach(textarea => {
-                textarea.style.height = '';
-                textarea.style.height = textarea.scrollHeight + 'px';
+            // Autoajustar el tamaño de fuente de los inputs dinámicamente al cargar la tabla
+            document.querySelectorAll('#bodyAnexo3 input[type="text"]').forEach(input => {
+                adjustInputFontSize(input);
             });
         }
 
@@ -1116,34 +1138,29 @@
                 // Cálculo de indicadores automatizados
                 const calcs = calculateAnexo4(emp);
 
-                bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-gray-300">
-                    <td class="border border-gray-300 p-2 font-bold text-center align-middle">${index + 1}</td>
-                    <td class="border border-gray-300 p-2 font-bold text-blue-900 text-center align-middle">${emp.dni}</td>
-                    <td class="border border-gray-300 p-2 text-left font-bold text-slate-800 align-middle leading-normal text-wrap">${emp.nombres}</td>
-                    <td class="border border-gray-300 p-2 text-left text-xs align-middle leading-normal text-wrap">${emp.cargo}</td>
-                    <td class="border border-gray-300 p-2 text-center text-xs align-middle leading-normal text-wrap">${emp.condicion}</td>
-                    <td class="border border-gray-300 p-2 font-bold text-center align-middle">${emp.jornada}</td>
+                bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-300">
+                    <td class="border border-slate-300 p-2 font-bold text-center align-middle">${index + 1}</td>
+                    <td class="border border-slate-300 p-2 font-bold text-blue-900 text-center align-middle">${emp.dni}</td>
+                    <td class="border border-slate-300 p-2 text-left font-bold text-slate-800 align-middle leading-normal text-nowrap truncate" style="max-width: 250px;">${emp.nombres}</td>
+                    <td class="border border-slate-300 p-2 text-left text-xs align-middle leading-normal text-nowrap truncate" style="max-width: 200px;">${emp.cargo}</td>
+                    <td class="border border-slate-300 p-2 text-center text-xs align-middle leading-normal text-nowrap truncate" style="max-width: 150px;">${emp.condicion}</td>
+                    <td class="border border-slate-300 p-2 font-bold text-center align-middle">${emp.jornada}</td>
                     
-                    <td class="border border-gray-300 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias}</td>
+                    <td class="border border-slate-300 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias}</td>
                     
-                    <td class="border border-gray-300 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-10 p-2 text-center outline-none bg-transparent" value="${emp.tardanzasH || ''}" oninput="updateEmp('${emp.id}', 'tardanzasH', this.value)"></td>
-                    <td class="border border-gray-300 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM || ''}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
+                    <td class="border border-slate-300 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-10 p-2 text-center outline-none bg-transparent" value="${emp.tardanzasH || ''}" oninput="updateEmp('${emp.id}', 'tardanzasH', this.value)"></td>
+                    <td class="border border-slate-300 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM || ''}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
                     
-                    <td class="border border-gray-300 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGH || ''}" oninput="updateEmp('${emp.id}', 'permisosSGH', this.value)"></td>
-                    <td class="border border-gray-300 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGM || ''}" oninput="updateEmp('${emp.id}', 'permisosSGM', this.value)"></td>
-                    <td class="border border-gray-300 p-2 bg-blue-50 font-bold text-blue-700 text-center align-middle">${calcs.permisosSGDias}</td>
+                    <td class="border border-slate-300 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGH || ''}" oninput="updateEmp('${emp.id}', 'permisosSGH', this.value)"></td>
+                    <td class="border border-slate-300 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGM || ''}" oninput="updateEmp('${emp.id}', 'permisosSGM', this.value)"></td>
+                    <td class="border border-slate-300 p-2 bg-blue-50 font-bold text-blue-700 text-center align-middle">${calcs.permisosSGDias}</td>
                     
                     <!-- Campo Huelga/Paro se automatiza desde el código 'H' (Anexo 03) -->
-                    <td class="border border-gray-300 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.huelgaDias}</td>
-                    <td class="border border-gray-300 p-1 align-middle"><textarea rows="2" ${isReadonly} class="w-full bg-transparent outline-none text-[10px] resize-none overflow-hidden leading-normal py-1" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; updateEmp('${emp.id}', 'observaciones', this.value)">${emp.observaciones || ''}</textarea></td>
+                    <td class="border border-slate-300 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.huelgaDias}</td>
+                    <td class="border border-slate-300 p-1 align-middle min-w-[150px]"><input type="text" ${isReadonly} class="w-full bg-transparent outline-none text-[10px] py-1 whitespace-nowrap" value="${emp.observaciones || ''}" oninput="updateEmp('${emp.id}', 'observaciones', this.value)"></td>
                 </tr>`;
             });
             tbody.innerHTML = bodyHTML;
-            
-            document.querySelectorAll('#bodyAnexo4 textarea').forEach(textarea => {
-                textarea.style.height = '';
-                textarea.style.height = textarea.scrollHeight + 'px';
-            });
         }
 
         // --- GOOGLE SHEETS API Y CONFIGURACIÓN ---
