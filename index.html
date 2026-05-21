@@ -12,9 +12,9 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; }
         
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #93c5fd; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #93c5fd; border-radius: 2px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #2563eb; }
 
         /* Animaciones */
@@ -254,9 +254,9 @@
                             <div class="grid grid-cols-4 text-left mt-4 text-[10px] border border-slate-400 p-3 rounded" id="metaPrintA3"></div>
                         </div>
 
-                        <div class="overflow-x-auto custom-scrollbar p-4">
-                            <!-- table-auto permite que las columnas crezcan de forma fluida lineal -->
-                            <table class="w-full text-[10px] sm:text-xs border-collapse text-center print-table table-auto whitespace-nowrap">
+                        <div class="overflow-x-auto custom-scrollbar p-1">
+                            <!-- table-auto w-full y fuentes compactas para prevenir scroll horizontal -->
+                            <table class="w-full text-[9px] sm:text-xs border-collapse text-center print-table table-auto whitespace-nowrap">
                                 <thead id="headAnexo3"></thead>
                                 <tbody id="bodyAnexo3"></tbody>
                             </table>
@@ -310,7 +310,7 @@
                             <div class="grid grid-cols-4 text-left mt-4 text-[10px] border border-slate-400 p-3 rounded" id="metaPrintA4"></div>
                         </div>
 
-                        <div class="overflow-x-auto custom-scrollbar p-4">
+                        <div class="overflow-x-auto custom-scrollbar p-1">
                             <table class="w-full text-xs border border-slate-400 border-collapse text-center print-table table-auto whitespace-nowrap">
                                 <thead>
                                     <tr class="bg-blue-50 text-blue-900 font-bold">
@@ -1007,12 +1007,12 @@
             // Render Headers con fusion rowspan="2" para evitar espacios en blanco debajo de los metadatos del personal
             let headHTML = `
                 <tr class="bg-blue-50 text-blue-900 font-bold border border-slate-400">
-                    <th rowspan="2" style="position: sticky; left: 0px; z-index: 30; border: 1px solid #94a3b8; min-width: 40px; max-width: 40px;" class="p-2 bg-blue-50 text-center align-middle">N°</th>
-                    <th rowspan="2" style="position: sticky; left: 40px; z-index: 30; border: 1px solid #94a3b8; min-width: 80px; max-width: 80px;" class="p-2 bg-blue-50 text-center align-middle">DNI</th>
-                    <th rowspan="2" style="position: sticky; left: 120px; z-index: 30; border: 1px solid #94a3b8; min-width: 280px; max-width: 280px;" class="p-2 bg-blue-50 text-left align-middle">APELLIDOS Y NOMBRES</th>
-                    <th rowspan="2" class="p-2 border border-slate-400 text-left align-middle">CARGO</th>
-                    <th rowspan="2" class="p-2 border border-slate-400 text-center align-middle">CONDICIÓN</th>
-                    <th rowspan="2" class="p-2 border border-slate-400 text-center align-middle">Jor. Lab.</th>
+                    <th rowspan="2" style="border: 1px solid #94a3b8; min-width: 24px; max-width: 24px;" class="p-1 bg-blue-50 text-center align-middle">N°</th>
+                    <th rowspan="2" style="border: 1px solid #94a3b8; border-right: 2px solid #64748b; min-width: 65px; max-width: 65px;" class="p-1 bg-blue-50 text-center align-middle">DNI</th>
+                    <th rowspan="2" style="border: 1px solid #94a3b8; min-width: 150px;" class="p-1 bg-blue-50 text-left align-middle">APELLIDOS Y NOMBRES</th>
+                    <th rowspan="2" class="p-1 border border-slate-400 text-left align-middle">CARGO</th>
+                    <th rowspan="2" class="p-1 border border-slate-400 text-center align-middle">CONDICIÓN</th>
+                    <th rowspan="2" class="p-1 border border-slate-400 text-center align-middle">Jor. Lab.</th>
                     <th colSpan="${days.length}" class="p-1 border border-slate-400 text-center tracking-widest bg-red-50 text-red-900 align-middle">DÍAS CALENDARIOS</th>
                     <th rowspan="2" class="p-1 border border-slate-400 bg-amber-100 text-amber-900 text-center align-middle">MIN.</th>
                     <th rowspan="2" class="p-1 border border-slate-400 bg-gray-100 text-left align-middle">OBSERVACIONES</th>
@@ -1022,7 +1022,7 @@
             `;
             days.forEach(d => {
                 const bg = d.isWeekend ? 'bg-red-100 text-red-800' : 'bg-blue-50 text-blue-800';
-                headHTML += `<th class="border border-slate-400 p-1 w-6 font-bold ${bg}">${d.day}<br/><span class="text-[7px] font-normal">${d.dayName}</span></th>`;
+                headHTML += `<th class="border border-slate-400 p-0.5 w-5 font-bold ${bg}">${d.day}<br/><span class="text-[6px] font-normal">${d.dayName}</span></th>`;
             });
             headHTML += `</tr>`;
             thead.innerHTML = headHTML;
@@ -1042,27 +1042,27 @@
                 const sizeJornada = Math.max(9, emp.jornada ? emp.jornada.length : 0);
                 const sizeObs = Math.max(13, emp.observaciones ? emp.observaciones.length : 0);
 
-                bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400">
-                    <td style="position: sticky; left: 0px; z-index: 10; border: 1px solid #94a3b8; min-width: 40px; max-width: 40px;" class="p-2 bg-white text-center align-middle font-bold">${index + 1}</td>
+                bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400 text-[10px]">
+                    <td style="border: 1px solid #94a3b8; min-width: 24px; max-width: 24px;" class="p-1 bg-white text-center align-middle font-bold">${index + 1}</td>
                     
-                    <td style="position: sticky; left: 40px; z-index: 10; border: 1px solid #94a3b8; min-width: 80px; max-width: 80px;" class="p-1 bg-white text-center align-middle">
-                        <input type="text" maxlength="8" size="${sizeDni}" ${isReadonly} class="text-center bg-transparent outline-none font-bold text-blue-900 text-xs py-1 whitespace-nowrap" value="${emp.dni}" oninput="handleDniLookup('${emp.id}', this.value); adjustInputWidth(this, 3);" />
+                    <td style="border: 1px solid #94a3b8; border-right: 2px solid #64748b; min-width: 65px; max-width: 65px;" class="p-0.5 bg-white text-center align-middle">
+                        <input type="text" maxlength="8" size="${sizeDni}" ${isReadonly} class="text-center bg-transparent outline-none font-bold text-blue-900 text-[10px] w-full whitespace-nowrap" value="${emp.dni}" oninput="handleDniLookup('${emp.id}', this.value); adjustInputWidth(this, 3);" />
                     </td>
                     
-                    <td style="position: sticky; left: 120px; z-index: 10; border: 1px solid #94a3b8; min-width: 280px; max-width: 280px;" class="p-1 bg-white text-left align-middle">
-                        <input type="text" size="${sizeNombres}" ${isReadonly} class="bg-transparent outline-none font-bold text-slate-800 text-xs py-1 whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-1" value="${emp.nombres}" oninput="updateEmp('${emp.id}', 'nombres', this.value); adjustInputWidth(this, 19);" placeholder="Apellidos y Nombres" />
+                    <td style="border: 1px solid #94a3b8; min-width: 150px;" class="p-0.5 bg-white text-left align-middle">
+                        <input type="text" size="${sizeNombres}" ${isReadonly} class="bg-transparent outline-none font-bold text-slate-800 text-[10px] w-full whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-0.5 truncate" value="${emp.nombres}" oninput="updateEmp('${emp.id}', 'nombres', this.value); adjustInputWidth(this, 19);" placeholder="Apellidos y Nombres" />
                     </td>
                     
-                    <td class="border border-slate-400 p-1 text-left align-middle">
-                        <input type="text" size="${sizeCargo}" ${isReadonly} class="bg-transparent outline-none text-xs py-1 whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-1" value="${emp.cargo}" oninput="updateEmp('${emp.id}', 'cargo', this.value); adjustInputWidth(this, 5);" placeholder="Cargo de Función" />
+                    <td class="border border-slate-400 p-0.5 text-left align-middle">
+                        <input type="text" size="${sizeCargo}" ${isReadonly} class="bg-transparent outline-none text-[10px] w-full whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-0.5 truncate" value="${emp.cargo}" oninput="updateEmp('${emp.id}', 'cargo', this.value); adjustInputWidth(this, 5);" placeholder="Cargo de Función" />
                     </td>
                     
-                    <td class="border border-slate-400 p-1 text-center align-middle">
-                        <input type="text" size="${sizeCondicion}" ${isReadonly} class="bg-transparent outline-none text-xs text-center py-1 whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-1" value="${emp.condicion}" oninput="updateEmp('${emp.id}', 'condicion', this.value); adjustInputWidth(this, 9);" placeholder="Condición" />
+                    <td class="border border-slate-400 p-0.5 text-center align-middle">
+                        <input type="text" size="${sizeCondicion}" ${isReadonly} class="bg-transparent outline-none text-[10px] text-center w-full whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-0.5 truncate" value="${emp.condicion}" oninput="updateEmp('${emp.id}', 'condicion', this.value); adjustInputWidth(this, 9);" placeholder="Condición" />
                     </td>
                     
-                    <td class="border border-slate-400 p-1 text-center align-middle">
-                        <input type="text" size="${sizeJornada}" ${isReadonly} class="text-center bg-transparent outline-none font-bold text-xs py-1 whitespace-nowrap" value="${emp.jornada}" oninput="updateEmp('${emp.id}', 'jornada', this.value); adjustInputWidth(this, 9);" placeholder="Jor. Lab." />
+                    <td class="border border-slate-400 p-0.5 text-center align-middle">
+                        <input type="text" size="${sizeJornada}" ${isReadonly} class="text-center bg-transparent outline-none font-bold text-[10px] w-full whitespace-nowrap" value="${emp.jornada}" oninput="updateEmp('${emp.id}', 'jornada', this.value); adjustInputWidth(this, 9);" placeholder="Hrs" />
                     </td>
                 `;
                 days.forEach(d => {
@@ -1071,26 +1071,26 @@
                     const bg = isWknd ? 'bg-red-50 text-red-500' : (val ? 'bg-blue-100 font-bold text-blue-900' : 'bg-transparent');
                     
                     if (isWknd) {
-                        bodyHTML += `<td class="border border-slate-400 p-0 ${bg} align-middle"><span class="block w-full text-center py-2 font-bold">-</span></td>`;
+                        bodyHTML += `<td class="border border-slate-400 p-0 ${bg} align-middle"><span class="block w-full text-center py-1.5 font-bold">-</span></td>`;
                     } else {
                         bodyHTML += `<td class="border border-slate-400 p-0 ${bg} align-middle">
-                            <input type="text" maxlength="2" ${isReadonly} class="w-full h-10 p-0 outline-none text-center uppercase bg-transparent text-xs font-bold" value="${val}" onchange="updateAsist('${emp.id}', ${d.day}, this.value)" />
+                            <input type="text" maxlength="2" ${isReadonly} class="w-full h-8 p-0 outline-none text-center uppercase bg-transparent text-[10px] font-bold" value="${val}" onchange="updateAsist('${emp.id}', ${d.day}, this.value)" />
                         </td>`;
                     }
                 });
 
                 bodyHTML += `
-                    <td class="border border-slate-400 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-10 p-1 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM}"></td>
+                    <td class="border border-slate-400 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-8 p-0.5 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM}"></td>
                     
-                    <td class="border border-slate-400 p-1 align-middle">
-                        <input type="text" size="${sizeObs}" ${isReadonly} class="bg-transparent outline-none text-[10px] py-1 whitespace-nowrap" value="${emp.observaciones}" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustInputWidth(this, 13);" placeholder="Observaciones" />
+                    <td class="border border-slate-400 p-0.5 align-middle">
+                        <input type="text" size="${sizeObs}" ${isReadonly} class="bg-transparent outline-none text-[9px] w-full whitespace-nowrap" value="${emp.observaciones}" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustInputWidth(this, 13);" placeholder="Observaciones" />
                     </td>
                     
-                    <!-- Columna independiente para el botón de eliminar al final de la fila -->
+                    <!-- Columna independiente para el botón de eliminar al final de la fila bajo "X" -->
                     ${currentRole === 'DIRECTOR' ? `
-                    <td class="border border-slate-400 p-1 no-print align-middle text-center w-12">
-                        <button onclick="removeEmployee('${emp.id}')" class="text-red-500 hover:text-red-700 bg-red-50 p-1.5 rounded-lg transition" title="Eliminar Personal">
-                            <i class="fa-solid fa-trash-can"></i>
+                    <td class="border border-slate-400 p-0.5 no-print align-middle text-center w-8">
+                        <button onclick="removeEmployee('${emp.id}')" class="text-red-500 hover:text-red-700 bg-red-50 p-1 rounded transition" title="Eliminar Personal">
+                            <i class="fa-solid fa-trash-can text-[10px]"></i>
                         </button>
                     </td>` : ''}
                 </tr>`;
