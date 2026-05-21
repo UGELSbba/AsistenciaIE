@@ -170,7 +170,7 @@
                                 <button id="btnTab3" onclick="switchTab('ANEXO3')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-blue-700 shadow-sm">
                                     Anexo 03 (Asistencia)
                                 </button>
-                                <button id="btnTab4" onclick="switchTab('ANEXO4')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition text-gray-500 hover:text-slate-800">
+                                <button id="btnTab4" onclick="switchTab('ANEXO4')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-red-700 shadow-sm">
                                     Anexo 04 (Inasistencias)
                                 </button>
                             </div>
@@ -255,8 +255,8 @@
                         </div>
 
                         <div class="overflow-x-auto custom-scrollbar p-4">
-                            <!-- table-auto permite que las columnas crezcan linealmente según su contenido -->
-                            <table class="w-full text-[10px] sm:text-xs border-collapse text-center print-table table-auto">
+                            <!-- table-auto permite que las columnas crezcan de forma fluida lineal -->
+                            <table class="w-full text-[10px] sm:text-xs border-collapse text-center print-table table-auto whitespace-nowrap">
                                 <thead id="headAnexo3"></thead>
                                 <tbody id="bodyAnexo3"></tbody>
                             </table>
@@ -311,20 +311,20 @@
                         </div>
 
                         <div class="overflow-x-auto custom-scrollbar p-4">
-                            <table class="w-full text-xs border border-slate-300 border-collapse text-center print-table table-auto">
+                            <table class="w-full text-xs border border-slate-300 border-collapse text-center print-table table-auto whitespace-nowrap">
                                 <thead>
                                     <tr class="bg-blue-50 text-blue-900 font-bold">
                                         <th rowspan="2" class="border border-slate-300 p-2 w-8">N°</th>
-                                        <th rowspan="2" class="border border-slate-300 p-2 w-24">DNI</th>
-                                        <th rowspan="2" class="border border-slate-300 p-2 min-w-[200px] text-left">APELLIDOS Y NOMBRES</th>
-                                        <th rowspan="2" class="border border-slate-300 p-2">CARGO</th>
+                                        <th rowspan="2" class="border border-slate-300 p-2">DNI</th>
+                                        <th rowspan="2" class="border border-slate-300 p-2 text-left">APELLIDOS Y NOMBRES</th>
+                                        <th rowspan="2" class="border border-slate-300 p-2 text-left">CARGO</th>
                                         <th rowspan="2" class="border border-slate-300 p-2">CONDICIÓN</th>
-                                        <th rowspan="2" class="border border-slate-300 p-2 w-12">Jor. Lab.</th>
+                                        <th rowspan="2" class="border border-slate-300 p-2">Jor. Lab.</th>
                                         <th class="border border-slate-300 bg-red-100 p-1 text-red-900 font-bold">Inasistencias</th>
                                         <th colspan="2" class="border border-slate-300 bg-amber-50 p-1 text-amber-900 font-bold">Tardanzas</th>
                                         <th colspan="3" class="border border-slate-300 bg-blue-100 p-1 text-blue-900 font-bold">Permisos SG</th>
                                         <th class="border border-slate-300 bg-red-50 p-1 text-red-900 font-bold">Huelga/Paro</th>
-                                        <th rowspan="2" class="border border-slate-300 p-2 w-48">Observaciones</th>
+                                        <th rowspan="2" class="border border-slate-300 p-2">Observaciones</th>
                                     </tr>
                                     <tr class="bg-white text-[10px]">
                                         <th class="border border-slate-300 bg-red-50 p-1 font-bold text-red-700">Días</th>
@@ -929,26 +929,13 @@
             }
         }
 
-        // Ajustar dinámicamente el tamaño de fuente para que todo quepa en una sola línea bien distribuido
-        function adjustInputFontSize(input) {
-            const tempSpan = document.createElement('span');
-            tempSpan.style.font = window.getComputedStyle(input).font;
-            tempSpan.style.visibility = 'hidden';
-            tempSpan.style.whiteSpace = 'nowrap';
-            tempSpan.innerText = input.value || input.placeholder || '';
-            document.body.appendChild(tempSpan);
-            
-            const textWidth = tempSpan.offsetWidth;
-            const inputWidth = input.offsetWidth - 16; // Margen de seguridad para padding
-            document.body.removeChild(tempSpan);
-
-            if (textWidth > inputWidth && inputWidth > 0) {
-                const ratio = inputWidth / textWidth;
-                const newSize = Math.max(8, Math.floor(12 * ratio)); // Límite mínimo de fuente de 8px
-                input.style.fontSize = `${newSize}px`;
-            } else {
-                input.style.fontSize = ''; // Reestablecer al valor original de Tailwind
-            }
+        // Ajustar dinámicamente el ancho (atributo size) para que los datos quepan de forma exacta en una sola línea fluida
+        function adjustInputWidth(input) {
+            const valLen = input.value ? input.value.length : 0;
+            const placeholderLen = input.placeholder ? input.placeholder.length : 0;
+            // Definir tamaño en base a la longitud del contenido actual o el placeholder (mínimo 4 caracteres de margen)
+            const calculatedSize = Math.max(4, Math.max(valLen, placeholderLen) + 1);
+            input.setAttribute('size', calculatedSize);
         }
 
         function handleDniLookup(id, val) {
@@ -1020,16 +1007,16 @@
             
             let headHTML = `
                 <tr class="bg-blue-50 text-blue-900 font-bold border border-slate-300">
-                    <th class="p-2 border border-slate-300 sticky left-0 bg-blue-50 w-10 text-center">N°</th>
-                    <th class="p-2 border border-slate-300 sticky left-10 bg-blue-50 w-24 text-center">DNI</th>
-                    <th class="p-2 border border-slate-300 sticky left-34 bg-blue-50 min-w-[280px] text-left">APELLIDOS Y NOMBRES</th>
-                    <th class="p-2 border border-slate-300 text-left min-w-[200px]">CARGO</th>
-                    <th class="p-2 border border-slate-300 text-center w-32">CONDICIÓN</th>
-                    <th class="p-2 border border-slate-300 text-center w-14">Jor. Lab.</th>
+                    <th class="p-2 border border-slate-300 sticky left-0 bg-blue-50 text-center">N°</th>
+                    <th class="p-2 border border-slate-300 sticky left-10 bg-blue-50 text-center">DNI</th>
+                    <th class="p-2 border border-slate-300 sticky left-34 bg-blue-50 text-left">APELLIDOS Y NOMBRES</th>
+                    <th class="p-2 border border-slate-300 text-left">CARGO</th>
+                    <th class="p-2 border border-slate-300 text-center">CONDICIÓN</th>
+                    <th class="p-2 border border-slate-300 text-center">Jor. Lab.</th>
                     <th colspan="${days.length}" class="p-1 border border-slate-300 text-center tracking-widest bg-red-50 text-red-900">DÍAS CALENDARIOS</th>
-                    <th class="p-1 border border-slate-300 bg-amber-100 text-amber-900 w-12 text-center">MIN.</th>
-                    <th class="p-1 border border-slate-300 bg-gray-100 min-w-[150px] text-left">OBSERVACIONES</th>
-                    ${currentRole === 'DIRECTOR' ? `<th class="p-1 no-print border border-slate-300 w-10 text-center">X</th>` : ''}
+                    <th class="p-1 border border-slate-300 bg-amber-100 text-amber-900 text-center">MIN.</th>
+                    <th class="p-1 border border-slate-300 bg-gray-100 text-left">OBSERVACIONES</th>
+                    ${currentRole === 'DIRECTOR' ? `<th class="p-1 no-print border border-slate-300 text-center">X</th>` : ''}
                 </tr>
                 <tr class="bg-white text-[9px]">
                     <th colspan="6" class="border border-slate-300 sticky left-0 bg-white"></th>
@@ -1049,22 +1036,27 @@
             let bodyHTML = '';
             appData.empleados.forEach((emp, index) => {
                 bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors">
-                    <!-- Columnas de datos de personal adaptadas de forma lineal, sin saltos de linea y separadas claramente por lineas de borde slate -->
-                    <td class="border border-slate-300 p-2 font-bold sticky left-0 bg-white text-center w-10 align-middle">${index + 1}</td>
-                    <td class="border border-slate-300 p-1 sticky left-10 bg-white text-center w-24 align-middle">
-                        <input type="text" maxlength="8" ${isReadonly} class="w-full text-center bg-transparent outline-none font-bold text-blue-900 text-xs py-1 whitespace-nowrap" value="${emp.dni}" oninput="handleDniLookup('${emp.id}', this.value)" />
+                    <!-- Columnas de datos de personal adaptadas linealmente con ancho autoajustable dinámico -->
+                    <td class="border border-slate-300 p-2 font-bold sticky left-0 bg-white text-center align-middle">${index + 1}</td>
+                    
+                    <td class="border border-slate-300 p-1 sticky left-10 bg-white text-center align-middle">
+                        <input type="text" maxlength="8" ${isReadonly} class="text-center bg-transparent outline-none font-bold text-blue-900 text-xs py-1 whitespace-nowrap" value="${emp.dni}" oninput="handleDniLookup('${emp.id}', this.value); adjustInputWidth(this);" />
                     </td>
-                    <td class="border border-slate-300 p-1 sticky left-34 bg-white text-left min-w-[280px] align-middle">
-                        <input type="text" ${isReadonly} class="w-full bg-transparent outline-none font-bold text-slate-800 text-xs py-1 whitespace-nowrap truncate" value="${emp.nombres}" oninput="updateEmp('${emp.id}', 'nombres', this.value); adjustInputFontSize(this);" onfocus="adjustInputFontSize(this);" placeholder="Nombres Completos" />
+                    
+                    <td class="border border-slate-300 p-1 sticky left-34 bg-white text-left align-middle">
+                        <input type="text" ${isReadonly} class="bg-transparent outline-none font-bold text-slate-800 text-xs py-1 whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-1" value="${emp.nombres}" oninput="updateEmp('${emp.id}', 'nombres', this.value); adjustInputWidth(this);" placeholder="Apellidos y Nombres" />
                     </td>
-                    <td class="border border-slate-300 p-1 text-left min-w-[200px] align-middle">
-                        <input type="text" ${isReadonly} class="w-full bg-transparent outline-none text-xs py-1 whitespace-nowrap truncate" value="${emp.cargo}" oninput="updateEmp('${emp.id}', 'cargo', this.value); adjustInputFontSize(this);" onfocus="adjustInputFontSize(this);" placeholder="Cargo de Función" />
+                    
+                    <td class="border border-slate-300 p-1 text-left align-middle">
+                        <input type="text" ${isReadonly} class="bg-transparent outline-none text-xs py-1 whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-1" value="${emp.cargo}" oninput="updateEmp('${emp.id}', 'cargo', this.value); adjustInputWidth(this);" placeholder="Cargo de Función" />
                     </td>
-                    <td class="border border-slate-300 p-1 text-center w-32 align-middle">
-                        <input type="text" ${isReadonly} class="w-full bg-transparent outline-none text-xs text-center py-1 whitespace-nowrap truncate" value="${emp.condicion}" oninput="updateEmp('${emp.id}', 'condicion', this.value); adjustInputFontSize(this);" onfocus="adjustInputFontSize(this);" placeholder="Condición" />
+                    
+                    <td class="border border-slate-300 p-1 text-center align-middle">
+                        <input type="text" ${isReadonly} class="bg-transparent outline-none text-xs text-center py-1 whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-1" value="${emp.condicion}" oninput="updateEmp('${emp.id}', 'condicion', this.value); adjustInputWidth(this);" placeholder="Condición" />
                     </td>
-                    <td class="border border-slate-300 p-1 text-center w-14 align-middle">
-                        <input type="text" ${isReadonly} class="w-full text-center bg-transparent outline-none font-bold text-xs" value="${emp.jornada}" oninput="updateEmp('${emp.id}', 'jornada', this.value)" />
+                    
+                    <td class="border border-slate-300 p-1 text-center align-middle">
+                        <input type="text" ${isReadonly} class="text-center bg-transparent outline-none font-bold text-xs py-1 whitespace-nowrap" value="${emp.jornada}" oninput="updateEmp('${emp.id}', 'jornada', this.value); adjustInputWidth(this);" placeholder="Hrs" />
                     </td>
                 `;
                 days.forEach(d => {
@@ -1083,15 +1075,19 @@
 
                 bodyHTML += `
                     <td class="border border-slate-300 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-10 p-1 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
-                    <td class="border border-slate-300 p-1 align-middle min-w-[150px]"><input type="text" ${isReadonly} class="w-full bg-transparent outline-none text-[10px] py-1 whitespace-nowrap" value="${emp.observaciones}" oninput="updateEmp('${emp.id}', 'observaciones', this.value)"></td>
-                    ${currentRole === 'DIRECTOR' ? `<td class="p-1 no-print border border-slate-300 align-middle text-center w-10"><button onclick="removeEmployee('${emp.id}')" class="text-red-500 hover:text-red-700 bg-red-50 px-2 py-2 rounded-lg transition"><i class="fa-solid fa-trash"></i></button></td>` : ''}
+                    
+                    <td class="border border-slate-300 p-1 align-middle">
+                        <input type="text" ${isReadonly} class="bg-transparent outline-none text-[10px] py-1 whitespace-nowrap" value="${emp.observaciones}" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustInputWidth(this);" placeholder="Observaciones" />
+                    </td>
+                    
+                    ${currentRole === 'DIRECTOR' ? `<td class="p-1 no-print border border-slate-300 align-middle text-center"><button onclick="removeEmployee('${emp.id}')" class="text-red-500 hover:text-red-700 bg-red-50 px-2 py-2 rounded-lg transition"><i class="fa-solid fa-trash"></i></button></td>` : ''}
                 </tr>`;
             });
             tbody.innerHTML = bodyHTML;
             
-            // Autoajustar el tamaño de fuente de los inputs dinámicamente al cargar la tabla
+            // Forzar autoajuste de tamaño (atributo size) para cada input al cargar/dibujar la tabla
             document.querySelectorAll('#bodyAnexo3 input[type="text"]').forEach(input => {
-                adjustInputFontSize(input);
+                adjustInputWidth(input);
             });
         }
 
@@ -1141,9 +1137,9 @@
                 bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-300">
                     <td class="border border-slate-300 p-2 font-bold text-center align-middle">${index + 1}</td>
                     <td class="border border-slate-300 p-2 font-bold text-blue-900 text-center align-middle">${emp.dni}</td>
-                    <td class="border border-slate-300 p-2 text-left font-bold text-slate-800 align-middle leading-normal text-nowrap truncate" style="max-width: 250px;">${emp.nombres}</td>
-                    <td class="border border-slate-300 p-2 text-left text-xs align-middle leading-normal text-nowrap truncate" style="max-width: 200px;">${emp.cargo}</td>
-                    <td class="border border-slate-300 p-2 text-center text-xs align-middle leading-normal text-nowrap truncate" style="max-width: 150px;">${emp.condicion}</td>
+                    <td class="border border-slate-300 p-2 text-left font-bold text-slate-800 align-middle leading-normal text-nowrap">${emp.nombres}</td>
+                    <td class="border border-slate-300 p-2 text-left text-xs align-middle leading-normal text-nowrap">${emp.cargo}</td>
+                    <td class="border border-slate-300 p-2 text-center text-xs align-middle leading-normal text-nowrap">${emp.condicion}</td>
                     <td class="border border-slate-300 p-2 font-bold text-center align-middle">${emp.jornada}</td>
                     
                     <td class="border border-slate-300 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias}</td>
@@ -1157,10 +1153,15 @@
                     
                     <!-- Campo Huelga/Paro se automatiza desde el código 'H' (Anexo 03) -->
                     <td class="border border-slate-300 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.huelgaDias}</td>
-                    <td class="border border-slate-300 p-1 align-middle min-w-[150px]"><input type="text" ${isReadonly} class="w-full bg-transparent outline-none text-[10px] py-1 whitespace-nowrap" value="${emp.observaciones || ''}" oninput="updateEmp('${emp.id}', 'observaciones', this.value)"></td>
+                    <td class="border border-slate-300 p-1 align-middle min-w-[150px]"><input type="text" ${isReadonly} class="w-full bg-transparent outline-none text-[10px] py-1 whitespace-nowrap" value="${emp.observaciones || ''}" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustInputWidth(this);"></td>
                 </tr>`;
             });
             tbody.innerHTML = bodyHTML;
+            
+            // Autoajustar el tamaño de fuente de los inputs dinámicamente al cargar la tabla en el Anexo 04
+            document.querySelectorAll('#bodyAnexo4 input[type="text"]').forEach(input => {
+                adjustInputWidth(input);
+            });
         }
 
         // --- GOOGLE SHEETS API Y CONFIGURACIÓN ---
