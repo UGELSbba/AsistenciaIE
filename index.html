@@ -1007,16 +1007,16 @@
             // Render Headers con fusion rowspan="2" para evitar espacios en blanco debajo de los metadatos del personal
             let headHTML = `
                 <tr class="bg-blue-50 text-blue-900 font-bold border border-slate-400">
-                    <th rowspan="2" class="p-2 border border-slate-400 sticky left-0 bg-blue-50 text-center align-middle">N°</th>
-                    <th rowspan="2" class="p-2 border border-slate-400 sticky left-10 bg-blue-50 text-center align-middle">DNI</th>
-                    <th rowspan="2" class="p-2 border border-slate-400 sticky left-34 bg-blue-50 text-left align-middle">APELLIDOS Y NOMBRES</th>
+                    <th rowspan="2" style="position: sticky; left: 0px; z-index: 30; border: 1px solid #94a3b8; min-width: 40px; max-width: 40px;" class="p-2 bg-blue-50 text-center align-middle">N°</th>
+                    <th rowspan="2" style="position: sticky; left: 40px; z-index: 30; border: 1px solid #94a3b8; min-width: 80px; max-width: 80px;" class="p-2 bg-blue-50 text-center align-middle">DNI</th>
+                    <th rowspan="2" style="position: sticky; left: 120px; z-index: 30; border: 1px solid #94a3b8; min-width: 280px; max-width: 280px;" class="p-2 bg-blue-50 text-left align-middle">APELLIDOS Y NOMBRES</th>
                     <th rowspan="2" class="p-2 border border-slate-400 text-left align-middle">CARGO</th>
                     <th rowspan="2" class="p-2 border border-slate-400 text-center align-middle">CONDICIÓN</th>
                     <th rowspan="2" class="p-2 border border-slate-400 text-center align-middle">Jor. Lab.</th>
                     <th colSpan="${days.length}" class="p-1 border border-slate-400 text-center tracking-widest bg-red-50 text-red-900 align-middle">DÍAS CALENDARIOS</th>
                     <th rowspan="2" class="p-1 border border-slate-400 bg-amber-100 text-amber-900 text-center align-middle">MIN.</th>
                     <th rowspan="2" class="p-1 border border-slate-400 bg-gray-100 text-left align-middle">OBSERVACIONES</th>
-                    ${currentRole === 'DIRECTOR' ? `<th rowspan="2" class="p-1 no-print border border-slate-400 text-center align-middle">Acción</th>` : ''}
+                    ${currentRole === 'DIRECTOR' ? `<th rowspan="2" class="p-1 no-print border border-slate-400 text-center align-middle">X</th>` : ''}
                 </tr>
                 <tr class="bg-white text-[9px] border border-slate-400">
             `;
@@ -1043,13 +1043,13 @@
                 const sizeObs = Math.max(13, emp.observaciones ? emp.observaciones.length : 0);
 
                 bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400">
-                    <td class="border border-slate-400 p-2 font-bold sticky left-0 bg-white text-center align-middle">${index + 1}</td>
+                    <td style="position: sticky; left: 0px; z-index: 10; border: 1px solid #94a3b8; min-width: 40px; max-width: 40px;" class="p-2 bg-white text-center align-middle font-bold">${index + 1}</td>
                     
-                    <td class="border border-slate-400 p-1 sticky left-10 bg-white text-center align-middle">
+                    <td style="position: sticky; left: 40px; z-index: 10; border: 1px solid #94a3b8; min-width: 80px; max-width: 80px;" class="p-1 bg-white text-center align-middle">
                         <input type="text" maxlength="8" size="${sizeDni}" ${isReadonly} class="text-center bg-transparent outline-none font-bold text-blue-900 text-xs py-1 whitespace-nowrap" value="${emp.dni}" oninput="handleDniLookup('${emp.id}', this.value); adjustInputWidth(this, 3);" />
                     </td>
                     
-                    <td class="border border-slate-400 p-1 sticky left-34 bg-white text-left align-middle">
+                    <td style="position: sticky; left: 120px; z-index: 10; border: 1px solid #94a3b8; min-width: 280px; max-width: 280px;" class="p-1 bg-white text-left align-middle">
                         <input type="text" size="${sizeNombres}" ${isReadonly} class="bg-transparent outline-none font-bold text-slate-800 text-xs py-1 whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-1" value="${emp.nombres}" oninput="updateEmp('${emp.id}', 'nombres', this.value); adjustInputWidth(this, 19);" placeholder="Apellidos y Nombres" />
                     </td>
                     
@@ -1200,7 +1200,6 @@
             }
         }
 
-        // ... rest of script ...
         function triggerAutoSave() {
             if (!googleSheetsUrl || currentRole === 'ADMIN') return;
             updateCloudStatus('syncing');
