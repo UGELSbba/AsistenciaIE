@@ -199,10 +199,10 @@
                             <span class="text-xs text-red-700 italic ml-2 hidden lg:inline" id="hintCodModular">Se autocompletará al ingresar los 7 números o pulsar Buscar.</span>
                         </div>
 
-                        <!-- Campos bloqueados de solo lectura para el panel del Director y del Admin -->
+                        <!-- Campos deshabilitados de solo lectura para el panel del Director y del Admin -->
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">DRE/UGEL:</label>
-                            <input type="text" id="meta-dre" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none" oninput="appData.dreUgel = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-dre" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500" oninput="appData.dreUgel = this.value; triggerAutoSave();">
                         </div>
 
                         <div class="flex flex-col gap-1">
@@ -212,22 +212,22 @@
 
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">INSTITUCIÓN EDUCATIVA:</label>
-                            <input type="text" id="meta-ie" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed font-bold text-red-900 outline-none" oninput="appData.ie = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-ie" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed font-bold text-gray-500 outline-none" oninput="appData.ie = this.value; triggerAutoSave();">
                         </div>
 
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">LUGAR:</label>
-                            <input type="text" id="meta-lugar" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none" oninput="appData.lugar = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-lugar" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500" oninput="appData.lugar = this.value; triggerAutoSave();">
                         </div>
 
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">NIVEL EDUCATIVO:</label>
-                            <input type="text" id="meta-nivel" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none" oninput="appData.nivel = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-nivel" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500" oninput="appData.nivel = this.value; triggerAutoSave();">
                         </div>
 
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">DISTRITO:</label>
-                            <input type="text" id="meta-distrito" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none" oninput="appData.distrito = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-distrito" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500" oninput="appData.distrito = this.value; triggerAutoSave();">
                         </div>
                     </div>
 
@@ -717,30 +717,24 @@
             const codInput = document.getElementById('meta-cod');
             const mesInput = document.getElementById('meta-mes');
 
+            // 1. Bloqueo Condicional de Código Modular y Mes según si ya fue guardado
             if (isSaved) {
-                // Bloquea los campos críticos
                 codInput.readOnly = true;
-                codInput.classList.add('bg-gray-150', 'text-gray-500', 'cursor-not-allowed');
-                codInput.classList.remove('bg-white', 'text-red-900');
+                codInput.className = 'border border-gray-300 rounded-lg px-3 py-1.5 outline-none bg-gray-100 text-gray-500 cursor-not-allowed w-44 font-bold';
                 
                 mesInput.readOnly = true;
-                mesInput.classList.add('bg-gray-150', 'text-gray-500', 'cursor-not-allowed');
-                mesInput.classList.remove('bg-white', 'text-blue-900');
+                mesInput.className = 'border border-blue-300 rounded-lg px-3 py-2 bg-gray-100 text-gray-500 cursor-not-allowed outline-none font-bold w-full';
 
-                // Esconde botones de búsqueda interactiva
                 if (document.getElementById('btnSearchIE')) {
                     document.getElementById('btnSearchIE').classList.add('hidden');
                 }
                 document.getElementById('hintCodModular').innerHTML = `<i class="fa-solid fa-lock text-red-600"></i> Código Modular y Mes Bloqueados. El reporte ya ha sido guardado en la nube.`;
             } else {
-                // Desbloquea para nuevos reportes
                 codInput.readOnly = false;
-                codInput.classList.remove('bg-gray-150', 'text-gray-500', 'cursor-not-allowed');
-                codInput.classList.add('bg-white', 'text-red-900');
+                codInput.className = 'border border-gray-300 rounded-lg px-3 py-1.5 outline-none focus:border-red-500 w-44 bg-white font-bold text-red-900';
 
                 mesInput.readOnly = false;
-                mesInput.classList.remove('bg-gray-150', 'text-gray-500', 'cursor-not-allowed');
-                mesInput.classList.add('bg-white', 'text-blue-900');
+                mesInput.className = 'border border-blue-300 rounded-lg px-3 py-2 bg-white focus:border-blue-500 outline-none font-bold text-blue-900 w-full';
 
                 if (document.getElementById('btnSearchIE')) {
                     document.getElementById('btnSearchIE').classList.remove('hidden');
@@ -748,9 +742,14 @@
                 document.getElementById('hintCodModular').innerHTML = "Se autocompletará al ingresar los 7 números o pulsar Buscar.";
             }
 
-            // Los demás campos complementarios se pueden modificar libremente
-            document.querySelectorAll('#formCabecera input:not(#meta-cod):not(#meta-mes)').forEach(inp => {
-                inp.readOnly = false;
+            // 2. Bloqueo ABSOLUTO e incondicional de los 5 campos complementarios (para evitar alteración manual)
+            const lockedFields = ['meta-dre', 'meta-ie', 'meta-lugar', 'meta-nivel', 'meta-distrito'];
+            lockedFields.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.readOnly = true;
+                    el.className = 'border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 text-gray-500 cursor-not-allowed outline-none w-full';
+                }
             });
         }
 
