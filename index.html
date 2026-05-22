@@ -571,7 +571,7 @@
                                 if(rows[i][iDni]) {
                                     dbPersonal[rows[i][iDni].trim()] = {
                                         nombres: iNom!==-1 ? rows[i][iNom] : '',
-                                        cargo: iCargo !== -1 ? rows[i][iCargo] '',
+                                        cargo: iCargo!==-1 ? rows[i][iCargo] : '', // CORREGIDO AQUÍ: rows[i][iCargo] en lugar de rows[i][iNom]
                                         condicion: iCond!==-1 ? rows[i][iCond] : '',
                                         jornada: iJor!==-1 ? rows[i][iJor] : ''
                                     };
@@ -926,7 +926,7 @@
             closeDeleteModal();
         }
 
-        function closeDeleteModal() {
+        closeDeleteModal = function() {
             employeeIdToDelete = null;
             document.getElementById('modalConfirmDelete').classList.add('hidden');
         }
@@ -1014,7 +1014,6 @@
         }
 
         // Ajustar dinámicamente el ancho (atributo size) para que los datos quepan de forma exacta en una sola línea fluida
-        // Soporta de forma nativa el wrap o salto de línea automático según el ajuste máximo del espacio
         function adjustInputWidth(input, minSize) {
             const valLen = input.value ? input.value.length : 0;
             const calculatedSize = Math.max(minSize, valLen);
@@ -1208,6 +1207,7 @@
                     </td>` : ''}
                 </tr>`;
             });
+            bodyHTML += ``;
             tbody.innerHTML = bodyHTML;
 
             // Disparar redimensionamiento dinámico y ajuste de fuente tras renderizar todos los elementos
