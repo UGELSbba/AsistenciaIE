@@ -80,7 +80,7 @@
                 
                 <!-- Badge de Administrador -->
                 <div id="adminBadge" class="hidden ml-2 bg-red-100 text-red-800 border border-red-200 px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider items-center gap-1">
-                    <i class="fa-solid fa-eye"></i> Solo Lectura
+                    <i class="fa-solid fa-eye"></i> Consolidador UGEL
                 </div>
             </div>
             <div class="flex items-center gap-4">
@@ -1048,8 +1048,10 @@
                 <div><strong>NIVEL:</strong> ${appData.nivel}</div>
                 <div><strong>DISTRITO:</strong> ${appData.distrito}</div>
             `;
-            document.getElementById('metaPrintA3').innerHTML = metaHtml;
-            document.getElementById('metaPrintA4').innerHTML = metaHtml;
+            const elA3 = document.getElementById('metaPrintA3');
+            const elA4 = document.getElementById('metaPrintA4');
+            if (elA3) elA3.innerHTML = metaHtml;
+            if (elA4) elA4.innerHTML = metaHtml;
         }
 
         function renderAnexo3() {
@@ -1079,7 +1081,9 @@
                 headHTML += `<th class="border border-slate-400 p-0.5 w-5 font-bold ${bg}">${d.day}<br/><span class="text-[6px] font-normal">${d.dayName}</span></th>`;
             });
             headHTML += `</tr>`;
-            thead.innerHTML = headHTML;
+            if (thead) thead.innerHTML = headHTML;
+
+            if (!tbody) return;
 
             if (appData.empleados.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="${days.length + (currentRole === 'DIRECTOR' ? 10 : 9)}" class="p-8 text-center text-slate-400 italic">No hay personal registrado en este formato.</td></tr>`;
@@ -1094,6 +1098,7 @@
                 const sizeCargo = Math.max(5, emp.cargo ? emp.cargo.length : 0);
                 const sizeCondicion = Math.max(9, emp.condicion ? emp.condicion.length : 0);
                 const sizeJornada = Math.max(4, emp.jornada ? emp.jornada.length : 0);
+                const sizeObs = Math.max(13, emp.observaciones ? emp.observaciones.length : 0);
 
                 bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400 text-[10px]">
                     <td style="border: 1px solid #94a3b8; min-width: 24px; max-width: 24px;" class="p-1 bg-white text-center align-middle font-bold">${index + 1}</td>
@@ -1196,6 +1201,8 @@
             const tbody = document.getElementById('bodyAnexo4');
             const isReadonly = currentRole === 'ADMIN' ? 'readonly' : '';
 
+            if (!tbody) return;
+
             if (appData.empleados.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="14" class="p-8 text-center text-slate-400 italic">No hay personal para consolidar.</td></tr>`;
                 return;
@@ -1264,6 +1271,7 @@
 
         function updateCloudStatus(statusStr = '') {
             const status = document.getElementById('cloud-status');
+            if (!status) return;
             if (statusStr === 'syncing') {
                 status.innerHTML = `<i class="fa-solid fa-arrows-rotate fa-spin text-blue-500"></i> <span class="text-blue-600">Guardando...</span>`;
             } else if (googleSheetsUrl) {
@@ -1392,6 +1400,7 @@
 
         function showToast(msg, type) {
             const toast = document.getElementById('toast');
+            if (!toast) return;
             document.getElementById('toastMessage').innerText = msg;
             toast.className = `fixed bottom-6 right-6 text-white py-3 px-5 rounded-xl shadow-2xl flex items-center gap-2 text-xs transition duration-300 transform z-[200] ${type === 'error' ? 'bg-red-700' : 'bg-blue-800'}`;
             
