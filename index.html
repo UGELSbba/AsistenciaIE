@@ -9,7 +9,7 @@
     <!-- FontAwesome para Iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; }
         
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -170,7 +170,7 @@
                                 <button id="btnTab3" onclick="switchTab('ANEXO3')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-blue-700 shadow-sm">
                                     Anexo 03 (Asistencia)
                                 </button>
-                                <button id="btnTab4" onclick="switchTab('ANEXO4')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition text-gray-500 hover:text-slate-800">
+                                <button id="btnTab4" onclick="switchTab('ANEXO4')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-red-700 shadow-sm">
                                     Anexo 04 (Inasistencias)
                                 </button>
                             </div>
@@ -976,18 +976,17 @@
         // Ajusta de manera dinámica la fuente y la altura para Observaciones manteniendo el alto de fila fijo (32px)
         // Soporta de forma nativa el wrap o salto de línea automático según el ajuste máximo del espacio
         function adjustObsWidthAndHeight(textarea) {
-            const valLen = textarea.value ? textarea.value.length : 0;
-            const minSize = 13; // Ancho mínimo según cabecera
-            const calculatedSize = Math.max(minSize, valLen);
-            
-            // Adaptar ancho horizontal de manera fluida y proporcional al contenido lineal
-            textarea.style.width = (calculatedSize * 6.5) + 'px';
+            if (!textarea) return;
+            // Forzar conversión instantánea de mayúsculas en tiempo real al escribir
+            textarea.value = textarea.value.toUpperCase();
 
-            // Adaptar reducción de fuente dinámica vertical para que no altere el alto de fila (32px)
+            // Restablecer fuente estándar temporalmente para medir la altura real de desborde (scrollHeight)
             textarea.style.fontSize = '10px';
+            
             let currentSize = 10;
-            // Se reduce de forma gradual si sobrepasa la altura física asignada de 32px
-            while (textarea.scrollHeight > 32 && currentSize > 6.5) {
+            // Se reduce de forma gradual si sobrepasa la altura física asignada de la celda de Excel (32px)
+            // Esto asegura que todo el texto encaje en varias líneas sin alterar la altura de la fila
+            while (textarea.scrollHeight > 32 && currentSize > 6.0) {
                 currentSize -= 0.5;
                 textarea.style.fontSize = `${currentSize}px`;
             }
@@ -1134,7 +1133,7 @@
                         bodyHTML += `<td class="border border-slate-400 p-0 ${bg} align-middle"><span class="block w-full text-center py-1.5 font-bold">-</span></td>`;
                     } else {
                         bodyHTML += `<td class="border border-slate-400 p-0 ${bg} align-middle">
-                            <input type="text" maxlength="2" style="text-transform: uppercase;" ${isReadonly} class="w-full h-8 p-0 outline-none text-center uppercase bg-transparent text-[10px] font-bold" value="${val}" oninput="updateAsist('${emp.id}', ${d.day}, this.value)" />
+                            <input type="text" maxlength="2" style="text-transform: uppercase;" ${isReadonly} class="w-full h-8 p-0 outline-none text-center uppercase bg-transparent text-[10px] font-bold" value="${val}" oninput="updateAsist('${emp.id}', d.day, this.value)" />
                         </td>`;
                     }
                 });
@@ -1148,7 +1147,7 @@
                     <!-- Campo Observaciones en Textarea con alto de 32px, multilineal (whitespace-normal) y autoajuste de texto dinámico de fuente y de ancho lineal -->
                     <td class="border border-slate-400 p-0.5 align-middle">
                         <!-- whitespace-normal permite el wrap o salto de línea automático según el ajuste del espacio horizontal -->
-                        <textarea ${isReadonly} class="bg-transparent outline-none text-[10px] py-0.5 whitespace-normal uppercase leading-tight resize-none overflow-y-auto text-left" style="height: 32px; text-transform: uppercase; font-size: 10px; width: 100%; display: block;" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustObsWidthAndHeight(this);" placeholder="Observaciones" data-id="${emp.id}">${emp.observaciones || ''}</textarea>
+                        <textarea ${isReadonly} class="bg-transparent outline-none text-[10px] py-0.5 whitespace-normal uppercase leading-tight resize-none overflow-y-auto text-left border-0" style="height: 32px; text-transform: uppercase; font-size: 10px; width: 100%; display: block;" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustObsWidthAndHeight(this);" placeholder="Observaciones" data-id="${emp.id}">${emp.observaciones || ''}</textarea>
                     </td>
                     
                     <!-- Columna independiente para el botón de eliminar al final de la fila bajo "X" -->
@@ -1217,28 +1216,28 @@
                 const calcs = calculateAnexo4(emp);
 
                 bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-300">
-                    <td class="border-slate-300 p-2 font-bold text-center align-middle">${index + 1}</td>
-                    <td class="border-slate-300 p-2 font-bold text-blue-900 text-center align-middle uppercase" style="text-transform: uppercase;">${emp.dni}</td>
-                    <td class="border-slate-300 p-2 text-left font-bold text-slate-800 align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.nombres}</td>
-                    <td class="border-slate-300 p-2 text-left text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.cargo}</td>
-                    <td class="border-slate-300 p-2 text-center text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.condicion}</td>
-                    <td class="border-slate-300 p-2 font-bold text-center align-middle uppercase" style="text-transform: uppercase;">${emp.jornada}</td>
+                    <td class="border border-slate-300 p-2 font-bold text-center align-middle">${index + 1}</td>
+                    <td class="border border-slate-300 p-2 font-bold text-blue-900 text-center align-middle uppercase" style="text-transform: uppercase;">${emp.dni}</td>
+                    <td class="border border-slate-300 p-2 text-left font-bold text-slate-800 align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.nombres}</td>
+                    <td class="border border-slate-300 p-2 text-left text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.cargo}</td>
+                    <td class="border border-slate-300 p-2 text-center text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.condicion}</td>
+                    <td class="border border-slate-300 p-2 font-bold text-center align-middle uppercase" style="text-transform: uppercase;">${emp.jornada}</td>
                     
-                    <td class="border-slate-300 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias}</td>
+                    <td class="border border-slate-300 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias}</td>
                     
-                    <td class="border-slate-300 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-10 p-2 text-center outline-none bg-transparent" value="${emp.tardanzasH || ''}" oninput="updateEmp('${emp.id}', 'tardanzasH', this.value)"></td>
+                    <td class="border border-slate-300 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-10 p-2 text-center outline-none bg-transparent" value="${emp.tardanzasH || ''}" oninput="updateEmp('${emp.id}', 'tardanzasH', this.value)"></td>
                     
                     <!-- Sincronizado para Anexo 04 -->
-                    <td class="border-slate-300 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM || ''}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
+                    <td class="border border-slate-300 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM || ''}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
                     
-                    <td class="border-slate-300 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGH || ''}" oninput="updateEmp('${emp.id}', 'permisosSGH', this.value)"></td>
-                    <td class="border-slate-300 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.permisosSGM || ''}" oninput="updateEmp('${emp.id}', 'permisosSGM', this.value)"></td>
-                    <td class="border-slate-300 p-2 bg-blue-50 font-bold text-blue-700 text-center align-middle">${calcs.permisosSGDias}</td>
+                    <td class="border border-slate-300 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGH || ''}" oninput="updateEmp('${emp.id}', 'permisosSGH', this.value)"></td>
+                    <td class="border border-slate-300 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.permisosSGM || ''}" oninput="updateEmp('${emp.id}', 'permisosSGM', this.value)"></td>
+                    <td class="border border-slate-300 p-2 bg-blue-50 font-bold text-blue-700 text-center align-middle">${calcs.permisosSGDias}</td>
                     
                     <!-- Campo Huelga/Paro se automatiza desde el código 'H' (Anexo 03) -->
-                    <td class="border-slate-300 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.huelgaDias}</td>
-                    <td class="border-slate-300 p-1 align-middle min-w-[150px]">
-                        <textarea ${isReadonly} class="bg-transparent outline-none text-[10px] py-0.5 whitespace-normal uppercase leading-tight resize-none overflow-y-auto text-left" style="height: 32px; text-transform: uppercase; font-size: 10px; width: 100%; display: block;" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustObsWidthAndHeight(this);" placeholder="Observaciones">${emp.observaciones || ''}</textarea>
+                    <td class="border border-slate-300 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.huelgaDias}</td>
+                    <td class="border border-slate-300 p-1 align-middle min-w-[150px]">
+                        <textarea ${isReadonly} class="bg-transparent outline-none text-[10px] py-0.5 whitespace-normal uppercase leading-tight resize-none overflow-y-auto text-left border-0" style="height: 32px; text-transform: uppercase; font-size: 10px; width: 100%; display: block;" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustObsWidthAndHeight(this);" placeholder="Observaciones">${emp.observaciones || ''}</textarea>
                     </td>
                 </tr>`;
             });
