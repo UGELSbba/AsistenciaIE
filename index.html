@@ -783,9 +783,6 @@
                 mesInput.readOnly = true;
                 mesInput.className = 'border border-blue-300 rounded-lg px-3 py-2 bg-gray-100 text-gray-500 cursor-not-allowed outline-none font-bold w-full';
 
-                if (document.getElementById('btnSearchIE')) {
-                    document.getElementById('btnSearchIE').classList.add('hidden');
-                }
                 document.getElementById('hintCodModular').innerHTML = `<i class="fa-solid fa-lock text-red-600"></i> Código Modular y Mes Bloqueados. El reporte ya ha sido guardado en la nube.`;
             } else {
                 codInput.readOnly = false;
@@ -794,9 +791,6 @@
                 mesInput.readOnly = false;
                 mesInput.className = 'border border-blue-300 rounded-lg px-3 py-2 bg-white focus:border-blue-500 outline-none font-bold text-blue-900 w-full';
 
-                if (document.getElementById('btnSearchIE')) {
-                    document.getElementById('btnSearchIE').classList.remove('hidden');
-                }
                 document.getElementById('hintCodModular').innerHTML = "Se autocompletará al ingresar los 7 números o pulsar Buscar.";
             }
 
@@ -871,6 +865,7 @@
             const month = String(today.getMonth() + 1).padStart(2, '0');
             appData.mesAno = `${today.getFullYear()}-${month}`;
             document.getElementById('meta-mes').value = appData.mesAno;
+            document.getElementById('inputSheetsUrl').value = googleSheetsUrl;
         }
 
         // Generar días calendario del mes seleccionado
@@ -960,10 +955,10 @@
             }
         }
 
-        // --- AUTOCOMPLETADO EXACTO ---
+        // --- AUTOCOMPLETADO ---
         function handleIeLookup(val) {
             if (currentRole === 'ADMIN') return;
-            appData.codigoModular = val.toUpperCase();
+            appData.codigoModular = val;
 
             if (val.trim().length === 0) {
                 clearIeFields();
@@ -991,11 +986,11 @@
 
             const data = dbIe[val];
             if (data) {
-                appData.dreUgel = data.dreUgel || ''; document.getElementById('meta-dre').value = appData.dreUgel;
-                appData.ie = data.ie || ''; document.getElementById('meta-ie').value = appData.ie;
-                appData.lugar = data.lugar || ''; document.getElementById('meta-lugar').value = data.lugar;
-                appData.nivel = data.nivel || ''; document.getElementById('meta-nivel').value = data.nivel;
-                appData.distrito = data.distrito || ''; document.getElementById('meta-distrito').value = data.distrito;
+                document.getElementById('meta-dre').value = data.dreUgel || ''; appData.dreUgel = data.dreUgel || '';
+                document.getElementById('meta-ie').value = data.ie || ''; appData.ie = data.ie || '';
+                document.getElementById('meta-lugar').value = data.lugar || ''; appData.lugar = data.lugar || '';
+                document.getElementById('meta-nivel').value = data.nivel || ''; appData.nivel = data.nivel || '';
+                document.getElementById('meta-distrito').value = data.distrito || ''; appData.distrito = data.distrito || '';
                 showToast("I.E. autocompletada desde el padrón", "success");
                 triggerAutoSave();
             } else {
@@ -1466,7 +1461,7 @@
                             if(v==='H') huelga++;
                         });
                     }
-                    csvContent += `${index + 1},${emp.dni},"${emp.nombres}","${emp.cargo}","${emp.condicion}",${emp.jornada},${inasist},${emp.tardanzasH || 0},${emp.tardanzasM || 0},${emp.permisosSGH || 0},${emp.permisosSGM || 0},${permisos},${huelga},"${emp.observaciones || ''}"\n`;
+                    csvContent += `${index + 1},${emp.dni},"${emp.nombres}","${emp.cargo}","${emp.condicion}",${emp.jornada},${inasist},${emp.tardanzasH || 0},${emp.tardanzasM || 0},${emp.permisosSGH || 0},${emp.permisosSGM || 0},${permisos},${emp.huelgaParoDias || 0},"${emp.observaciones || ''}"\n`;
                 });
             }
 
