@@ -200,9 +200,6 @@
                             <label class="font-bold text-red-900">CÓDIGO MODULAR DE LA I.E.:</label>
                             <div class="flex gap-2">
                                 <input type="text" id="meta-cod" placeholder="Escriba los 7 dígitos..." maxlength="7" class="border border-gray-300 rounded-lg px-3 py-1.5 outline-none focus:border-red-500 w-44 bg-white font-bold text-red-900 uppercase" style="text-transform: uppercase;" oninput="handleIeLookup(this.value)">
-                                <button id="btnSearchIE" onclick="buscarIE()" class="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-700 transition flex items-center gap-1 shadow-sm">
-                                    <i class="fa-solid fa-search"></i> Buscar
-                                </button>
                             </div>
                             <span class="text-xs text-red-700 italic ml-2 hidden lg:inline" id="hintCodModular">Se autocompletará al ingresar los 7 números o pulsar Buscar.</span>
                         </div>
@@ -276,7 +273,7 @@
                                 </div>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                                     <div class="bg-white px-2.5 py-1.5 rounded border border-gray-150"><span class="font-bold text-blue-700">A</span>: Día laborado</div>
-                                    <div class="bg-white px-2.5 py-1.5 rounded border border-gray-150"><span class="font-bold text-red-600">I</span>: Inasistencia injustificada</div>
+                                    <div class="bg-white px-2.5 py-1.5 rounded border border-gray-150"><span class="font-bold text-red-600">I</span>: Inasistencia</div>
                                     <div class="bg-white px-2.5 py-1.5 rounded border border-gray-150"><span class="font-bold text-amber-500">3T</span>: Tercera tardanza considerada como inasistencia injustificada</div>
                                     <div class="bg-white px-2.5 py-1.5 rounded border border-gray-150"><span class="font-bold text-blue-700">J</span>: Inasistencia justificada (licencia, permiso, vacaciones)</div>
                                     <div class="bg-white px-2.5 py-1.5 rounded border border-gray-150"><span class="font-bold text-blue-700">LS</span>: Licencia sin goce de remuneraciones</div>
@@ -389,11 +386,11 @@
                 </div>
                 <div>
                     <label class="block font-bold text-blue-900 mb-1">URL CSV - Padrón de I.E.:</label>
-                    <input type="text" id="inputCsvIe" class="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 font-mono text-xs" placeholder="https://docs.google.com/spreadsheets/.../pub?output=csv">
+                    <input type="text" id="inputCsvIe" class="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 font-mono text-xs" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv">
                 </div>
                 <div>
                     <label class="block font-bold text-blue-900 mb-1">URL CSV - Padrón Personal:</label>
-                    <input type="text" id="inputCsvPersonal" class="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 font-mono text-xs" placeholder="https://docs.google.com/spreadsheets/.../pub?output=csv">
+                    <input type="text" id="inputCsvPersonal" class="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 font-mono text-xs" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv">
                 </div>
 
                 <div class="flex justify-end gap-2 mt-4">
@@ -406,7 +403,7 @@
 
     <!-- MODAL CONFIRMACION ELIMINAR -->
     <div id="modalConfirmDelete" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4 z-[110] hidden">
-        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-150 flex flex-col gap-4 animate-fade-in text-center">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-150 flex flex-col gap-4 text-center animate-fade-in">
             <div class="text-red-600 text-4xl mb-2">
                 <i class="fa-solid fa-circle-question animate-pulse"></i>
             </div>
@@ -457,16 +454,15 @@
 
     <!-- LOGICA JAVASCRIPT NATIVA -->
     <script>
-        // --- BASES DE DATOS DE PRUEBA (FALLBACK) ---
-        const DB_IE_FALLBACK = {
-            '0123456': { dreUgel: 'UGEL 01 - SAN JUAN DE MIRAFLORES', ie: '6004 S. ANTUNEZ DE MAYOLO', lugar: 'LIMA', nivel: 'SECUNDARIA', distrito: 'VILLA EL SALVADOR' }
+        // --- BASES DE DATOS DE PRUEBA (AUTOCOMPLETADO) ---
+        let dbIe = {
+            '0123456': { dreUgel: 'UGEL 01 - SAN JUAN DE MIRAFLORES', ie: '6004 S. ANTUNEZ DE MAYOLO', lugar: 'LIMA', nivel: 'SECUNDARIA', distrito: 'VILLA EL SALVADOR' },
+            '0987654': { dreUgel: 'UGEL 03 - BREÑA', ie: '10 DE OCTUBRE', lugar: 'LIMA', nivel: 'PRIMARIA', distrito: 'BREÑA' }
         };
-        const DB_PERSONAL_FALLBACK = {
-            '40001122': { nombres: 'QUISPE MENDOZA, JUAN', cargo: 'PROFESOR', condicion: 'NOMBRADO', jornada: '30' }
+        let dbPersonal = {
+            '40001122': { nombres: 'QUISPE MENDOZA, JUAN', cargo: 'PROFESOR', condicion: 'NOMBRADO', jornada: '30' },
+            '40003344': { nombres: 'RODRIGUEZ FLORES, MARIA', cargo: 'PROFESOR F.F.', condicion: 'CONTRATADO', jornada: '30' }
         };
-
-        let dbIe = { ...DB_IE_FALLBACK };
-        let dbPersonal = { ...DB_PERSONAL_FALLBACK };
 
         // Códigos válidos para el control de asistencia en calendario
         const CODIGOS_VALIDOS = ['A', 'I', '3T', 'J', 'LS', 'PS', 'T', 'H', 'F'];
@@ -571,7 +567,7 @@
                                 if(rows[i][iDni]) {
                                     dbPersonal[rows[i][iDni].trim()] = {
                                         nombres: iNom!==-1 ? rows[i][iNom] : '',
-                                        cargo: iCargo!==-1 ? rows[i][iCargo] : '', // CORREGIDO AQUÍ: rows[i][iCargo] en lugar de rows[i][iNom]
+                                        cargo: iCargo!==-1 ? rows[i][iCargo] : '', 
                                         condicion: iCond!==-1 ? rows[i][iCond] : '',
                                         jornada: iJor!==-1 ? rows[i][iJor] : ''
                                     };
@@ -599,11 +595,6 @@
                 document.getElementById('btnAdminConfig').classList.remove('hidden');
                 document.getElementById('btnCreateReport').classList.add('hidden');
                 document.getElementById('adminBadge').classList.remove('hidden');
-                
-                // Configurar el editor para que solo sea de lectura para el administrador
-                document.getElementById('btnSaveCloud').classList.add('hidden');
-                document.getElementById('btnAddStaff').classList.add('hidden');
-                document.getElementById('btnExport').classList.remove('hidden');
                 document.getElementById('hintCodModular').classList.add('hidden');
                 document.getElementById('meta-cod').readOnly = true;
                 
@@ -1001,7 +992,7 @@
             const data = dbIe[val];
             if (data) {
                 appData.dreUgel = data.dreUgel || ''; document.getElementById('meta-dre').value = appData.dreUgel;
-                appData.ie = data.ie || ''; document.getElementById('meta-ie').value = data.ie;
+                appData.ie = data.ie || ''; document.getElementById('meta-ie').value = appData.ie;
                 appData.lugar = data.lugar || ''; document.getElementById('meta-lugar').value = data.lugar;
                 appData.nivel = data.nivel || ''; document.getElementById('meta-nivel').value = data.nivel;
                 appData.distrito = data.distrito || ''; document.getElementById('meta-distrito').value = data.distrito;
@@ -1014,6 +1005,7 @@
         }
 
         // Ajustar dinámicamente el ancho (atributo size) para que los datos quepan de forma exacta en una sola línea fluida
+        // Soporta de forma nativa el wrap o salto de línea automático según el ajuste máximo del espacio
         function adjustInputWidth(input, minSize) {
             const valLen = input.value ? input.value.length : 0;
             const calculatedSize = Math.max(minSize, valLen);
@@ -1207,7 +1199,6 @@
                     </td>` : ''}
                 </tr>`;
             });
-            bodyHTML += ``;
             tbody.innerHTML = bodyHTML;
 
             // Disparar redimensionamiento dinámico y ajuste de fuente tras renderizar todos los elementos
@@ -1264,28 +1255,29 @@
                 // Cálculo de indicadores automatizados
                 const calcs = calculateAnexo4(emp);
 
-                bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-300">
-                    <td class="border-slate-300 p-2 font-bold text-center align-middle">${index + 1}</td>
-                    <td class="border-slate-300 p-2 font-bold text-blue-900 text-center align-middle uppercase" style="text-transform: uppercase;">${emp.dni}</td>
-                    <td class="border-slate-300 p-2 text-left font-bold text-slate-800 align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.nombres}</td>
-                    <td class="border-slate-300 p-2 text-left text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.cargo}</td>
-                    <td class="border-slate-300 p-2 text-center text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.condicion}</td>
-                    <td class="border-slate-300 p-2 font-bold text-center align-middle uppercase" style="text-transform: uppercase;">${emp.jornada}</td>
+                // Corregida y unificada la clase a border-slate-400 para que se dibujen las celdas y filas correctamente
+                bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400">
+                    <td class="border border-slate-400 p-2 font-bold text-center align-middle">${index + 1}</td>
+                    <td class="border border-slate-400 p-2 font-bold text-blue-900 text-center align-middle uppercase" style="text-transform: uppercase;">${emp.dni}</td>
+                    <td class="border border-slate-400 p-2 text-left font-bold text-slate-800 align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.nombres}</td>
+                    <td class="border border-slate-400 p-2 text-left text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.cargo}</td>
+                    <td class="border border-slate-400 p-2 text-center text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.condicion}</td>
+                    <td class="border border-slate-400 p-2 font-bold text-center align-middle uppercase" style="text-transform: uppercase;">${emp.jornada}</td>
                     
-                    <td class="border-slate-300 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias}</td>
+                    <td class="border border-slate-400 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias}</td>
                     
-                    <td class="border-slate-300 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-10 p-2 text-center outline-none bg-transparent" value="${emp.tardanzasH || ''}" oninput="updateEmp('${emp.id}', 'tardanzasH', this.value)"></td>
+                    <td class="border border-slate-400 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-10 p-2 text-center outline-none bg-transparent" value="${emp.tardanzasH || ''}" oninput="updateEmp('${emp.id}', 'tardanzasH', this.value)"></td>
                     
                     <!-- Sincronizado para Anexo 04 -->
-                    <td class="border-slate-300 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM || ''}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
+                    <td class="border border-slate-400 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM || ''}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
                     
-                    <td class="border-slate-300 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGH || ''}" oninput="updateEmp('${emp.id}', 'permisosSGH', this.value)"></td>
-                    <td class="border-slate-300 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.permisosSGM || ''}" oninput="updateEmp('${emp.id}', 'permisosSGM', this.value)"></td>
-                    <td class="border-slate-300 p-2 bg-blue-50 font-bold text-blue-700 text-center align-middle">${calcs.permisosSGDias}</td>
+                    <td class="border border-slate-400 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGH || ''}" oninput="updateEmp('${emp.id}', 'permisosSGH', this.value)"></td>
+                    <td class="border border-slate-400 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.permisosSGM || ''}" oninput="updateEmp('${emp.id}', 'permisosSGM', this.value)"></td>
+                    <td class="border border-slate-400 p-2 bg-blue-50 font-bold text-blue-700 text-center align-middle">${calcs.permisosSGDias}</td>
                     
                     <!-- Campo Huelga/Paro se automatiza desde el código 'H' (Anexo 03) -->
-                    <td class="border-slate-300 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.huelgaDias}</td>
-                    <td class="border-slate-300 p-1 align-middle min-w-[150px]">
+                    <td class="border border-slate-400 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.huelgaDias}</td>
+                    <td class="border border-slate-400 p-1 align-middle min-w-[150px]">
                         <textarea ${isReadonly} class="bg-transparent outline-none text-[10px] py-0.5 whitespace-normal uppercase leading-tight resize-none overflow-y-auto text-left border-0" style="height: 32px; text-transform: uppercase; font-size: 10px; width: 100%; display: block;" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustObsWidthAndHeight(this);" placeholder="Observaciones">${emp.observaciones || ''}</textarea>
                     </td>
                 </tr>`;
@@ -1367,6 +1359,8 @@
 
             // Cambiar bandera a 'isSaved = true' al momento de guardar
             appData.isSaved = true;
+            // Bloquear de inmediato el campo modular al hacer clic en Guardar en Nube
+            applyDirectorFieldsLock();
 
             const index = reportsDatabase.findIndex(r => r.id === appData.id);
             if (index !== -1) {
