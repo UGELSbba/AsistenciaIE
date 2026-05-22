@@ -126,7 +126,7 @@
                             <i class="fa-solid fa-magnifying-glass"></i>
                             <span>Buscador por Código Modular:</span>
                         </div>
-                        <input type="text" id="adminSearchCod" placeholder="Escribe el código modular de 7 dígitos..." maxlength="7" oninput="filterAdminReports(this.value)" class="border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-red-500 w-72 bg-white font-bold text-red-900 shadow-inner" />
+                        <input type="text" id="adminSearchCod" placeholder="Escribe el código modular de 7 dígitos..." maxlength="7" oninput="filterAdminReports(this.value)" class="border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-red-500 w-72 bg-white font-bold text-red-900 shadow-inner uppercase" style="text-transform: uppercase;" />
                         <button onclick="clearAdminFilter()" class="bg-gray-100 hover:bg-gray-200 text-slate-700 font-bold px-3 py-1.5 rounded-lg text-xs transition border border-gray-300">
                             Limpiar Filtro
                         </button>
@@ -191,7 +191,7 @@
                         <div class="flex flex-wrap items-center gap-2 lg:col-span-3 bg-gradient-to-r from-red-50 to-white p-3 rounded-lg border border-red-100">
                             <label class="font-bold text-red-900">CÓDIGO MODULAR DE LA I.E.:</label>
                             <div class="flex gap-2">
-                                <input type="text" id="meta-cod" placeholder="Escriba los 7 dígitos..." maxlength="7" class="border border-gray-300 rounded-lg px-3 py-1.5 outline-none focus:border-red-500 w-44 bg-white font-bold text-red-900" oninput="handleIeLookup(this.value)">
+                                <input type="text" id="meta-cod" placeholder="Escriba los 7 dígitos..." maxlength="7" class="border border-gray-300 rounded-lg px-3 py-1.5 outline-none focus:border-red-500 w-44 bg-white font-bold text-red-900 uppercase" style="text-transform: uppercase;" oninput="handleIeLookup(this.value)">
                                 <button id="btnSearchIE" onclick="buscarIE()" class="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-700 transition flex items-center gap-1 shadow-sm">
                                     <i class="fa-solid fa-search"></i> Buscar
                                 </button>
@@ -202,7 +202,7 @@
                         <!-- Campos deshabilitados de solo lectura para el panel del Director y del Admin -->
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">DRE/UGEL:</label>
-                            <input type="text" id="meta-dre" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold" oninput="appData.dreUgel = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-dre" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold uppercase" style="text-transform: uppercase;" oninput="appData.dreUgel = this.value; triggerAutoSave();">
                         </div>
 
                         <div class="flex flex-col gap-1">
@@ -212,22 +212,22 @@
 
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">INSTITUCIÓN EDUCATIVA:</label>
-                            <input type="text" id="meta-ie" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed font-bold text-gray-500 outline-none" oninput="appData.ie = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-ie" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed font-bold text-gray-500 outline-none uppercase" style="text-transform: uppercase;" oninput="appData.ie = this.value; triggerAutoSave();">
                         </div>
 
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">LUGAR:</label>
-                            <input type="text" id="meta-lugar" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold" oninput="appData.lugar = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-lugar" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold uppercase" style="text-transform: uppercase;" oninput="appData.lugar = this.value; triggerAutoSave();">
                         </div>
 
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">NIVEL EDUCATIVO:</label>
-                            <input type="text" id="meta-nivel" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold" oninput="appData.nivel = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-nivel" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold uppercase" style="text-transform: uppercase;" oninput="appData.nivel = this.value; triggerAutoSave();">
                         </div>
 
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">DISTRITO:</label>
-                            <input type="text" id="meta-distrito" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold" oninput="appData.distrito = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-distrito" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold uppercase" style="text-transform: uppercase;" oninput="appData.distrito = this.value; triggerAutoSave();">
                         </div>
                     </div>
 
@@ -283,7 +283,7 @@
                             <div class="mt-8 no-print print:block">
                                 <div class="flex justify-start px-4 mb-16">
                                     <label class="text-xs font-bold text-gray-700">Lugar y fecha: </label>
-                                    <input type="text" class="ml-2 border-b border-gray-400 outline-none w-64 text-xs bg-transparent focus:border-blue-600 text-gray-800" placeholder="................................................................">
+                                    <input type="text" class="ml-2 border-b border-gray-400 outline-none w-64 text-xs bg-transparent focus:border-blue-600 text-gray-800 uppercase" style="text-transform: uppercase;" placeholder="................................................................">
                                 </div>
                                 <div class="grid grid-cols-2 gap-8 text-center text-xs pb-8">
                                     <div><div class="border-t border-black pt-2 mx-12"></div><p class="font-bold text-blue-900">DIRECTOR(A) DE LA I.E.</p><p class="text-gray-500 mt-1 italic no-print">Firma Digital / Sello</p></div>
@@ -343,7 +343,7 @@
                             <div class="mt-8 no-print print:block">
                                 <div class="flex justify-start px-4 mb-16">
                                     <label class="text-xs font-bold text-gray-700">Lugar y fecha: </label>
-                                    <input type="text" class="ml-2 border-b border-gray-400 outline-none w-64 text-xs bg-transparent focus:border-blue-600 text-gray-800" placeholder="................................................................">
+                                    <input type="text" class="ml-2 border-b border-gray-400 outline-none w-64 text-xs bg-transparent focus:border-blue-600 text-gray-800 uppercase" style="text-transform: uppercase;" placeholder="................................................................">
                                 </div>
                                 <div class="grid grid-cols-2 gap-8 text-center text-xs pb-8">
                                     <div><div class="border-t border-black pt-2 mx-12"></div><p class="font-bold text-blue-900">DIRECTOR(A) DE LA I.E.</p><p class="text-gray-500 mt-1 italic no-print">Firma Digital / Sello</p></div>
@@ -371,7 +371,7 @@
                 </div>
                 <div>
                     <label class="block font-bold text-blue-900 mb-1">URL App Script (Guardar Datos):</label>
-                    <input type="text" id="inputSheetsUrl" class="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 font-mono text-xs" placeholder="https://script.google.com/macros/s/.../exec">
+                    <input type="text" id="inputSheetsUrl" class="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 font-mono text-xs uppercase" style="text-transform: uppercase;" placeholder="https://script.google.com/macros/s/.../exec">
                 </div>
 
                 <div class="bg-blue-50 text-blue-900 p-3 rounded-lg text-xs border border-red-200 mt-4">
@@ -724,7 +724,7 @@
             // 1. Bloqueo Condicional de Código Modular y Mes según si ya fue guardado
             if (isSaved) {
                 codInput.readOnly = true;
-                codInput.className = 'border border-gray-300 rounded-lg px-3 py-1.5 outline-none bg-gray-100 text-gray-500 cursor-not-allowed w-44 font-bold';
+                codInput.className = 'border border-gray-300 rounded-lg px-3 py-1.5 outline-none bg-gray-100 text-gray-500 cursor-not-allowed w-44 font-bold uppercase';
                 
                 mesInput.readOnly = true;
                 mesInput.className = 'border border-blue-300 rounded-lg px-3 py-2 bg-gray-100 text-gray-500 cursor-not-allowed outline-none font-bold w-full';
@@ -735,7 +735,7 @@
                 document.getElementById('hintCodModular').innerHTML = `<i class="fa-solid fa-lock text-red-600"></i> Código Modular y Mes Bloqueados. El reporte ya ha sido guardado en la nube.`;
             } else {
                 codInput.readOnly = false;
-                codInput.className = 'border border-gray-300 rounded-lg px-3 py-1.5 outline-none focus:border-red-500 w-44 bg-white font-bold text-red-900';
+                codInput.className = 'border border-gray-300 rounded-lg px-3 py-1.5 outline-none focus:border-red-500 w-44 bg-white font-bold text-red-900 uppercase';
 
                 mesInput.readOnly = false;
                 mesInput.className = 'border border-blue-300 rounded-lg px-3 py-2 bg-white focus:border-blue-500 outline-none font-bold text-blue-900 w-full';
@@ -752,7 +752,7 @@
                 const el = document.getElementById(id);
                 if (el) {
                     el.readOnly = true;
-                    el.className = 'border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 text-gray-500 cursor-not-allowed outline-none w-full';
+                    el.className = 'border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 text-gray-500 cursor-not-allowed outline-none w-full uppercase';
                 }
             });
         }
@@ -846,7 +846,17 @@
             triggerAutoSave();
         }
 
-        // Modificado para guardar correctamente campos de texto con el auto-save correspondiente
+        function removeEmployee(id) {
+            if (currentRole === 'ADMIN') return;
+            appData.empleados = appData.empleados.filter(e => e.id !== id);
+            renderTables();
+            triggerAutoSave();
+        }
+        
+        // Registro explícito en el contexto global para asegurar el correcto funcionamiento del botón borrar
+        window.removeEmployee = removeEmployee;
+
+        // Modificado para guardar correctamente campos de texto con el auto-save correspondiente y siempre en mayúsculas
         function updateEmp(id, field, value) {
             if (currentRole === 'ADMIN') return;
             const emp = appData.empleados.find(e => e.id === id);
@@ -882,7 +892,7 @@
         // --- AUTOCOMPLETADO EXACTO ---
         function handleIeLookup(val) {
             if (currentRole === 'ADMIN') return;
-            appData.codigoModular = val;
+            appData.codigoModular = val.toUpperCase();
 
             if (val.trim().length === 0) {
                 clearIeFields();
@@ -912,9 +922,9 @@
             if (data) {
                 appData.dreUgel = data.dreUgel || ''; document.getElementById('meta-dre').value = appData.dreUgel;
                 appData.ie = data.ie || ''; document.getElementById('meta-ie').value = appData.ie;
-                appData.lugar = data.lugar || ''; document.getElementById('meta-lugar').value = d.lugar;
-                appData.nivel = data.nivel || ''; document.getElementById('meta-nivel').value = d.nivel;
-                appData.distrito = data.distrito || ''; document.getElementById('meta-distrito').value = d.distrito;
+                appData.lugar = data.lugar || ''; document.getElementById('meta-lugar').value = data.lugar;
+                appData.nivel = data.nivel || ''; document.getElementById('meta-nivel').value = data.nivel;
+                appData.distrito = data.distrito || ''; document.getElementById('meta-distrito').value = data.distrito;
                 showToast("I.E. autocompletada desde el padrón", "success");
                 triggerAutoSave();
             } else {
@@ -928,6 +938,24 @@
             const valLen = input.value ? input.value.length : 0;
             const calculatedSize = Math.max(minSize, valLen);
             input.setAttribute('size', calculatedSize);
+        }
+
+        // Ajusta de manera dinámica el ancho y el tamaño de la fuente para Observaciones
+        function adjustObsWidthAndHeight(textarea) {
+            const valLen = textarea.value ? textarea.value.length : 0;
+            const minSize = 13; // Ancho mínimo según cabecera
+            const calculatedSize = Math.max(minSize, valLen);
+            
+            // Adaptar ancho horizontal
+            textarea.style.width = (calculatedSize * 6.5) + 'px';
+
+            // Adaptar reducción de fuente dinámica vertical para que no altere el alto de fila (32px)
+            textarea.style.fontSize = '10px';
+            let currentSize = 10;
+            while (textarea.scrollHeight > 32 && currentSize > 6.5) {
+                currentSize -= 0.5;
+                textarea.style.fontSize = `${currentSize}px`;
+            }
         }
 
         function handleDniLookup(id, val) {
@@ -1033,29 +1061,28 @@
                 const sizeCargo = Math.max(5, emp.cargo ? emp.cargo.length : 0);
                 const sizeCondicion = Math.max(9, emp.condicion ? emp.condicion.length : 0);
                 const sizeJornada = Math.max(4, emp.jornada ? emp.jornada.length : 0);
-                const sizeObs = Math.max(13, emp.observaciones ? emp.observaciones.length : 0);
 
                 bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400 text-[10px]">
                     <td style="border: 1px solid #94a3b8; min-width: 24px; max-width: 24px;" class="p-1 bg-white text-center align-middle font-bold">${index + 1}</td>
                     
                     <td style="border: 1px solid #94a3b8; border-right: 2px solid #64748b; min-width: 65px; max-width: 65px;" class="p-0.5 bg-white text-center align-middle">
-                        <input type="text" maxlength="8" size="${sizeDni}" ${isReadonly} class="text-center bg-transparent outline-none font-bold text-blue-900 text-[10px] w-full whitespace-nowrap" value="${emp.dni}" oninput="handleDniLookup('${emp.id}', this.value); adjustInputWidth(this, 3);" />
+                        <input type="text" maxlength="8" size="${sizeDni}" style="text-transform: uppercase;" ${isReadonly} class="text-center bg-transparent outline-none font-bold text-blue-900 text-[10px] w-full whitespace-nowrap uppercase" value="${emp.dni}" oninput="handleDniLookup('${emp.id}', this.value); adjustInputWidth(this, 3);" />
                     </td>
                     
                     <td style="border: 1px solid #94a3b8; min-width: 150px;" class="p-0.5 bg-white text-left align-middle">
-                        <input type="text" size="${sizeNombres}" ${isReadonly} class="bg-transparent outline-none font-bold text-slate-800 text-[10px] w-full whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-0.5 truncate" value="${emp.nombres}" oninput="updateEmp('${emp.id}', 'nombres', this.value); adjustInputWidth(this, 19);" placeholder="Apellidos y Nombres" />
+                        <input type="text" size="${sizeNombres}" style="text-transform: uppercase;" ${isReadonly} class="bg-transparent outline-none font-bold text-slate-800 text-[10px] w-full whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-0.5 truncate uppercase" value="${emp.nombres}" oninput="updateEmp('${emp.id}', 'nombres', this.value); adjustInputWidth(this, 19);" placeholder="Apellidos y Nombres" />
                     </td>
                     
                     <td class="border border-slate-400 p-0.5 text-left align-middle">
-                        <input type="text" size="${sizeCargo}" ${isReadonly} class="bg-transparent outline-none text-[10px] w-full whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-0.5 truncate" value="${emp.cargo}" oninput="updateEmp('${emp.id}', 'cargo', this.value); adjustInputWidth(this, 5);" placeholder="Cargo de Función" />
+                        <input type="text" size="${sizeCargo}" style="text-transform: uppercase;" ${isReadonly} class="bg-transparent outline-none text-[10px] w-full whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-0.5 truncate uppercase" value="${emp.cargo}" oninput="updateEmp('${emp.id}', 'cargo', this.value); adjustInputWidth(this, 5);" placeholder="Cargo de Función" />
                     </td>
                     
                     <td class="border border-slate-400 p-0.5 text-center align-middle">
-                        <input type="text" size="${sizeCondicion}" ${isReadonly} class="bg-transparent outline-none text-[10px] text-center w-full whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-0.5 truncate" value="${emp.condicion}" oninput="updateEmp('${emp.id}', 'condicion', this.value); adjustInputWidth(this, 9);" placeholder="Condición" />
+                        <input type="text" size="${sizeCondicion}" style="text-transform: uppercase;" ${isReadonly} class="bg-transparent outline-none text-[10px] text-center w-full whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-0.5 truncate uppercase" value="${emp.condicion}" oninput="updateEmp('${emp.id}', 'condicion', this.value); adjustInputWidth(this, 9);" placeholder="Condición" />
                     </td>
                     
                     <td class="border border-slate-400 p-0.5 text-center align-middle">
-                        <input type="text" size="${sizeJornada}" ${isReadonly} class="text-center bg-transparent outline-none font-bold text-[10px] w-full whitespace-nowrap" value="${emp.jornada}" oninput="updateEmp('${emp.id}', 'jornada', this.value); adjustInputWidth(this, 4);" placeholder="Hrs" />
+                        <input type="text" size="${sizeJornada}" style="text-transform: uppercase;" ${isReadonly} class="text-center bg-transparent outline-none font-bold text-[10px] w-full whitespace-nowrap uppercase" value="${emp.jornada}" oninput="updateEmp('${emp.id}', 'jornada', this.value); adjustInputWidth(this, 4);" placeholder="Hrs" />
                     </td>
                 `;
                 days.forEach(d => {
@@ -1067,7 +1094,7 @@
                         bodyHTML += `<td class="border border-slate-400 p-0 ${bg} align-middle"><span class="block w-full text-center py-1.5 font-bold">-</span></td>`;
                     } else {
                         bodyHTML += `<td class="border border-slate-400 p-0 ${bg} align-middle">
-                            <input type="text" maxlength="2" ${isReadonly} class="w-full h-8 p-0 outline-none text-center uppercase bg-transparent text-[10px] font-bold" value="${val}" onchange="updateAsist('${emp.id}', ${d.day}, this.value)" />
+                            <input type="text" maxlength="2" style="text-transform: uppercase;" ${isReadonly} class="w-full h-8 p-0 outline-none text-center uppercase bg-transparent text-[10px] font-bold" value="${val}" oninput="updateAsist('${emp.id}', ${d.day}, this.value)" />
                         </td>`;
                     }
                 });
@@ -1075,11 +1102,12 @@
                 // Input de Tardanzas en Minutos optimizado (tipo text de size 3 para que sea muy angosto y con autoguardado de oninput)
                 bodyHTML += `
                     <td style="width: 45px; min-width: 45px; max-width: 45px;" class="border border-slate-400 p-0 bg-amber-50/30 align-middle">
-                        <input type="text" maxlength="3" size="3" ${isReadonly} class="w-full h-8 p-0.5 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM || ''}" oninput="this.value=this.value.replace(/[^0-9]/g,''); updateEmp('${emp.id}', 'tardanzasM', this.value)">
+                        <input type="text" maxlength="3" size="3" style="text-transform: uppercase;" ${isReadonly} class="w-full h-8 p-0.5 text-center outline-none bg-transparent font-bold text-amber-900 uppercase" value="${emp.tardanzasM || ''}" oninput="this.value=this.value.replace(/[^0-9]/g,''); updateEmp('${emp.id}', 'tardanzasM', this.value)">
                     </td>
                     
+                    <!-- Campo Observaciones en Textarea con alto fijo de 32px y autoajuste de texto dinámico de fuente y de ancho lineal -->
                     <td class="border border-slate-400 p-0.5 align-middle">
-                        <input type="text" size="${sizeObs}" ${isReadonly} class="bg-transparent outline-none text-[9px] w-full whitespace-nowrap" value="${emp.observaciones}" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustInputWidth(this, 13);" placeholder="Observaciones" />
+                        <textarea rows="2" ${isReadonly} class="bg-transparent outline-none text-[10px] py-0.5 whitespace-normal uppercase leading-tight resize-none overflow-hidden text-left" style="height: 32px; text-transform: uppercase; font-size: 10px; width: 100%; display: block;" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustObsWidthAndHeight(this);" placeholder="Observaciones" data-id="${emp.id}">${emp.observaciones || ''}</textarea>
                     </td>
                     
                     <!-- Columna independiente para el botón de eliminar al final de la fila bajo "X" -->
@@ -1092,6 +1120,14 @@
                 </tr>`;
             });
             tbody.innerHTML = bodyHTML;
+
+            // Disparar redimensionamiento dinámico y ajuste de fuente tras renderizar todos los elementos
+            document.querySelectorAll('#bodyAnexo3 input[type="text"]').forEach(input => {
+                adjustInputWidth(input, 4);
+            });
+            document.querySelectorAll('#bodyAnexo3 textarea').forEach(textarea => {
+                adjustObsWidthAndHeight(textarea);
+            });
         }
 
         // --- CONSOLIDACIÓN DINÁMICA DE ASISTENCIA A ANEXO 04 ---
@@ -1139,11 +1175,11 @@
 
                 bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-300">
                     <td class="border border-slate-300 p-2 font-bold text-center align-middle">${index + 1}</td>
-                    <td class="border border-slate-300 p-2 font-bold text-blue-900 text-center align-middle">${emp.dni}</td>
-                    <td class="border border-slate-300 p-2 text-left font-bold text-slate-800 align-middle leading-normal text-nowrap">${emp.nombres}</td>
-                    <td class="border border-slate-300 p-2 text-left text-xs align-middle leading-normal text-nowrap">${emp.cargo}</td>
-                    <td class="border border-slate-300 p-2 text-center text-xs align-middle leading-normal text-nowrap">${emp.condicion}</td>
-                    <td class="border border-slate-300 p-2 font-bold text-center align-middle">${emp.jornada}</td>
+                    <td class="border border-slate-300 p-2 font-bold text-blue-900 text-center align-middle uppercase" style="text-transform: uppercase;">${emp.dni}</td>
+                    <td class="border border-slate-300 p-2 text-left font-bold text-slate-800 align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.nombres}</td>
+                    <td class="border border-slate-300 p-2 text-left text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.cargo}</td>
+                    <td class="border border-slate-300 p-2 text-center text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.condicion}</td>
+                    <td class="border border-slate-300 p-2 font-bold text-center align-middle uppercase" style="text-transform: uppercase;">${emp.jornada}</td>
                     
                     <td class="border border-slate-300 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias}</td>
                     
@@ -1153,15 +1189,21 @@
                     <td class="border border-slate-300 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM || ''}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
                     
                     <td class="border border-slate-300 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGH || ''}" oninput="updateEmp('${emp.id}', 'permisosSGH', this.value)"></td>
-                    <td class="border border-slate-300 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGM || ''}" oninput="updateEmp('${emp.id}', 'permisosSGM', this.value)"></td>
+                    <td class="border border-slate-300 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.permisosSGM || ''}" oninput="updateEmp('${emp.id}', 'permisosSGM', this.value)"></td>
                     <td class="border border-slate-300 p-2 bg-blue-50 font-bold text-blue-700 text-center align-middle">${calcs.permisosSGDias}</td>
                     
                     <!-- Campo Huelga/Paro se automatiza desde el código 'H' (Anexo 03) -->
                     <td class="border border-slate-300 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.huelgaDias}</td>
-                    <td class="border border-slate-300 p-1 align-middle min-w-[150px]"><input type="text" ${isReadonly} class="w-full bg-transparent outline-none text-[10px] py-1 whitespace-nowrap" value="${emp.observaciones || ''}" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustInputWidth(this, 13);"></td>
+                    <td class="border border-slate-300 p-1 align-middle min-w-[150px]">
+                        <textarea rows="2" ${isReadonly} class="bg-transparent outline-none text-[10px] py-0.5 whitespace-normal uppercase leading-tight resize-none overflow-hidden text-left" style="height: 32px; text-transform: uppercase; font-size: 10px; width: 100%; display: block;" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustObsWidthAndHeight(this);" placeholder="Observaciones">${emp.observaciones || ''}</textarea>
+                    </td>
                 </tr>`;
             });
             tbody.innerHTML = bodyHTML;
+
+            document.querySelectorAll('#bodyAnexo4 textarea').forEach(textarea => {
+                adjustObsWidthAndHeight(textarea);
+            });
         }
 
         // --- GOOGLE SHEETS API Y CONFIGURACIÓN ---
@@ -1295,7 +1337,7 @@
                             if(v==='H') huelga++;
                         });
                     }
-                    csvContent += `${index + 1},${emp.dni},"${emp.nombres}",${emp.cargo},${emp.condicion},${emp.jornada},${inasist},${emp.tardanzasH || 0},${emp.tardanzasM || 0},${emp.permisosSGH || 0},${emp.permisosSGM || 0},${permisos},${huelga},"${emp.observaciones || ''}"\n`;
+                    csvContent += `${index + 1},${emp.dni},"${emp.nombres}","${emp.cargo}","${emp.condicion}",${emp.jornada},${inasist},${emp.tardanzasH || 0},${emp.tardanzasM || 0},${emp.permisosSGH || 0},${emp.permisosSGM || 0},${permisos},${huelga},"${emp.observaciones || ''}"\n`;
                 });
             }
 
