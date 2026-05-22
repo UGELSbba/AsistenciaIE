@@ -12,9 +12,9 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; }
         
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #93c5fd; border-radius: 2px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #93c5fd; border-radius: 3px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #2563eb; }
 
         /* Animaciones */
@@ -254,9 +254,9 @@
                             <div class="grid grid-cols-4 text-left mt-4 text-[10px] border border-slate-400 p-3 rounded" id="metaPrintA3"></div>
                         </div>
 
-                        <div class="overflow-x-auto custom-scrollbar p-1">
-                            <!-- table-auto w-full y fuentes compactas para prevenir scroll horizontal -->
-                            <table class="w-full text-[9px] sm:text-xs border-collapse text-center print-table table-auto whitespace-nowrap">
+                        <div class="overflow-x-auto custom-scrollbar p-4">
+                            <!-- table-auto permite que las columnas crezcan de forma fluida lineal -->
+                            <table class="w-full text-[10px] sm:text-xs border-collapse text-center print-table table-auto whitespace-nowrap">
                                 <thead id="headAnexo3"></thead>
                                 <tbody id="bodyAnexo3"></tbody>
                             </table>
@@ -310,7 +310,7 @@
                             <div class="grid grid-cols-4 text-left mt-4 text-[10px] border border-slate-400 p-3 rounded" id="metaPrintA4"></div>
                         </div>
 
-                        <div class="overflow-x-auto custom-scrollbar p-1">
+                        <div class="overflow-x-auto custom-scrollbar p-4">
                             <table class="w-full text-xs border border-slate-400 border-collapse text-center print-table table-auto whitespace-nowrap">
                                 <thead>
                                     <tr class="bg-blue-50 text-blue-900 font-bold">
@@ -846,13 +846,7 @@
             triggerAutoSave();
         }
 
-        function removeEmployee(id) {
-            if (currentRole === 'ADMIN') return;
-            appData.empleados = appData.empleados.filter(e => e.id !== id);
-            renderTables();
-            triggerAutoSave();
-        }
-
+        // Modificado para guardar correctamente campos de texto con el auto-save correspondiente
         function updateEmp(id, field, value) {
             if (currentRole === 'ADMIN') return;
             const emp = appData.empleados.find(e => e.id === id);
@@ -918,9 +912,9 @@
             if (data) {
                 appData.dreUgel = data.dreUgel || ''; document.getElementById('meta-dre').value = appData.dreUgel;
                 appData.ie = data.ie || ''; document.getElementById('meta-ie').value = appData.ie;
-                appData.lugar = data.lugar || ''; document.getElementById('meta-lugar').value = appData.lugar;
-                appData.nivel = data.nivel || ''; document.getElementById('meta-nivel').value = appData.nivel;
-                appData.distrito = data.distrito || ''; document.getElementById('meta-distrito').value = appData.distrito;
+                appData.lugar = data.lugar || ''; document.getElementById('meta-lugar').value = d.lugar;
+                appData.nivel = data.nivel || ''; document.getElementById('meta-nivel').value = d.nivel;
+                appData.distrito = data.distrito || ''; document.getElementById('meta-distrito').value = d.distrito;
                 showToast("I.E. autocompletada desde el padrón", "success");
                 triggerAutoSave();
             } else {
@@ -932,7 +926,6 @@
         // Ajustar dinámicamente el ancho (atributo size) para que los datos quepan de forma exacta en una sola línea fluida
         function adjustInputWidth(input, minSize) {
             const valLen = input.value ? input.value.length : 0;
-            // Definir tamaño en base a la longitud del contenido actual o el mínimo de la cabecera
             const calculatedSize = Math.max(minSize, valLen);
             input.setAttribute('size', calculatedSize);
         }
@@ -1004,7 +997,7 @@
             const tbody = document.getElementById('bodyAnexo3');
             const isReadonly = currentRole === 'ADMIN' ? 'readonly' : '';
             
-            // Render Headers con fusion rowspan="2" para evitar espacios en blanco debajo de los metadatos del personal
+            // Render Headers con fusion rowspan="2" y "Jor. Lab." separada en dos líneas
             let headHTML = `
                 <tr class="bg-blue-50 text-blue-900 font-bold border border-slate-400">
                     <th rowspan="2" style="border: 1px solid #94a3b8; min-width: 24px; max-width: 24px;" class="p-1 bg-blue-50 text-center align-middle">N°</th>
@@ -1012,9 +1005,9 @@
                     <th rowspan="2" style="border: 1px solid #94a3b8; min-width: 150px;" class="p-1 bg-blue-50 text-left align-middle">APELLIDOS Y NOMBRES</th>
                     <th rowspan="2" class="p-1 border border-slate-400 text-left align-middle">CARGO</th>
                     <th rowspan="2" class="p-1 border border-slate-400 text-center align-middle">CONDICIÓN</th>
-                    <th rowspan="2" class="p-1 border border-slate-400 text-center align-middle">Jor. Lab.</th>
+                    <th rowspan="2" class="p-1 border border-slate-400 text-center align-middle leading-tight">Jor.<br/>Lab.</th>
                     <th colSpan="${days.length}" class="p-1 border border-slate-400 text-center tracking-widest bg-red-50 text-red-900 align-middle">DÍAS CALENDARIOS</th>
-                    <th rowspan="2" class="p-1 border border-slate-400 bg-amber-100 text-amber-900 text-center align-middle">MIN.</th>
+                    <th rowspan="2" style="width: 45px; min-width: 45px; max-width: 45px;" class="p-1 border border-slate-400 bg-amber-100 text-amber-900 text-center align-middle">MIN.</th>
                     <th rowspan="2" class="p-1 border border-slate-400 bg-gray-100 text-left align-middle">OBSERVACIONES</th>
                     ${currentRole === 'DIRECTOR' ? `<th rowspan="2" class="p-1 no-print border border-slate-400 text-center align-middle">X</th>` : ''}
                 </tr>
@@ -1034,12 +1027,12 @@
 
             let bodyHTML = '';
             appData.empleados.forEach((emp, index) => {
-                // Anchos mínimos de cabecera ajustados matemáticamente a la longitud lineal del título
+                // Anchos mínimos adaptados. "sizeJornada" reducido para Jor. Lab. (máximo 2-3 números)
                 const sizeDni = Math.max(3, emp.dni ? emp.dni.length : 0);
                 const sizeNombres = Math.max(19, emp.nombres ? emp.nombres.length : 0);
                 const sizeCargo = Math.max(5, emp.cargo ? emp.cargo.length : 0);
                 const sizeCondicion = Math.max(9, emp.condicion ? emp.condicion.length : 0);
-                const sizeJornada = Math.max(9, emp.jornada ? emp.jornada.length : 0);
+                const sizeJornada = Math.max(4, emp.jornada ? emp.jornada.length : 0);
                 const sizeObs = Math.max(13, emp.observaciones ? emp.observaciones.length : 0);
 
                 bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400 text-[10px]">
@@ -1062,7 +1055,7 @@
                     </td>
                     
                     <td class="border border-slate-400 p-0.5 text-center align-middle">
-                        <input type="text" size="${sizeJornada}" ${isReadonly} class="text-center bg-transparent outline-none font-bold text-[10px] w-full whitespace-nowrap" value="${emp.jornada}" oninput="updateEmp('${emp.id}', 'jornada', this.value); adjustInputWidth(this, 9);" placeholder="Hrs" />
+                        <input type="text" size="${sizeJornada}" ${isReadonly} class="text-center bg-transparent outline-none font-bold text-[10px] w-full whitespace-nowrap" value="${emp.jornada}" oninput="updateEmp('${emp.id}', 'jornada', this.value); adjustInputWidth(this, 4);" placeholder="Hrs" />
                     </td>
                 `;
                 days.forEach(d => {
@@ -1079,8 +1072,11 @@
                     }
                 });
 
+                // Input de Tardanzas en Minutos optimizado (tipo text de size 3 para que sea muy angosto y con autoguardado de oninput)
                 bodyHTML += `
-                    <td class="border border-slate-400 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-8 p-0.5 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM}"></td>
+                    <td style="width: 45px; min-width: 45px; max-width: 45px;" class="border border-slate-400 p-0 bg-amber-50/30 align-middle">
+                        <input type="text" maxlength="3" size="3" ${isReadonly} class="w-full h-8 p-0.5 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM || ''}" oninput="this.value=this.value.replace(/[^0-9]/g,''); updateEmp('${emp.id}', 'tardanzasM', this.value)">
+                    </td>
                     
                     <td class="border border-slate-400 p-0.5 align-middle">
                         <input type="text" size="${sizeObs}" ${isReadonly} class="bg-transparent outline-none text-[9px] w-full whitespace-nowrap" value="${emp.observaciones}" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustInputWidth(this, 13);" placeholder="Observaciones" />
@@ -1152,6 +1148,8 @@
                     <td class="border border-slate-300 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias}</td>
                     
                     <td class="border border-slate-300 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-10 p-2 text-center outline-none bg-transparent" value="${emp.tardanzasH || ''}" oninput="updateEmp('${emp.id}', 'tardanzasH', this.value)"></td>
+                    
+                    <!-- Sincronizado para Anexo 04 -->
                     <td class="border border-slate-300 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM || ''}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
                     
                     <td class="border border-slate-300 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGH || ''}" oninput="updateEmp('${emp.id}', 'permisosSGH', this.value)"></td>
