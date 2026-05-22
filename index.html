@@ -9,7 +9,7 @@
     <!-- FontAwesome para Iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; }
         
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -170,7 +170,7 @@
                                 <button id="btnTab3" onclick="switchTab('ANEXO3')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-blue-700 shadow-sm">
                                     Anexo 03 (Asistencia)
                                 </button>
-                                <button id="btnTab4" onclick="switchTab('ANEXO4')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-red-700 shadow-sm">
+                                <button id="btnTab4" onclick="switchTab('ANEXO4')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition text-gray-500 hover:text-slate-800">
                                     Anexo 04 (Inasistencias)
                                 </button>
                             </div>
@@ -311,6 +311,7 @@
                         </div>
 
                         <div class="overflow-x-auto custom-scrollbar p-4">
+                            <!-- Agregado border-slate-400 para que se dibuje la grilla del Anexo 4 -->
                             <table class="w-full text-xs border border-slate-400 border-collapse text-center print-table table-auto whitespace-nowrap">
                                 <thead>
                                     <tr class="bg-blue-50 text-blue-900 font-bold">
@@ -357,7 +358,7 @@
         </main>
     </div>
 
-    <!-- MODAL: CONFIGURACIÓN GOOGLE SHEETS (SOLO ADMIN) -->
+    <!-- MODAL: CONFIGURACIÓN GOOGLE SHEETS -->
     <div id="modalConfig" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4 z-[100] hidden">
         <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border flex flex-col overflow-hidden">
             <div class="bg-blue-700 text-white p-5 flex justify-between items-center">
@@ -395,7 +396,7 @@
         </div>
     </div>
 
-    <!-- MODAL CONFIRMACION ELIMINAR (CUSTOM MODAL EVITA TRASTORNOS EN IFRAMES) -->
+    <!-- MODAL CONFIRMACION ELIMINAR -->
     <div id="modalConfirmDelete" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4 z-[110] hidden">
         <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-150 flex flex-col gap-4 animate-fade-in text-center">
             <div class="text-red-600 text-4xl mb-2">
@@ -406,6 +407,26 @@
             <div class="flex justify-center gap-3 mt-2">
                 <button onclick="closeDeleteModal()" class="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-lg text-xs transition">NO</button>
                 <button onclick="executeDelete()" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-xs transition shadow-md">SÍ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL GUARDANDO EN NUBE (NUEVA MEJORA EN EL MEDIO DE LA PANTALLA) -->
+    <div id="modalSaving" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4 z-[120] hidden animate-fade-in">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-150 flex flex-col gap-4 text-center">
+            <div id="savingSpinner" class="text-blue-600 text-4xl mb-2">
+                <i class="fa-solid fa-circle-notch fa-spin"></i>
+            </div>
+            <div id="savingSuccessIcon" class="text-green-500 text-4xl mb-2 hidden">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div id="savingErrorIcon" class="text-red-600 text-4xl mb-2 hidden">
+                <i class="fa-solid fa-circle-exclamation"></i>
+            </div>
+            <h3 id="savingTitle" class="text-base font-bold text-slate-800">Guardando datos...</h3>
+            <p id="savingText" class="text-xs text-gray-500">Enviando el reporte de asistencia al servidor de la UGEL.</p>
+            <div id="savingCloseBtn" class="flex justify-center mt-2 hidden">
+                <button onclick="closeSavingModal()" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs transition shadow-md">Entendido</button>
             </div>
         </div>
     </div>
@@ -1132,8 +1153,9 @@
                     if (isWknd) {
                         bodyHTML += `<td class="border border-slate-400 p-0 ${bg} align-middle"><span class="block w-full text-center py-1.5 font-bold">-</span></td>`;
                     } else {
+                        // Cambiado a onchange para que no lance error parcial de validación antes de terminar de escribir (ej: al tipear 'LS' o 'PS')
                         bodyHTML += `<td class="border border-slate-400 p-0 ${bg} align-middle">
-                            <input type="text" maxlength="2" style="text-transform: uppercase;" ${isReadonly} class="w-full h-8 p-0 outline-none text-center uppercase bg-transparent text-[10px] font-bold" value="${val}" oninput="updateAsist('${emp.id}', d.day, this.value)" />
+                            <input type="text" maxlength="2" style="text-transform: uppercase;" ${isReadonly} class="w-full h-8 p-0 outline-none text-center uppercase bg-transparent text-[10px] font-bold" value="${val}" onchange="updateAsist('${emp.id}', ${d.day}, this.value)" />
                         </td>`;
                     }
                 });
@@ -1215,28 +1237,28 @@
                 // Cálculo de indicadores automatizados
                 const calcs = calculateAnexo4(emp);
 
-                bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-300">
-                    <td class="border border-slate-300 p-2 font-bold text-center align-middle">${index + 1}</td>
-                    <td class="border border-slate-300 p-2 font-bold text-blue-900 text-center align-middle uppercase" style="text-transform: uppercase;">${emp.dni}</td>
-                    <td class="border border-slate-300 p-2 text-left font-bold text-slate-800 align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.nombres}</td>
-                    <td class="border border-slate-300 p-2 text-left text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.cargo}</td>
-                    <td class="border border-slate-300 p-2 text-center text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.condicion}</td>
-                    <td class="border border-slate-300 p-2 font-bold text-center align-middle uppercase" style="text-transform: uppercase;">${emp.jornada}</td>
+                bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400">
+                    <td class="border border-slate-400 p-2 font-bold text-center align-middle">${index + 1}</td>
+                    <td class="border border-slate-400 p-2 font-bold text-blue-900 text-center align-middle uppercase" style="text-transform: uppercase;">${emp.dni}</td>
+                    <td class="border border-slate-400 p-2 text-left font-bold text-slate-800 align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.nombres}</td>
+                    <td class="border border-slate-400 p-2 text-left text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.cargo}</td>
+                    <td class="border border-slate-400 p-2 text-center text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.condicion}</td>
+                    <td class="border border-slate-400 p-2 font-bold text-center align-middle uppercase" style="text-transform: uppercase;">${emp.jornada}</td>
                     
-                    <td class="border border-slate-300 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias}</td>
+                    <td class="border border-slate-400 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias}</td>
                     
-                    <td class="border border-slate-300 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-10 p-2 text-center outline-none bg-transparent" value="${emp.tardanzasH || ''}" oninput="updateEmp('${emp.id}', 'tardanzasH', this.value)"></td>
+                    <td class="border border-slate-400 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-10 p-2 text-center outline-none bg-transparent" value="${emp.tardanzasH || ''}" oninput="updateEmp('${emp.id}', 'tardanzasH', this.value)"></td>
                     
                     <!-- Sincronizado para Anexo 04 -->
-                    <td class="border border-slate-300 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM || ''}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
+                    <td class="border border-slate-400 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM || ''}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
                     
-                    <td class="border border-slate-300 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGH || ''}" oninput="updateEmp('${emp.id}', 'permisosSGH', this.value)"></td>
-                    <td class="border border-slate-300 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.permisosSGM || ''}" oninput="updateEmp('${emp.id}', 'permisosSGM', this.value)"></td>
-                    <td class="border border-slate-300 p-2 bg-blue-50 font-bold text-blue-700 text-center align-middle">${calcs.permisosSGDias}</td>
+                    <td class="border border-slate-400 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGH || ''}" oninput="updateEmp('${emp.id}', 'permisosSGH', this.value)"></td>
+                    <td class="border border-slate-400 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.permisosSGM || ''}" oninput="updateEmp('${emp.id}', 'permisosSGM', this.value)"></td>
+                    <td class="border border-slate-400 p-2 bg-blue-50 font-bold text-blue-700 text-center align-middle">${calcs.permisosSGDias}</td>
                     
                     <!-- Campo Huelga/Paro se automatiza desde el código 'H' (Anexo 03) -->
-                    <td class="border border-slate-300 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.huelgaDias}</td>
-                    <td class="border border-slate-300 p-1 align-middle min-w-[150px]">
+                    <td class="border border-slate-400 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.huelgaDias}</td>
+                    <td class="border border-slate-400 p-1 align-middle min-w-[150px]">
                         <textarea ${isReadonly} class="bg-transparent outline-none text-[10px] py-0.5 whitespace-normal uppercase leading-tight resize-none overflow-y-auto text-left border-0" style="height: 32px; text-transform: uppercase; font-size: 10px; width: 100%; display: block;" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustObsWidthAndHeight(this);" placeholder="Observaciones">${emp.observaciones || ''}</textarea>
                     </td>
                 </tr>`;
@@ -1292,6 +1314,10 @@
             }, 2000);
         }
 
+        function closeSavingModal() {
+            document.getElementById('modalSaving').classList.add('hidden');
+        }
+
         async function saveToSheets(isSilent = false) {
             if (currentRole === 'ADMIN') return;
             if (!googleSheetsUrl) {
@@ -1299,8 +1325,18 @@
                 return;
             }
             
-            if (!isSilent) showToast("Guardando reporte actual en la nube...", "info");
-            updateCloudStatus('syncing');
+            // Si el guardado no es silencioso (fue por click del botón), activamos el nuevo modal de progreso central
+            if (!isSilent) {
+                document.getElementById('savingSpinner').classList.remove('hidden');
+                document.getElementById('savingSuccessIcon').classList.add('hidden');
+                document.getElementById('savingErrorIcon').classList.add('hidden');
+                document.getElementById('savingCloseBtn').classList.add('hidden');
+                document.getElementById('savingTitle').innerText = "Guardando datos...";
+                document.getElementById('savingText').innerText = "Sincronizando el reporte de asistencia con Google Sheets.";
+                document.getElementById('modalSaving').classList.remove('hidden');
+            } else {
+                updateCloudStatus('syncing');
+            }
 
             // Cambiar bandera a 'isSaved = true' al momento de guardar
             appData.isSaved = true;
@@ -1322,21 +1358,40 @@
                 if (data.status === "success") {
                     updateCloudStatus();
                     applyDirectorFieldsLock(); // Aplica bloqueo visual inmediato de campos modular y mes
-                    if (!isSilent) showToast("Reporte guardado con éxito", "success");
+                    
+                    if (!isSilent) {
+                        // Cambiar vista del modal central a Guardado Exitoso
+                        document.getElementById('savingSpinner').classList.add('hidden');
+                        document.getElementById('savingSuccessIcon').classList.remove('hidden');
+                        document.getElementById('savingCloseBtn').classList.remove('hidden');
+                        document.getElementById('savingTitle').innerText = "¡Guardado exitoso!";
+                        document.getElementById('savingText').innerText = "El reporte de asistencia ha sido sincronizado correctamente con Google Sheets.";
+                    }
                 } else {
                     updateCloudStatus();
-                    if (!isSilent) showToast("Error devuelto por la base de datos", "error");
+                    if (!isSilent) {
+                        document.getElementById('savingSpinner').classList.add('hidden');
+                        document.getElementById('savingErrorIcon').classList.remove('hidden');
+                        document.getElementById('savingCloseBtn').classList.remove('hidden');
+                        document.getElementById('savingTitle').innerText = "Error al guardar";
+                        document.getElementById('savingText').innerText = "La hoja de cálculo devolvió una respuesta de error inesperada.";
+                    }
                 }
             } catch (err) {
                 updateCloudStatus();
-                if (!isSilent) showToast("Error de conexión al guardar", "error");
+                if (!isSilent) {
+                    document.getElementById('savingSpinner').classList.add('hidden');
+                    document.getElementById('savingErrorIcon').classList.remove('hidden');
+                    document.getElementById('savingCloseBtn').classList.remove('hidden');
+                    document.getElementById('savingTitle').innerText = "Error de conexión";
+                    document.getElementById('savingText').innerText = "No se pudo establecer conexión con Google Sheets. Verifique la URL de su App Script.";
+                }
             }
         }
 
         async function loadFromSheets(isSilent = false) {
             if (!googleSheetsUrl) {
-                if(!isSilent) showToast("Base no vinculada", "error");
-                renderDashboard();
+                if(!isSilent) toggleModal('modalConfig');
                 return;
             }
             
