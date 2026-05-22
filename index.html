@@ -486,8 +486,8 @@
 
         // Variables de URLs almacenadas localmente
         let googleSheetsUrl = localStorage.getItem('minedu_sheets_db_url') || "";
-        let csvIeUrl = localStorage.getItem('minedu_csv_ie_url') || "";
-        let csvPersonalUrl = localStorage.getItem('minedu_csv_personal_url') || "";
+        let csvIeUrl = localStorage.getItem('minedu_csv_ie') || "";
+        let csvPersonalUrl = localStorage.getItem('minedu_csv_personal') || "";
 
         window.onload = () => {
             initMesAno();
@@ -683,10 +683,10 @@
                 html += `
                     <tr class="border-b border-gray-150 hover:bg-slate-50 transition">
                         <td class="p-4">
-                            <div class="font-extrabold text-slate-800">${rep.ie || 'Colegio sin Nombre'}</div>
-                            <div class="text-xs text-blue-600 font-bold uppercase">${rep.codigoModular || 'Sin Código'} - ${rep.nivel || ''}</div>
+                            <div class="font-extrabold text-slate-800">${rep.ie || 'Sin Nombre'}</div>
+                            <div class="text-xs text-blue-600 font-bold uppercase">${rep.codigoModular} - ${rep.distrito} - ${rep.nivel}</div>
                         </td>
-                        <td class="p-4 text-slate-600 font-bold">${rep.mesAno || 'Sin Fecha'}</td>
+                        <td class="p-4 text-slate-600 font-bold">${rep.mesAno}</td>
                         <td class="p-4 text-slate-500 font-semibold">${rep.empleados ? rep.empleados.length : 0} integrantes</td>
                         <td class="p-4 text-center">
                             <div class="flex justify-center gap-2">
@@ -1293,8 +1293,8 @@
             const urlPersonal = document.getElementById('inputCsvPersonal').value.trim();
             
             localStorage.setItem('minedu_sheets_db_url', url);
-            localStorage.setItem('minedu_csv_ie_url', urlIe);
-            localStorage.setItem('minedu_csv_personal_url', urlPersonal);
+            localStorage.setItem('minedu_csv_ie', urlIe);
+            localStorage.setItem('minedu_csv_personal', urlPersonal);
             
             googleSheetsUrl = url;
             csvIeUrl = urlIe;
