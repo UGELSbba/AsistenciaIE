@@ -170,7 +170,7 @@
                                 <button id="btnTab3" onclick="switchTab('ANEXO3')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-blue-700 shadow-sm">
                                     Anexo 03 (Asistencia)
                                 </button>
-                                <button id="btnTab4" onclick="switchTab('ANEXO4')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-red-700 shadow-sm">
+                                <button id="btnTab4" onclick="switchTab('ANEXO4')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition text-gray-500 hover:text-slate-800">
                                     Anexo 04 (Inasistencias)
                                 </button>
                             </div>
@@ -980,7 +980,7 @@
             const minSize = 13; // Ancho mínimo según cabecera
             const calculatedSize = Math.max(minSize, valLen);
             
-            // Adaptar ancho horizontal de manera fluida
+            // Adaptar ancho horizontal de manera fluida y proporcional al contenido lineal
             textarea.style.width = (calculatedSize * 6.5) + 'px';
 
             // Adaptar reducción de fuente dinámica vertical para que no altere el alto de fila (32px)
@@ -1100,6 +1100,7 @@
                 const sizeCargo = Math.max(5, emp.cargo ? emp.cargo.length : 0);
                 const sizeCondicion = Math.max(9, emp.condicion ? emp.condicion.length : 0);
                 const sizeJornada = Math.max(4, emp.jornada ? emp.jornada.length : 0);
+                const sizeObs = Math.max(13, emp.observaciones ? emp.observaciones.length : 0);
 
                 bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400 text-[10px]">
                     <td style="border: 1px solid #94a3b8; min-width: 24px; max-width: 24px;" class="p-1 bg-white text-center align-middle font-bold">${index + 1}</td>
@@ -1146,6 +1147,7 @@
                     
                     <!-- Campo Observaciones en Textarea con alto de 32px, multilineal (whitespace-normal) y autoajuste de texto dinámico de fuente y de ancho lineal -->
                     <td class="border border-slate-400 p-0.5 align-middle">
+                        <!-- whitespace-normal permite el wrap o salto de línea automático según el ajuste del espacio horizontal -->
                         <textarea ${isReadonly} class="bg-transparent outline-none text-[10px] py-0.5 whitespace-normal uppercase leading-tight resize-none overflow-y-auto text-left" style="height: 32px; text-transform: uppercase; font-size: 10px; width: 100%; display: block;" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustObsWidthAndHeight(this);" placeholder="Observaciones" data-id="${emp.id}">${emp.observaciones || ''}</textarea>
                     </td>
                     
