@@ -954,7 +954,7 @@
             const data = dbIe[val];
             if (data) {
                 appData.dreUgel = data.dreUgel || ''; document.getElementById('meta-dre').value = appData.dreUgel;
-                appData.ie = data.ie || ''; document.getElementById('meta-ie').value = appData.ie;
+                appData.ie = data.ie || ''; document.getElementById('meta-ie').value = data.ie;
                 appData.lugar = data.lugar || ''; document.getElementById('meta-lugar').value = data.lugar;
                 appData.nivel = data.nivel || ''; document.getElementById('meta-nivel').value = data.nivel;
                 appData.distrito = data.distrito || ''; document.getElementById('meta-distrito').value = data.distrito;
@@ -973,7 +973,8 @@
             input.setAttribute('size', calculatedSize);
         }
 
-        // Ajusta de manera dinámica la fuente y la altura para Observaciones manteniendo el alto de fila (32px)
+        // Ajusta de manera dinámica la fuente y la altura para Observaciones manteniendo el alto de fila fijo (32px)
+        // Soporta de forma nativa el wrap o salto de línea automático según el ajuste máximo del espacio
         function adjustObsWidthAndHeight(textarea) {
             const valLen = textarea.value ? textarea.value.length : 0;
             const minSize = 13; // Ancho mínimo según cabecera
@@ -985,6 +986,7 @@
             // Adaptar reducción de fuente dinámica vertical para que no altere el alto de fila (32px)
             textarea.style.fontSize = '10px';
             let currentSize = 10;
+            // Se reduce de forma gradual si sobrepasa la altura física asignada de 32px
             while (textarea.scrollHeight > 32 && currentSize > 6.5) {
                 currentSize -= 0.5;
                 textarea.style.fontSize = `${currentSize}px`;
@@ -1098,7 +1100,6 @@
                 const sizeCargo = Math.max(5, emp.cargo ? emp.cargo.length : 0);
                 const sizeCondicion = Math.max(9, emp.condicion ? emp.condicion.length : 0);
                 const sizeJornada = Math.max(4, emp.jornada ? emp.jornada.length : 0);
-                const sizeObs = Math.max(13, emp.observaciones ? emp.observaciones.length : 0);
 
                 bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400 text-[10px]">
                     <td style="border: 1px solid #94a3b8; min-width: 24px; max-width: 24px;" class="p-1 bg-white text-center align-middle font-bold">${index + 1}</td>
@@ -1143,7 +1144,7 @@
                         <input type="text" maxlength="3" size="3" style="text-transform: uppercase;" ${isReadonly} class="w-full h-8 p-0.5 text-center outline-none bg-transparent font-bold text-amber-900 uppercase" value="${emp.tardanzasM || ''}" oninput="this.value=this.value.replace(/[^0-9]/g,''); updateEmp('${emp.id}', 'tardanzasM', this.value)">
                     </td>
                     
-                    <!-- Campo Observaciones en Textarea con alto fijo de 32px, multilínea (whitespace-normal) y autoajuste de texto dinámico de fuente y de ancho lineal -->
+                    <!-- Campo Observaciones en Textarea con alto de 32px, multilineal (whitespace-normal) y autoajuste de texto dinámico de fuente y de ancho lineal -->
                     <td class="border border-slate-400 p-0.5 align-middle">
                         <textarea ${isReadonly} class="bg-transparent outline-none text-[10px] py-0.5 whitespace-normal uppercase leading-tight resize-none overflow-y-auto text-left" style="height: 32px; text-transform: uppercase; font-size: 10px; width: 100%; display: block;" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustObsWidthAndHeight(this);" placeholder="Observaciones" data-id="${emp.id}">${emp.observaciones || ''}</textarea>
                     </td>
