@@ -178,7 +178,7 @@
                                 <button id="btnTab3" onclick="switchTab('ANEXO3')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-blue-700 shadow-sm">
                                     Anexo 03 (Asistencia)
                                 </button>
-                                <button id="btnTab4" onclick="switchTab('ANEXO4')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-red-700 shadow-sm">
+                                <button id="btnTab4" onclick="switchTab('ANEXO4')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition text-gray-500 hover:text-slate-800">
                                     Anexo 04 (Inasistencias)
                                 </button>
                             </div>
@@ -260,6 +260,7 @@
                         </div>
 
                         <div class="overflow-x-auto custom-scrollbar p-4">
+                            <!-- table-auto permite que las columnas crezcan de forma fluida lineal -->
                             <table class="w-full text-[10px] sm:text-xs border-collapse text-center print-table table-auto whitespace-nowrap">
                                 <thead id="headAnexo3"></thead>
                                 <tbody id="bodyAnexo3"></tbody>
@@ -315,6 +316,7 @@
                         </div>
 
                         <div class="overflow-x-auto custom-scrollbar p-4">
+                            <!-- Agregado border-slate-400 para que se dibuje la grilla del Anexo 4 -->
                             <table class="w-full text-xs border border-slate-400 border-collapse text-center print-table table-auto whitespace-nowrap">
                                 <thead>
                                     <tr class="bg-blue-50 text-blue-900 font-bold">
@@ -492,7 +494,311 @@
             loadCsvDbs(); 
         };
 
-        // --- FUNCIONES CORE ---
+        // --- PARSER Y CARGA DE CSVS ---
+        function parseCSV(text) {
+            const lines = text.split('\n');
+            return lines.map(line => {
+                const result = [];
+                let current = '';
+                let inQuotes = false;
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    if (char === '"') inQuotes = !inQuotes;
+                    else if (char === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
+                    else current += char;
+                }
+                result.push(current.trim());
+                return result;
+            });
+        }
+
+        async function loadCsvDbs() {
+            if (csvIeUrl) {
+                try {
+                    const res = await fetch(csvIeUrl);
+                    const text = await res.text();
+                    const rows = parseCSV(text);
+                    if(rows.length > 1) {
+                        const headers = rows[0].map(h => h.toLowerCase().replace(new RegExp('[^a-z]', 'g'), ''));
+                        const iCod = headers.findIndex(h => h.includes('codigo'));
+                        const iDre = headers.findIndex(h => h.includes('dre') || h.includes('ugel'));
+                        const iIe = headers.findIndex(h => h.includes('institucion') || h.includes('ie'));
+                        const iLugar = headers.findIndex(h => h.includes('lugar'));
+                        const iNivel = headers.findIndex(h => h.includes('nivel'));
+                        const iDistrito = headers.findIndex(h => h.includes('distrito'));
+                        
+                        if (iCod !== -1) {
+                            dbIe = {}; 
+                            for(let i=1; i<rows.length; i++) {
+                                if(rows[i][iCod]) {
+                                    dbIe[rows[i][iCod].trim()] = {
+                                        dreUgel: iDre!==-1 ? rows[i][iDre] : '',
+                                        ie: iIe!==-1 ? rows[i][iIe] : '',
+                                        lugar: iLugar!==-1 ? rows[i][iLugar] : '',
+                                        nivel: iNivel!==-1 ? rows[i][iNivel] : '',
+                                        distrito: iDistrito!==-1 ? rows[i][iDistrito] : ''
+                                    };
+                                }
+                            }
+                        }
+                    }
+                } catch(e) { console.error("Error CSV IE", e); }
+            }
+
+            if (csvPersonalUrl) {
+                try {
+                    const res = await fetch(csvPersonalUrl);
+                    const text = await res.text();
+                    const rows = parseCSV(text);
+                    if(rows.length > 1) {
+                        const headers = rows[0].map(h => h.toLowerCase().replace(new RegExp('[^a-z]', 'g'), ''));
+                        const iDni = headers.findIndex(h => h.includes('dni') || h.includes('documento'));
+                        const iNom = headers.findIndex(h => h.includes('nombre') || h.includes('apellido'));
+                        const iCargo = headers.findIndex(h => h.includes('cargo'));
+                        const iCond = headers.findIndex(h => h.includes('condicion'));
+                        const iJor = headers.findIndex(h => h.includes('jornada') || h.includes('horas'));
+                        
+                        if (iDni !== -1) {
+                            dbPersonal = {};
+                            for(let i=1; i<rows.length; i++) {
+                                if(rows[i][iDni]) {
+                                    dbPersonal[rows[i][iDni].trim()] = {
+                                        nombres: iNom!==-1 ? rows[i][iNom] : '',
+                                        cargo: iCargo!==-1 ? rows[i][iCargo] : '', 
+                                        condicion: iCond!==-1 ? rows[i][iCond] : '',
+                                        jornada: iJor!==-1 ? rows[i][iJor] : ''
+                                    };
+                                }
+                            }
+                        }
+                    }
+                } catch(e) { console.error("Error CSV Personal", e); }
+            }
+        }
+
+        // --- MANEJO DE ROLES ---
+        function setRole(role) {
+            currentRole = role;
+            document.getElementById('loginView').classList.add('hidden');
+            document.getElementById('appView').classList.remove('hidden');
+            document.getElementById('appView').classList.add('flex');
+            
+            document.getElementById('headerRole').innerText = role === 'DIRECTOR' ? 'Director de I.E.' : 'Especialista UGEL';
+            document.getElementById('searchFilterContainer').classList.remove('hidden');
+            
+            if(role === 'ADMIN') {
+                document.getElementById('btnAdminConfig').classList.remove('hidden');
+                document.getElementById('btnCreateReport').classList.add('hidden');
+                document.getElementById('adminBadge').classList.remove('hidden');
+                document.getElementById('hintCodModular').classList.add('hidden');
+                document.getElementById('meta-cod').readOnly = true;
+                
+                document.querySelectorAll('#formCabecera input').forEach(inp => inp.readOnly = true);
+            } else {
+                document.getElementById('btnAdminConfig').classList.add('hidden');
+                document.getElementById('btnCreateReport').classList.remove('hidden');
+                document.getElementById('adminBadge').classList.add('hidden');
+                document.getElementById('hintCodModular').classList.remove('hidden');
+                applyDirectorFieldsLock();
+            }
+            updateCloudStatus();
+            if(googleSheetsUrl) {
+                loadFromSheets(true);
+            } else {
+                renderDashboard();
+            }
+        }
+
+        function logout() {
+            currentRole = null;
+            document.getElementById('appView').classList.add('hidden');
+            document.getElementById('appView').classList.remove('flex');
+            document.getElementById('loginView').classList.remove('hidden');
+            clearTimeout(autoSaveTimeout);
+        }
+
+        // --- DASHBOARD Y FILTROS ---
+        function filterReportsByCod(val) { filterCodQuery = val.trim(); renderDashboard(); }
+        function filterReportsByMonth(val) { filterMonthQuery = val.trim(); renderDashboard(); }
+        function clearAllFilters() {
+            document.getElementById('searchCod').value = "";
+            document.getElementById('filterMonth').value = "";
+            filterCodQuery = "";
+            filterMonthQuery = "";
+            renderDashboard();
+        }
+
+        function renderDashboard() {
+            const tableBody = document.getElementById('reportsTableBody');
+            document.getElementById('dashboardSection').classList.remove('hidden');
+            document.getElementById('editorSection').classList.add('hidden');
+
+            let filteredReports = reportsDatabase;
+            if (filterCodQuery) filteredReports = filteredReports.filter(rep => rep.codigoModular && rep.codigoModular.includes(filterCodQuery));
+            if (filterMonthQuery) filteredReports = filteredReports.filter(rep => rep.mesAno && rep.mesAno === filterMonthQuery);
+
+            if (filteredReports.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="4" class="p-12 text-center text-gray-400 italic"><i class="fa-solid fa-folder-open text-2xl mb-1 block"></i>Bandeja vacía</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            filteredReports.forEach((rep, idx) => {
+                const btnText = currentRole === 'ADMIN' ? 'Visualizar Anexos' : 'Editar';
+                const btnColor = currentRole === 'ADMIN' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-blue-600 hover:bg-blue-700';
+
+                html += `<tr class="border-b border-gray-150 hover:bg-slate-50 transition">
+                    <td class="p-4">
+                        <div class="font-extrabold text-slate-800">${rep.ie || 'Sin Nombre'}</div>
+                        <div class="text-xs text-blue-600 font-bold uppercase">${rep.codigoModular} - ${rep.distrito} - ${rep.nivel}</div>
+                    </td>
+                    <td class="p-4 text-slate-600 font-bold">${rep.mesAno}</td>
+                    <td class="p-4 text-slate-500 font-semibold">${rep.empleados ? rep.empleados.length : 0} integrantes</td>
+                    <td class="p-4 text-center">
+                        <div class="flex justify-center gap-2">
+                            <button onclick="openReport('${rep.id}')" class="${btnColor} text-white font-bold px-3.5 py-1.5 rounded-lg text-xs transition">${btnText}</button>
+                            ${currentRole === 'ADMIN' ? `
+                            <button onclick="exportSingleReport('${rep.id}')" class="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-emerald-700 transition" title="Exportar a Excel">Excel</button>
+                            <button onclick="printReportFromDashboard('${rep.id}', 'ANEXO3')" class="bg-blue-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-blue-700 transition" title="Imprimir Anexo 03"><i class="fa-solid fa-print"></i> A3</button>
+                            <button onclick="printReportFromDashboard('${rep.id}', 'ANEXO4')" class="bg-red-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-red-700 transition" title="Imprimir Anexo 04"><i class="fa-solid fa-print"></i> A4</button>
+                            ` : ''}
+                        </div>
+                    </td>
+                </tr>`;
+            });
+            tableBody.innerHTML = html;
+        }
+
+        // --- MANEJO DE REPORTES Y FORMULARIOS ---
+        function printReportFromDashboard(reportId, tabType) {
+            const rep = reportsDatabase.find(r => r.id === reportId);
+            if (!rep) return;
+            const prevAppData = JSON.stringify(appData);
+            const prevActiveTab = activeTab;
+            const prevSectionHidden = document.getElementById('editorSection').classList.contains('hidden');
+
+            appData = JSON.parse(JSON.stringify(rep));
+            activeTab = tabType;
+            
+            document.getElementById('meta-cod').value = appData.codigoModular || '';
+            document.getElementById('meta-dre').value = appData.dreUgel || '';
+            document.getElementById('meta-mes').value = appData.mesAno || '';
+            document.getElementById('meta-ie').value = appData.ie || '';
+            document.getElementById('meta-lugar').value = appData.lugar || '';
+            document.getElementById('meta-nivel').value = appData.nivel || '';
+            document.getElementById('meta-distrito').value = appData.distrito || '';
+
+            renderTables();
+            document.getElementById('editorSection').classList.remove('hidden');
+            document.getElementById('dashboardSection').classList.add('hidden');
+
+            if (tabType === 'ANEXO3') {
+                document.getElementById('viewAnexo3').classList.remove('hidden');
+                document.getElementById('viewAnexo4').classList.add('hidden');
+            } else {
+                document.getElementById('viewAnexo4').classList.remove('hidden');
+                document.getElementById('viewAnexo3').classList.add('hidden');
+            }
+
+            setTimeout(() => {
+                window.print();
+                appData = JSON.parse(prevAppData);
+                activeTab = prevActiveTab;
+                if (prevSectionHidden) {
+                    document.getElementById('editorSection').classList.add('hidden');
+                    document.getElementById('dashboardSection').classList.remove('hidden');
+                }
+                document.getElementById('meta-cod').value = appData.codigoModular || '';
+                document.getElementById('meta-dre').value = appData.dreUgel || '';
+                document.getElementById('meta-mes').value = appData.mesAno || '';
+                document.getElementById('meta-ie').value = appData.ie || '';
+                document.getElementById('meta-lugar').value = appData.lugar || '';
+                document.getElementById('meta-nivel').value = appData.nivel || '';
+                document.getElementById('meta-distrito').value = appData.distrito || '';
+                renderTables();
+            }, 250);
+        }
+
+        function applyDirectorFieldsLock() {
+            if (currentRole !== 'DIRECTOR') return;
+
+            const isSaved = appData.isSaved === true;
+            const codInput = document.getElementById('meta-cod');
+            const mesInput = document.getElementById('meta-mes');
+
+            if (isSaved) {
+                codInput.readOnly = true;
+                codInput.className = 'border border-gray-300 rounded-lg px-3 py-1.5 outline-none bg-gray-100 text-gray-500 cursor-not-allowed w-44 font-bold uppercase';
+                mesInput.readOnly = true;
+                mesInput.className = 'border border-blue-300 rounded-lg px-3 py-2 bg-gray-100 text-gray-500 cursor-not-allowed outline-none font-bold w-full';
+                const hint = document.getElementById('hintCodModular');
+                if(hint) hint.innerHTML = `<i class="fa-solid fa-lock text-red-600"></i> Código Modular y Mes Bloqueados. El reporte ya ha sido guardado en la nube.`;
+            } else {
+                codInput.readOnly = false;
+                codInput.className = 'border border-gray-300 rounded-lg px-3 py-1.5 outline-none focus:border-red-500 w-44 bg-white font-bold text-red-900 uppercase';
+                mesInput.readOnly = false;
+                mesInput.className = 'border border-blue-300 rounded-lg px-3 py-2 bg-white focus:border-blue-500 outline-none font-bold text-blue-900 w-full';
+                const hint = document.getElementById('hintCodModular');
+                if(hint) hint.innerHTML = "Se autocompletará al ingresar los 7 números.";
+            }
+
+            const lockedFields = ['meta-dre', 'meta-ie', 'meta-lugar', 'meta-nivel', 'meta-distrito'];
+            lockedFields.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.readOnly = true;
+                    el.className = 'border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 text-gray-500 cursor-not-allowed outline-none w-full uppercase';
+                }
+            });
+        }
+
+        function createNewReport() {
+            const today = new Date();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            appData = {
+                id: 'REP_' + Date.now(),
+                codigoModular: '', dreUgel: '', mesAno: `${today.getFullYear()}-${month}`,
+                ie: '', lugar: '', nivel: '', distrito: '', empleados: [], isSaved: false 
+            };
+            document.getElementById('meta-cod').value = '';
+            document.getElementById('meta-dre').value = '';
+            document.getElementById('meta-mes').value = appData.mesAno;
+            document.getElementById('meta-ie').value = '';
+            document.getElementById('meta-lugar').value = '';
+            document.getElementById('meta-nivel').value = '';
+            document.getElementById('meta-distrito').value = '';
+            document.getElementById('dashboardSection').classList.add('hidden');
+            document.getElementById('editorSection').classList.remove('hidden');
+            applyDirectorFieldsLock();
+            renderTables();
+        }
+
+        function openReport(reportId) {
+            const rep = reportsDatabase.find(r => r.id === reportId);
+            if (rep) {
+                appData = JSON.parse(JSON.stringify(rep)); 
+                document.getElementById('meta-cod').value = appData.codigoModular || '';
+                document.getElementById('meta-dre').value = appData.dreUgel || '';
+                document.getElementById('meta-mes').value = appData.mesAno || '';
+                document.getElementById('meta-ie').value = appData.ie || '';
+                document.getElementById('meta-lugar').value = appData.lugar || '';
+                document.getElementById('meta-nivel').value = appData.nivel || '';
+                document.getElementById('meta-distrito').value = appData.distrito || '';
+
+                document.getElementById('dashboardSection').classList.add('hidden');
+                document.getElementById('editorSection').classList.remove('hidden');
+                applyDirectorFieldsLock();
+                renderTables();
+            }
+        }
+
+        function backToDashboard() {
+            clearTimeout(autoSaveTimeout);
+            document.getElementById('dashboardSection').classList.remove('hidden');
+            document.getElementById('editorSection').classList.add('hidden');
+            loadFromSheets(true); 
+        }
+
         function initMesAno() {
             const today = new Date();
             const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -546,6 +852,10 @@
             employeeIdToDelete = null;
             document.getElementById('modalConfirmDelete').classList.add('hidden');
         }
+
+        window.confirmRemoveEmployee = confirmRemoveEmployee;
+        window.executeDelete = executeDelete;
+        window.closeDeleteModal = closeDeleteModal;
 
         function updateEmp(id, field, value) {
             if (currentRole === 'ADMIN') return;
@@ -656,7 +966,7 @@
             }
         }
 
-        // --- SISTEMA DE PANTALLAS ---
+        // --- SISTEMA DE TABS Y TABLAS ---
         function switchTab(tabId) {
             activeTab = tabId;
             document.getElementById('viewAnexo3').classList.add('hidden');
@@ -782,7 +1092,7 @@
                     </td>
                     
                     <td class="border border-slate-400 p-0.5 align-middle">
-                        <textarea ${isReadonly} class="bg-transparent outline-none text-[10px] py-0.5 whitespace-normal uppercase leading-tight resize-none overflow-y-auto text-left border-0" style="height: 32px; text-transform: uppercase; font-size: 10px; width: 100%; display: block;" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustObsWidthAndHeight(this);" placeholder="Observaciones">${emp.observaciones || ''}</textarea>
+                        <textarea ${isReadonly} class="bg-transparent outline-none text-[10px] py-0.5 whitespace-normal uppercase leading-tight resize-none overflow-y-auto text-left border-0" style="height: 32px; text-transform: uppercase; font-size: 10px; width: 100%; display: block;" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustObsWidthAndHeight(this);" placeholder="Observaciones" data-id="${emp.id}">${emp.observaciones || ''}</textarea>
                     </td>
                     
                     ${currentRole === 'DIRECTOR' ? `
@@ -834,24 +1144,24 @@
                 const calcs = calculateAnexo4(emp);
 
                 bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400">
-                    <td class="border-slate-400 p-2 font-bold text-center align-middle">${index + 1}</td>
-                    <td class="border-slate-400 p-2 font-bold text-blue-900 text-center align-middle uppercase" style="text-transform: uppercase;">${emp.dni}</td>
-                    <td class="border-slate-400 p-2 text-left font-bold text-slate-800 align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.nombres}</td>
-                    <td class="border-slate-400 p-2 text-left text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.cargo}</td>
-                    <td class="border-slate-400 p-2 text-center text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.condicion}</td>
-                    <td class="border-slate-400 p-2 font-bold text-center align-middle uppercase" style="text-transform: uppercase;">${emp.jornada}</td>
+                    <td class="border border-slate-400 p-2 font-bold text-center align-middle">${index + 1}</td>
+                    <td class="border border-slate-400 p-2 font-bold text-blue-900 text-center align-middle uppercase" style="text-transform: uppercase;">${emp.dni}</td>
+                    <td class="border border-slate-400 p-2 text-left font-bold text-slate-800 align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.nombres}</td>
+                    <td class="border border-slate-400 p-2 text-left text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.cargo}</td>
+                    <td class="border border-slate-400 p-2 text-center text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.condicion}</td>
+                    <td class="border border-slate-400 p-2 font-bold text-center align-middle uppercase" style="text-transform: uppercase;">${emp.jornada}</td>
                     
-                    <td class="border-slate-400 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias}</td>
+                    <td class="border border-slate-400 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias}</td>
                     
-                    <td class="border-slate-400 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-10 p-2 text-center outline-none bg-transparent" value="${emp.tardanzasH || ''}" oninput="updateEmp('${emp.id}', 'tardanzasH', this.value)"></td>
-                    <td class="border-slate-400 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM || ''}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
+                    <td class="border border-slate-400 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-10 p-2 text-center outline-none bg-transparent" value="${emp.tardanzasH || ''}" oninput="updateEmp('${emp.id}', 'tardanzasH', this.value)"></td>
+                    <td class="border border-slate-400 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM || ''}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
                     
-                    <td class="border-slate-400 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGH || ''}" oninput="updateEmp('${emp.id}', 'permisosSGH', this.value)"></td>
-                    <td class="border-slate-400 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.permisosSGM || ''}" oninput="updateEmp('${emp.id}', 'permisosSGM', this.value)"></td>
-                    <td class="border-slate-400 p-2 bg-blue-50 font-bold text-blue-700 text-center align-middle">${calcs.permisosSGDias}</td>
+                    <td class="border border-slate-400 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGH || ''}" oninput="updateEmp('${emp.id}', 'permisosSGH', this.value)"></td>
+                    <td class="border border-slate-400 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.permisosSGM || ''}" oninput="updateEmp('${emp.id}', 'permisosSGM', this.value)"></td>
+                    <td class="border border-slate-400 p-2 bg-blue-50 font-bold text-blue-700 text-center align-middle">${calcs.permisosSGDias}</td>
                     
-                    <td class="border-slate-400 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.huelgaDias}</td>
-                    <td class="border-slate-400 p-1 align-middle min-w-[150px]">
+                    <td class="border border-slate-400 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.huelgaDias}</td>
+                    <td class="border border-slate-400 p-1 align-middle min-w-[150px]">
                         <textarea ${isReadonly} class="bg-transparent outline-none text-[10px] py-0.5 whitespace-normal uppercase leading-tight resize-none overflow-y-auto text-left border-0" style="height: 32px; text-transform: uppercase; font-size: 10px; width: 100%; display: block;" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustObsWidthAndHeight(this);" placeholder="Observaciones">${emp.observaciones || ''}</textarea>
                     </td>
                 </tr>`;
@@ -863,325 +1173,22 @@
             });
         }
 
-        // --- SISTEMA DE BLOQUEO DE EDICIÓN PARA EL DIRECTOR ---
-        function applyDirectorFieldsLock() {
-            if (currentRole !== 'DIRECTOR') return;
-
-            const isSaved = appData.isSaved === true;
-            const codInput = document.getElementById('meta-cod');
-            const mesInput = document.getElementById('meta-mes');
-
-            // 1. Bloqueo Condicional de Código Modular y Mes
-            if (isSaved) {
-                codInput.readOnly = true;
-                codInput.className = 'border border-gray-300 rounded-lg px-3 py-1.5 outline-none bg-gray-100 text-gray-500 cursor-not-allowed w-44 font-bold uppercase';
-                mesInput.readOnly = true;
-                mesInput.className = 'border border-blue-300 rounded-lg px-3 py-2 bg-gray-100 text-gray-500 cursor-not-allowed outline-none font-bold w-full';
-
-                const hint = document.getElementById('hintCodModular');
-                if(hint) hint.innerHTML = `<i class="fa-solid fa-lock text-red-600"></i> Código Modular y Mes Bloqueados. El reporte ya ha sido guardado en la nube.`;
-            } else {
-                codInput.readOnly = false;
-                codInput.className = 'border border-gray-300 rounded-lg px-3 py-1.5 outline-none focus:border-red-500 w-44 bg-white font-bold text-red-900 uppercase';
-                mesInput.readOnly = false;
-                mesInput.className = 'border border-blue-300 rounded-lg px-3 py-2 bg-white focus:border-blue-500 outline-none font-bold text-blue-900 w-full';
-
-                const hint = document.getElementById('hintCodModular');
-                if(hint) hint.innerHTML = "Se autocompletará al ingresar los 7 números.";
-            }
-
-            // 2. Bloqueo ABSOLUTO e incondicional de los 5 campos complementarios
-            const lockedFields = ['meta-dre', 'meta-ie', 'meta-lugar', 'meta-nivel', 'meta-distrito'];
-            lockedFields.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.readOnly = true;
-                    el.className = 'border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 text-gray-500 cursor-not-allowed outline-none w-full uppercase';
-                }
-            });
-        }
-
-        // --- SISTEMA DE APP ---
-        function parseCSV(text) {
-            const lines = text.split('\n');
-            return lines.map(line => {
-                const result = [];
-                let current = '';
-                let inQuotes = false;
-                for (let i = 0; i < line.length; i++) {
-                    const char = line[i];
-                    if (char === '"') inQuotes = !inQuotes;
-                    else if (char === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
-                    else current += char;
-                }
-                result.push(current.trim());
-                return result;
-            });
-        }
-
-        async function loadCsvDbs() {
-            if (csvIeUrl) {
-                try {
-                    const res = await fetch(csvIeUrl);
-                    const text = await res.text();
-                    const rows = parseCSV(text);
-                    if(rows.length > 1) {
-                        const headers = rows[0].map(h => h.toLowerCase().replace(new RegExp('[^a-z]', 'g'), ''));
-                        const iCod = headers.findIndex(h => h.includes('codigo'));
-                        const iDre = headers.findIndex(h => h.includes('dre') || h.includes('ugel'));
-                        const iIe = headers.findIndex(h => h.includes('institucion') || h.includes('ie'));
-                        const iLugar = headers.findIndex(h => h.includes('lugar'));
-                        const iNivel = headers.findIndex(h => h.includes('nivel'));
-                        const iDistrito = headers.findIndex(h => h.includes('distrito'));
-                        
-                        if (iCod !== -1) {
-                            dbIe = {}; 
-                            for(let i=1; i<rows.length; i++) {
-                                if(rows[i][iCod]) {
-                                    dbIe[rows[i][iCod].trim()] = {
-                                        dreUgel: iDre!==-1 ? rows[i][iDre] : '',
-                                        ie: iIe!==-1 ? rows[i][iIe] : '',
-                                        lugar: iLugar!==-1 ? rows[i][iLugar] : '',
-                                        nivel: iNivel!==-1 ? rows[i][iNivel] : '',
-                                        distrito: iDistrito!==-1 ? rows[i][iDistrito] : ''
-                                    };
-                                }
-                            }
-                        }
-                    }
-                } catch(e) { console.error("Error CSV IE", e); }
-            }
-            if (csvPersonalUrl) {
-                try {
-                    const res = await fetch(csvPersonalUrl);
-                    const text = await res.text();
-                    const rows = parseCSV(text);
-                    if(rows.length > 1) {
-                        const headers = rows[0].map(h => h.toLowerCase().replace(new RegExp('[^a-z]', 'g'), ''));
-                        const iDni = headers.findIndex(h => h.includes('dni') || h.includes('documento'));
-                        const iNom = headers.findIndex(h => h.includes('nombre') || h.includes('apellido'));
-                        const iCargo = headers.findIndex(h => h.includes('cargo'));
-                        const iCond = headers.findIndex(h => h.includes('condicion'));
-                        const iJor = headers.findIndex(h => h.includes('jornada') || h.includes('horas'));
-                        
-                        if (iDni !== -1) {
-                            dbPersonal = {};
-                            for(let i=1; i<rows.length; i++) {
-                                if(rows[i][iDni]) {
-                                    dbPersonal[rows[i][iDni].trim()] = {
-                                        nombres: iNom!==-1 ? rows[i][iNom] : '',
-                                        cargo: iCargo!==-1 ? rows[i][iCargo] : '', 
-                                        condicion: iCond!==-1 ? rows[i][iCond] : '',
-                                        jornada: iJor!==-1 ? rows[i][iJor] : ''
-                                    };
-                                }
-                            }
-                        }
-                    }
-                } catch(e) { console.error("Error CSV Personal", e); }
-            }
-        }
-
-        function setRole(role) {
-            currentRole = role;
-            document.getElementById('loginView').classList.add('hidden');
-            document.getElementById('appView').classList.remove('hidden');
-            document.getElementById('appView').classList.add('flex');
-            
-            document.getElementById('headerRole').innerText = role === 'DIRECTOR' ? 'Director de I.E.' : 'Especialista UGEL';
-            document.getElementById('searchFilterContainer').classList.remove('hidden');
-            
-            if(role === 'ADMIN') {
-                document.getElementById('btnAdminConfig').classList.remove('hidden');
-                document.getElementById('btnCreateReport').classList.add('hidden');
-                document.getElementById('adminBadge').classList.remove('hidden');
-                document.getElementById('hintCodModular').classList.add('hidden');
-                document.getElementById('meta-cod').readOnly = true;
-                
-                document.querySelectorAll('#formCabecera input').forEach(inp => inp.readOnly = true);
-            } else {
-                document.getElementById('btnAdminConfig').classList.add('hidden');
-                document.getElementById('btnCreateReport').classList.remove('hidden');
-                document.getElementById('adminBadge').classList.add('hidden');
-                document.getElementById('hintCodModular').classList.remove('hidden');
-                applyDirectorFieldsLock();
-            }
-            updateCloudStatus();
-            if(googleSheetsUrl) {
-                loadFromSheets(true);
-            } else {
-                renderDashboard();
-            }
-        }
-
-        function logout() {
-            currentRole = null;
-            document.getElementById('appView').classList.add('hidden');
-            document.getElementById('appView').classList.remove('flex');
-            document.getElementById('loginView').classList.remove('hidden');
-            clearTimeout(autoSaveTimeout);
-        }
-
-        function filterReportsByCod(val) { filterCodQuery = val.trim(); renderDashboard(); }
-        function filterReportsByMonth(val) { filterMonthQuery = val.trim(); renderDashboard(); }
-        function clearAllFilters() {
-            document.getElementById('searchCod').value = "";
-            document.getElementById('filterMonth').value = "";
-            filterCodQuery = "";
-            filterMonthQuery = "";
-            renderDashboard();
-        }
-
-        function renderDashboard() {
-            const tableBody = document.getElementById('reportsTableBody');
-            document.getElementById('dashboardSection').classList.remove('hidden');
-            document.getElementById('editorSection').classList.add('hidden');
-
-            let filteredReports = reportsDatabase;
-            if (filterCodQuery) filteredReports = filteredReports.filter(rep => rep.codigoModular && rep.codigoModular.includes(filterCodQuery));
-            if (filterMonthQuery) filteredReports = filteredReports.filter(rep => rep.mesAno && rep.mesAno === filterMonthQuery);
-
-            if (filteredReports.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="4" class="p-12 text-center text-gray-400 italic"><i class="fa-solid fa-folder-open text-2xl mb-1 block"></i>Bandeja vacía</td></tr>`;
-                return;
-            }
-
-            let html = '';
-            filteredReports.forEach((rep, idx) => {
-                const btnText = currentRole === 'ADMIN' ? 'Visualizar Anexos' : 'Editar';
-                const btnColor = currentRole === 'ADMIN' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-blue-600 hover:bg-blue-700';
-
-                html += `<tr class="border-b border-gray-150 hover:bg-slate-50 transition">
-                    <td class="p-4">
-                        <div class="font-extrabold text-slate-800">${rep.ie || 'Sin Nombre'}</div>
-                        <div class="text-xs text-blue-600 font-bold uppercase">${rep.codigoModular} - ${rep.distrito} - ${rep.nivel}</div>
-                    </td>
-                    <td class="p-4 text-slate-600 font-bold">${rep.mesAno}</td>
-                    <td class="p-4 text-slate-500 font-semibold">${rep.empleados ? rep.empleados.length : 0} integrantes</td>
-                    <td class="p-4 text-center">
-                        <div class="flex justify-center gap-2">
-                            <button onclick="openReport('${rep.id}')" class="${btnColor} text-white font-bold px-3.5 py-1.5 rounded-lg text-xs transition">${btnText}</button>
-                            ${currentRole === 'ADMIN' ? `
-                            <button onclick="exportSingleReport('${rep.id}')" class="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-emerald-700 transition" title="Exportar a Excel">Excel</button>
-                            <button onclick="printReportFromDashboard('${rep.id}', 'ANEXO3')" class="bg-blue-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-blue-700 transition" title="Imprimir Anexo 03"><i class="fa-solid fa-print"></i> A3</button>
-                            <button onclick="printReportFromDashboard('${rep.id}', 'ANEXO4')" class="bg-red-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-red-700 transition" title="Imprimir Anexo 04"><i class="fa-solid fa-print"></i> A4</button>
-                            ` : ''}
-                        </div>
-                    </td>
-                </tr>`;
-            });
-            tableBody.innerHTML = html;
-        }
-
-        function printReportFromDashboard(reportId, tabType) {
-            const rep = reportsDatabase.find(r => r.id === reportId);
-            if (!rep) return;
-            const prevAppData = JSON.stringify(appData);
-            const prevActiveTab = activeTab;
-            const prevSectionHidden = document.getElementById('editorSection').classList.contains('hidden');
-
-            appData = JSON.parse(JSON.stringify(rep));
-            activeTab = tabType;
-            
-            document.getElementById('meta-cod').value = appData.codigoModular || '';
-            document.getElementById('meta-dre').value = appData.dreUgel || '';
-            document.getElementById('meta-mes').value = appData.mesAno || '';
-            document.getElementById('meta-ie').value = appData.ie || '';
-            document.getElementById('meta-lugar').value = appData.lugar || '';
-            document.getElementById('meta-nivel').value = appData.nivel || '';
-            document.getElementById('meta-distrito').value = appData.distrito || '';
-
-            renderTables();
-            document.getElementById('editorSection').classList.remove('hidden');
-            document.getElementById('dashboardSection').classList.add('hidden');
-
-            if (tabType === 'ANEXO3') {
-                document.getElementById('viewAnexo3').classList.remove('hidden');
-                document.getElementById('viewAnexo4').classList.add('hidden');
-            } else {
-                document.getElementById('viewAnexo4').classList.remove('hidden');
-                document.getElementById('viewAnexo3').classList.add('hidden');
-            }
-
-            setTimeout(() => {
-                window.print();
-                appData = JSON.parse(prevAppData);
-                activeTab = prevActiveTab;
-                if (prevSectionHidden) {
-                    document.getElementById('editorSection').classList.add('hidden');
-                    document.getElementById('dashboardSection').classList.remove('hidden');
-                }
-                document.getElementById('meta-cod').value = appData.codigoModular || '';
-                document.getElementById('meta-dre').value = appData.dreUgel || '';
-                document.getElementById('meta-mes').value = appData.mesAno || '';
-                document.getElementById('meta-ie').value = appData.ie || '';
-                document.getElementById('meta-lugar').value = appData.lugar || '';
-                document.getElementById('meta-nivel').value = appData.nivel || '';
-                document.getElementById('meta-distrito').value = appData.distrito || '';
-                renderTables();
-            }, 250);
-        }
-
-        function createNewReport() {
-            const today = new Date();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            appData = {
-                id: 'REP_' + Date.now(),
-                codigoModular: '', dreUgel: '', mesAno: `${today.getFullYear()}-${month}`,
-                ie: '', lugar: '', nivel: '', distrito: '', empleados: [], isSaved: false 
-            };
-            document.getElementById('meta-cod').value = '';
-            document.getElementById('meta-dre').value = '';
-            document.getElementById('meta-mes').value = appData.mesAno;
-            document.getElementById('meta-ie').value = '';
-            document.getElementById('meta-lugar').value = '';
-            document.getElementById('meta-nivel').value = '';
-            document.getElementById('meta-distrito').value = '';
-            document.getElementById('dashboardSection').classList.add('hidden');
-            document.getElementById('editorSection').classList.remove('hidden');
-            applyDirectorFieldsLock();
-            renderTables();
-        }
-
-        function openReport(reportId) {
-            const rep = reportsDatabase.find(r => r.id === reportId);
-            if (rep) {
-                appData = JSON.parse(JSON.stringify(rep)); 
-                document.getElementById('meta-cod').value = appData.codigoModular || '';
-                document.getElementById('meta-dre').value = appData.dreUgel || '';
-                document.getElementById('meta-mes').value = appData.mesAno || '';
-                document.getElementById('meta-ie').value = appData.ie || '';
-                document.getElementById('meta-lugar').value = appData.lugar || '';
-                document.getElementById('meta-nivel').value = appData.nivel || '';
-                document.getElementById('meta-distrito').value = appData.distrito || '';
-
-                document.getElementById('dashboardSection').classList.add('hidden');
-                document.getElementById('editorSection').classList.remove('hidden');
-                applyDirectorFieldsLock();
-                renderTables();
-            }
-        }
-
-        function backToDashboard() {
-            clearTimeout(autoSaveTimeout);
-            document.getElementById('dashboardSection').classList.remove('hidden');
-            document.getElementById('editorSection').classList.add('hidden');
-            loadFromSheets(true); 
-        }
-
-        // --- GOOGLE SHEETS API ---
+        // --- GOOGLE SHEETS API Y CONFIGURACIÓN ---
         function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
         
         function saveConfig() {
             const url = document.getElementById('inputSheetsUrl').value.trim();
             const urlIe = document.getElementById('inputCsvIe').value.trim();
             const urlPersonal = document.getElementById('inputCsvPersonal').value.trim();
+            
             localStorage.setItem('minedu_sheets_db_url', url);
             localStorage.setItem('minedu_csv_ie', urlIe);
             localStorage.setItem('minedu_csv_personal', urlPersonal);
+            
             googleSheetsUrl = url;
             csvIeUrl = urlIe;
             csvPersonalUrl = urlPersonal;
+            
             showToast("Bases vinculadas y guardadas", "success");
             loadCsvDbs();
             updateCloudStatus();
@@ -1252,7 +1259,7 @@
                 
                 if (data.status === "success") {
                     updateCloudStatus();
-                    applyDirectorFieldsLock();
+                    applyDirectorFieldsLock(); 
                     
                     if (!isSilent) {
                         document.getElementById('savingSpinner').classList.add('hidden');
