@@ -201,38 +201,38 @@
                             <div class="flex gap-2">
                                 <input type="text" id="meta-cod" placeholder="Escriba los 7 dígitos..." maxlength="7" class="border border-gray-300 rounded-lg px-3 py-1.5 outline-none focus:border-red-500 w-44 bg-white font-bold text-red-900 uppercase" style="text-transform: uppercase;" oninput="handleIeLookup(this.value)">
                             </div>
-                            <span class="text-xs text-red-700 italic ml-2 hidden lg:inline" id="hintCodModular">Se autocompletará al ingresar los 7 números o pulsar Buscar.</span>
+                            <span class="text-xs text-red-700 italic ml-2 hidden lg:inline" id="hintCodModular">Se autocompletará al ingresar los 7 números.</span>
                         </div>
 
                         <!-- Campos deshabilitados de solo lectura para el panel del Director y del Admin -->
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">DRE/UGEL:</label>
-                            <input type="text" id="meta-dre" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold uppercase" style="text-transform: uppercase;" oninput="appData.dreUgel = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-dre" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold uppercase" style="text-transform: uppercase;" oninput="appData.dreUgel = this.value;">
                         </div>
 
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">MES Y AÑO DE ASISTENCIA:</label>
-                            <input type="month" id="meta-mes" class="border border-blue-300 rounded-lg px-3 py-2 bg-white focus:border-blue-500 outline-none font-bold text-blue-900" onchange="appData.mesAno = this.value; renderTables(); triggerAutoSave();">
+                            <input type="month" id="meta-mes" class="border border-blue-300 rounded-lg px-3 py-2 bg-white focus:border-blue-500 outline-none font-bold text-blue-900" onchange="appData.mesAno = this.value; renderTables();">
                         </div>
 
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">INSTITUCIÓN EDUCATIVA:</label>
-                            <input type="text" id="meta-ie" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed font-bold text-gray-500 outline-none uppercase" style="text-transform: uppercase;" oninput="appData.ie = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-ie" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed font-bold text-gray-500 outline-none uppercase" style="text-transform: uppercase;" oninput="appData.ie = this.value;">
                         </div>
 
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">LUGAR:</label>
-                            <input type="text" id="meta-lugar" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold uppercase" style="text-transform: uppercase;" oninput="appData.lugar = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-lugar" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold uppercase" style="text-transform: uppercase;" oninput="appData.lugar = this.value;">
                         </div>
 
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">NIVEL EDUCATIVO:</label>
-                            <input type="text" id="meta-nivel" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold uppercase" style="text-transform: uppercase;" oninput="appData.nivel = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-nivel" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold uppercase" style="text-transform: uppercase;" oninput="appData.nivel = this.value;">
                         </div>
 
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">DISTRITO:</label>
-                            <input type="text" id="meta-distrito" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold uppercase" style="text-transform: uppercase;" oninput="appData.distrito = this.value; triggerAutoSave();">
+                            <input type="text" id="meta-distrito" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold uppercase" style="text-transform: uppercase;" oninput="appData.distrito = this.value;">
                         </div>
                     </div>
 
@@ -315,6 +315,7 @@
                         </div>
 
                         <div class="overflow-x-auto custom-scrollbar p-4">
+                            <!-- Agregado border-slate-400 para que se dibuje la grilla del Anexo 4 -->
                             <table class="w-full text-xs border border-slate-400 border-collapse text-center print-table table-auto whitespace-nowrap">
                                 <thead>
                                     <tr class="bg-blue-50 text-blue-900 font-bold">
@@ -451,6 +452,7 @@
 
     <!-- LÓGICA JAVASCRIPT NATIVA -->
     <script>
+        // --- BASES DE DATOS DE PRUEBA (AUTOCOMPLETADO FALLBACK) ---
         let dbIe = {
             '0123456': { dreUgel: 'UGEL 01 - SAN JUAN DE MIRAFLORES', ie: '6004 S. ANTUNEZ DE MAYOLO', lugar: 'LIMA', nivel: 'SECUNDARIA', distrito: 'VILLA EL SALVADOR' },
             '0987654': { dreUgel: 'UGEL 03 - BREÑA', ie: '10 DE OCTUBRE', lugar: 'LIMA', nivel: 'PRIMARIA', distrito: 'BREÑA' }
@@ -476,8 +478,8 @@
             isSaved: false 
         };
         let activeTab = 'ANEXO3';
-        let autoSaveTimeout = null; 
 
+        // Declaración global de variables de conexión
         let googleSheetsUrl = localStorage.getItem('minedu_sheets_db_url') || "";
         let csvIeUrl = localStorage.getItem('minedu_csv_ie') || "";
         let csvPersonalUrl = localStorage.getItem('minedu_csv_personal') || "";
@@ -610,7 +612,6 @@
             document.getElementById('appView').classList.add('hidden');
             document.getElementById('appView').classList.remove('flex');
             document.getElementById('loginView').classList.remove('hidden');
-            clearTimeout(autoSaveTimeout);
         }
 
         // --- DASHBOARD Y FILTROS ---
@@ -646,7 +647,7 @@
                 html += `<tr class="border-b border-gray-150 hover:bg-slate-50 transition">
                     <td class="p-4">
                         <div class="font-extrabold text-slate-800">${rep.ie || 'Sin Nombre'}</div>
-                        <div class="text-xs text-blue-600 font-bold uppercase">${rep.codigoModular} - ${rep.distrito} - ${rep.nivel}</div>
+                        <div class="text-xs text-blue-600 font-bold uppercase">${rep.codigoModular} - ${rep.distrito || ''} - ${rep.nivel || ''}</div>
                     </td>
                     <td class="p-4 text-slate-600 font-bold">${rep.mesAno}</td>
                     <td class="p-4 text-slate-500 font-semibold">${rep.empleados ? rep.empleados.length : 0} integrantes</td>
@@ -722,26 +723,22 @@
             const codInput = document.getElementById('meta-cod');
             const mesInput = document.getElementById('meta-mes');
 
-            // 1. Bloqueo Condicional de Código Modular y Mes según si ya fue guardado
             if (isSaved) {
                 codInput.readOnly = true;
                 codInput.className = 'border border-gray-300 rounded-lg px-3 py-1.5 outline-none bg-gray-100 text-gray-500 cursor-not-allowed w-44 font-bold uppercase';
-                
                 mesInput.readOnly = true;
                 mesInput.className = 'border border-blue-300 rounded-lg px-3 py-2 bg-gray-100 text-gray-500 cursor-not-allowed outline-none font-bold w-full';
-
-                document.getElementById('hintCodModular').innerHTML = `<i class="fa-solid fa-lock text-red-600"></i> Código Modular y Mes Bloqueados. El reporte ya ha sido guardado en la nube.`;
+                const hint = document.getElementById('hintCodModular');
+                if(hint) hint.innerHTML = `<i class="fa-solid fa-lock text-red-600"></i> Código Modular y Mes Bloqueados. El reporte ya ha sido guardado en la nube.`;
             } else {
                 codInput.readOnly = false;
                 codInput.className = 'border border-gray-300 rounded-lg px-3 py-1.5 outline-none focus:border-red-500 w-44 bg-white font-bold text-red-900 uppercase';
-
                 mesInput.readOnly = false;
                 mesInput.className = 'border border-blue-300 rounded-lg px-3 py-2 bg-white focus:border-blue-500 outline-none font-bold text-blue-900 w-full';
-
-                document.getElementById('hintCodModular').innerHTML = "Se autocompletará al ingresar los 7 números o pulsar Buscar.";
+                const hint = document.getElementById('hintCodModular');
+                if(hint) hint.innerHTML = "Se autocompletará al ingresar los 7 números.";
             }
 
-            // 2. Bloqueo ABSOLUTO e incondicional de los 5 campos complementarios (para evitar alteración manual)
             const lockedFields = ['meta-dre', 'meta-ie', 'meta-lugar', 'meta-nivel', 'meta-distrito'];
             lockedFields.forEach(id => {
                 const el = document.getElementById(id);
@@ -793,7 +790,6 @@
         }
 
         function backToDashboard() {
-            clearTimeout(autoSaveTimeout);
             document.getElementById('dashboardSection').classList.remove('hidden');
             document.getElementById('editorSection').classList.add('hidden');
             loadFromSheets(true); 
@@ -829,7 +825,6 @@
                 asistencia: {}, tardanzasH: '', tardanzasM: '', permisosSGH: '', permisosSGM: '', huelgaParoDias: '', observaciones: ''
             });
             renderTables();
-            triggerAutoSave();
         }
 
         function confirmRemoveEmployee(id) {
@@ -842,7 +837,6 @@
             if (employeeIdToDelete) {
                 appData.empleados = appData.empleados.filter(e => e.id !== employeeIdToDelete);
                 renderTables();
-                triggerAutoSave();
                 showToast("Personal eliminado de la tabla", "success");
             }
             closeDeleteModal();
@@ -862,7 +856,6 @@
             const emp = appData.empleados.find(e => e.id === id);
             if (emp) { 
                 emp[field] = value.toUpperCase(); 
-                triggerAutoSave(); 
             }
         }
 
@@ -873,11 +866,9 @@
                 const upperVal = value.toUpperCase().trim();
                 if (upperVal === '') {
                     emp.asistencia[day] = '';
-                    triggerAutoSave();
                     renderTables();
                 } else if (CODIGOS_VALIDOS.includes(upperVal)) {
                     emp.asistencia[day] = upperVal;
-                    triggerAutoSave();
                     renderTables();
                 } else {
                     showToast(`Código "${upperVal}" no válido. Use la leyenda.`, "error");
@@ -911,7 +902,6 @@
                 document.getElementById('meta-nivel').value = data.nivel || ''; appData.nivel = data.nivel || '';
                 document.getElementById('meta-distrito').value = data.distrito || ''; appData.distrito = data.distrito || '';
                 showToast("I.E. autocompletada desde el padrón", "success");
-                triggerAutoSave();
             } else {
                 showToast("Código Modular no encontrado en el Padrón (Sheets)", "error");
                 clearIeFields();
@@ -920,13 +910,12 @@
 
         function handleIeLookup(val) {
             if (currentRole === 'ADMIN') return;
-            appData.codigoModular = val;
+            appData.codigoModular = val.toUpperCase();
             if (val.trim().length === 0) {
                 clearIeFields();
             } else if (val.trim().length === 7) {
                 buscarIE();
             }
-            triggerAutoSave();
         }
 
         function handleDniLookup(id, val) {
@@ -943,7 +932,6 @@
                         emp.jornada = data.jornada || '';
                         renderTables(); 
                         showToast("Personal autocompletado", "success");
-                        triggerAutoSave();
                     }
                 }
             }
@@ -966,7 +954,7 @@
             }
         }
 
-        // --- SISTEMA DE TABS Y TABLAS ---
+        // --- SISTEMAS DE TABS Y TABLAS ---
         function switchTab(tabId) {
             activeTab = tabId;
             document.getElementById('viewAnexo3').classList.add('hidden');
@@ -1080,6 +1068,7 @@
                     if (isWknd) {
                         bodyHTML += `<td class="border border-slate-400 p-0 ${bg} align-middle"><span class="block w-full text-center py-1.5 font-bold">-</span></td>`;
                     } else {
+                        // Cambiado a onchange para que no lance error parcial de validación antes de terminar de escribir (ej: al tipear 'LS' o 'PS')
                         bodyHTML += `<td class="border border-slate-400 p-0 ${bg} align-middle">
                             <input type="text" maxlength="2" style="text-transform: uppercase;" ${isReadonly} class="w-full h-8 p-0 outline-none text-center uppercase bg-transparent text-[10px] font-bold" value="${val}" onchange="updateAsist('${emp.id}', ${d.day}, this.value)" />
                         </td>`;
@@ -1144,24 +1133,24 @@
                 const calcs = calculateAnexo4(emp);
 
                 bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400">
-                    <td class="border border-slate-400 p-2 font-bold text-center align-middle">${index + 1}</td>
-                    <td class="border border-slate-400 p-2 font-bold text-blue-900 text-center align-middle uppercase" style="text-transform: uppercase;">${emp.dni}</td>
-                    <td class="border border-slate-400 p-2 text-left font-bold text-slate-800 align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.nombres}</td>
-                    <td class="border border-slate-400 p-2 text-left text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.cargo}</td>
-                    <td class="border border-slate-400 p-2 text-center text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.condicion}</td>
-                    <td class="border border-slate-400 p-2 font-bold text-center align-middle uppercase" style="text-transform: uppercase;">${emp.jornada}</td>
+                    <td class="border-slate-400 p-2 font-bold text-center align-middle">${index + 1}</td>
+                    <td class="border-slate-400 p-2 font-bold text-blue-900 text-center align-middle uppercase" style="text-transform: uppercase;">${emp.dni}</td>
+                    <td class="border-slate-400 p-2 text-left font-bold text-slate-800 align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.nombres}</td>
+                    <td class="border-slate-400 p-2 text-left text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.cargo}</td>
+                    <td class="border-slate-400 p-2 text-center text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.condicion}</td>
+                    <td class="border-slate-400 p-2 font-bold text-center align-middle uppercase" style="text-transform: uppercase;">${emp.jornada}</td>
                     
-                    <td class="border border-slate-400 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias}</td>
+                    <td class="border-slate-400 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias}</td>
                     
-                    <td class="border border-slate-400 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-10 p-2 text-center outline-none bg-transparent" value="${emp.tardanzasH || ''}" oninput="updateEmp('${emp.id}', 'tardanzasH', this.value)"></td>
-                    <td class="border border-slate-400 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM || ''}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
+                    <td class="border-slate-400 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-10 p-2 text-center outline-none bg-transparent" value="${emp.tardanzasH || ''}" oninput="updateEmp('${emp.id}', 'tardanzasH', this.value)"></td>
+                    <td class="border-slate-400 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM || ''}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
                     
-                    <td class="border border-slate-400 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGH || ''}" oninput="updateEmp('${emp.id}', 'permisosSGH', this.value)"></td>
-                    <td class="border border-slate-400 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.permisosSGM || ''}" oninput="updateEmp('${emp.id}', 'permisosSGM', this.value)"></td>
-                    <td class="border border-slate-400 p-2 bg-blue-50 font-bold text-blue-700 text-center align-middle">${calcs.permisosSGDias}</td>
+                    <td class="border-slate-400 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGH || ''}" oninput="updateEmp('${emp.id}', 'permisosSGH', this.value)"></td>
+                    <td class="border-slate-400 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.permisosSGM || ''}" oninput="updateEmp('${emp.id}', 'permisosSGM', this.value)"></td>
+                    <td class="border-slate-400 p-2 bg-blue-50 font-bold text-blue-700 text-center align-middle">${calcs.permisosSGDias}</td>
                     
-                    <td class="border border-slate-400 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.huelgaDias}</td>
-                    <td class="border border-slate-400 p-1 align-middle min-w-[150px]">
+                    <td class="border-slate-400 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.huelgaDias}</td>
+                    <td class="border-slate-400 p-1 align-middle min-w-[150px]">
                         <textarea ${isReadonly} class="bg-transparent outline-none text-[10px] py-0.5 whitespace-normal uppercase leading-tight resize-none overflow-y-auto text-left border-0" style="height: 32px; text-transform: uppercase; font-size: 10px; width: 100%; display: block;" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustObsWidthAndHeight(this);" placeholder="Observaciones">${emp.observaciones || ''}</textarea>
                     </td>
                 </tr>`;
@@ -1209,12 +1198,7 @@
         }
 
         function triggerAutoSave() {
-            if (!googleSheetsUrl || currentRole === 'ADMIN') return;
-            updateCloudStatus('syncing');
-            clearTimeout(autoSaveTimeout);
-            autoSaveTimeout = setTimeout(() => {
-                saveToSheets(true); 
-            }, 2000);
+            // Desactivado de forma absoluta para prevenir guardar reportes incompletos o vacíos.
         }
 
         function closeSavingModal() {
@@ -1240,7 +1224,7 @@
                     updateCloudStatus();
                     // Alerta de advertencia al centro exacto de la pantalla (Evita que el POST se realice)
                     showToast(`Ya existe un reporte registrado en la base de datos para esta Institución Educativa en el mes seleccionado (${appData.mesAno}). No se permiten registros duplicados.`, "error");
-                    return; // Detiene la operación completamente
+                    return; // Detiene la operación completamente sin enviar nada a Sheets
                 }
             }
             
