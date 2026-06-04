@@ -212,7 +212,7 @@
 
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-gray-700 text-[10px] uppercase">MES Y AÑO DE ASISTENCIA:</label>
-                            <input type="month" id="meta-mes" class="border border-blue-300 rounded-lg px-3 py-2 bg-white focus:border-blue-500 outline-none font-bold text-blue-900" onchange="appData.mesAno = this.value; renderTables(); triggerAutoSave();">
+                            <input type="month" id="meta-mes" class="border border-blue-300 rounded-lg px-3 py-2 bg-white focus:border-blue-500 outline-none font-bold text-blue-900" onchange="appData.mesAno = this.value; checkExistingReport(); renderTables(); triggerAutoSave();">
                         </div>
 
                         <div class="flex flex-col gap-1">
@@ -910,11 +910,27 @@
                 document.getElementById('meta-lugar').value = data.lugar || ''; appData.lugar = data.lugar || '';
                 document.getElementById('meta-nivel').value = data.nivel || ''; appData.nivel = data.nivel || '';
                 document.getElementById('meta-distrito').value = data.distrito || ''; appData.distrito = data.distrito || '';
-                showToast("I.E. autocompletada desde el padrón", "success");
+                
+                const existingReport = reportsDatabase.find(r => r.codigoModular === val && r.mesAno === appData.mesAno && r.id !== appData.id);
+                if (existingReport) {
+                    showToast("Ya existe un reporte para el mes que intenta registrar de esta I.E.", "error");
+                } else {
+                    showToast("I.E. autocompletada desde el padrón", "success");
+                }
+                
                 triggerAutoSave();
             } else {
                 showToast("Código Modular no encontrado en el Padrón (Sheets)", "error");
                 clearIeFields();
+            }
+        }
+
+        function checkExistingReport() {
+            if (currentRole === 'ADMIN') return;
+            if (!appData.codigoModular || !appData.mesAno) return;
+            const existingReport = reportsDatabase.find(r => r.codigoModular === appData.codigoModular && r.mesAno === appData.mesAno && r.id !== appData.id);
+            if (existingReport) {
+                showToast("Ya existe un reporte para el mes que intenta registrar de esta I.E.", "error");
             }
         }
 
