@@ -1374,14 +1374,14 @@
                 document.getElementById('savingTitle').innerText = "Guardando datos...";
                 document.getElementById('savingText').innerText = "Sincronizando el reporte de asistencia con Google Sheets.";
                 document.getElementById('modalSaving').classList.remove('hidden');
+
+                // Solo se marca como guardado (isSaved = true) y se bloquea el código modular
+                // si el usuario presiona el botón Guardar de forma explícita
+                appData.isSaved = true;
+                applyDirectorFieldsLock();
             } else {
                 updateCloudStatus('syncing');
             }
-
-            // Cambiar bandera a 'isSaved = true' al momento de guardar
-            appData.isSaved = true;
-            // Bloquear de inmediato el campo modular al hacer clic en Guardar en Nube
-            applyDirectorFieldsLock();
 
             const index = reportsDatabase.findIndex(r => r.id === appData.id);
             if (index !== -1) {
@@ -1399,9 +1399,9 @@
                 
                 if (data.status === "success") {
                     updateCloudStatus();
-                    applyDirectorFieldsLock(); // Aplica bloqueo visual inmediato de campos modular y mes
-                    
                     if (!isSilent) {
+                        applyDirectorFieldsLock(); // Aplica bloqueo visual definitivo al confirmar éxito
+                        
                         // Cambiar vista del modal central a Guardado Exitoso
                         document.getElementById('savingSpinner').classList.add('hidden');
                         document.getElementById('savingSuccessIcon').classList.remove('hidden');
@@ -1412,6 +1412,10 @@
                 } else {
                     updateCloudStatus();
                     if (!isSilent) {
+                        // Si falla, revertimos el estado para permitir correcciones
+                        appData.isSaved = false;
+                        applyDirectorFieldsLock();
+
                         document.getElementById('savingSpinner').classList.add('hidden');
                         document.getElementById('savingErrorIcon').classList.remove('hidden');
                         document.getElementById('savingCloseBtn').classList.remove('hidden');
@@ -1422,6 +1426,10 @@
             } catch (err) {
                 updateCloudStatus();
                 if (!isSilent) {
+                    // Si falla por red, revertimos el estado para permitir correcciones
+                    appData.isSaved = false;
+                    applyDirectorFieldsLock();
+
                     document.getElementById('savingSpinner').classList.add('hidden');
                     document.getElementById('savingErrorIcon').classList.remove('hidden');
                     document.getElementById('savingCloseBtn').classList.remove('hidden');
