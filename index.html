@@ -1341,6 +1341,17 @@
                 return;
             }
             
+            // VALIDACIÓN REQUERIDA: Verificar que el código modular no esté vacío y tenga exactamente 7 caracteres
+            const codModularVal = (appData.codigoModular || "").trim();
+            if (codModularVal.length !== 7) {
+                if (!isSilent) {
+                    showToast("El Código Modular de la I.E. debe tener exactamente 7 caracteres para guardar.", "error");
+                } else {
+                    updateCloudStatus(); // Restablecer estado visual del estatus en la nube
+                }
+                return; // DETIENE EL PROCESO DE GUARDADO COMPLETAMENTE
+            }
+            
             // BLOQUEO DE SEGURIDAD ABSOLUTO CONTRA REPORTES DUPLICADOS (MISMO MES Y CÓDIGO MODULAR)
             if (appData.codigoModular && appData.mesAno) {
                 const duplicate = reportsDatabase.find(r => 
