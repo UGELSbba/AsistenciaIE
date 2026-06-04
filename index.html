@@ -1339,30 +1339,6 @@
                 return;
             }
             
-            // BLOQUEO DE SEGURIDAD ABSOLUTO CONTRA REPORTES DUPLICADOS (MISMO MES Y CÓDIGO MODULAR)
-            if (appData.codigoModular && appData.mesAno) {
-                const duplicate = reportsDatabase.find(r => 
-                    r.codigoModular === appData.codigoModular && 
-                    r.mesAno === appData.mesAno && 
-                    r.id !== appData.id
-                );
-                if (duplicate) {
-                    if (!isSilent) {
-                        document.getElementById('savingSpinner').classList.add('hidden');
-                        document.getElementById('savingSuccessIcon').classList.add('hidden');
-                        document.getElementById('savingErrorIcon').classList.remove('hidden');
-                        document.getElementById('savingCloseBtn').classList.remove('hidden');
-                        document.getElementById('savingTitle').innerText = "Guardado Cancelado";
-                        document.getElementById('savingText').innerText = "Ya existe un reporte registrado en la base de datos para esta Institución Educativa en el mes seleccionado (" + appData.mesAno + "). No se permiten registros duplicados.";
-                        document.getElementById('modalSaving').classList.remove('hidden');
-                    } else {
-                        updateCloudStatus();
-                    }
-                    showToast("No se puede guardar. Ya existe un reporte para esta I.E. y mes.", "error");
-                    return; // DETIENE EL PROCESO DE GUARDADO COMPLETAMENTE
-                }
-            }
-            
             // Si el guardado no es silencioso (fue por click del botón), activamos el nuevo modal de progreso central
             if (!isSilent) {
                 document.getElementById('savingSpinner').classList.remove('hidden');
