@@ -260,13 +260,12 @@
                         </div>
 
                         <div class="overflow-x-auto custom-scrollbar p-4">
-                            <!-- table-auto permite que las columnas crezcan de forma fluida lineal -->
                             <table class="w-full text-[10px] sm:text-xs border-collapse text-center print-table table-auto whitespace-nowrap">
                                 <thead id="headAnexo3"></thead>
                                 <tbody id="bodyAnexo3"></tbody>
                             </table>
 
-                            <!-- SECCIÓN LEYENDA (Actualizada según especificación de MINEDU) -->
+                            <!-- SECCIÓN LEYENDA -->
                             <div class="mt-6 border border-gray-200 rounded-lg p-4 bg-slate-50 text-[10px] no-print animate-fade-in">
                                 <div class="font-extrabold text-slate-800 uppercase mb-2 border-b border-gray-200 pb-1 flex items-center gap-1.5">
                                     <i class="fa-solid fa-circle-info text-blue-600"></i> Leyenda:
@@ -316,7 +315,6 @@
                         </div>
 
                         <div class="overflow-x-auto custom-scrollbar p-4">
-                            <!-- Agregado border-slate-400 para que se dibuje la grilla del Anexo 4 -->
                             <table class="w-full text-xs border border-slate-400 border-collapse text-center print-table table-auto whitespace-nowrap">
                                 <thead>
                                     <tr class="bg-blue-50 text-blue-900 font-bold">
@@ -382,7 +380,6 @@
 
                 <div class="bg-blue-50 text-blue-900 p-3 rounded-lg text-xs border border-red-200 mt-4">
                     <strong>2. Autocompletado desde Google Sheets:</strong> Pega las URLs de tus hojas de Google Sheets publicadas como CSV para autocompletar Colegios y DNI.
-                    <br><em class="text-[10px] block mt-1">Nota: Las columnas de tu tabla en Sheets deben llamarse: <b>codigo, dre, institucion, lugar, nivel, distrito</b>.</em>
                 </div>
                 <div>
                     <label class="block font-bold text-blue-900 mb-1">URL CSV - Padrón de I.E.:</label>
@@ -436,7 +433,7 @@
         </div>
     </div>
 
-    <!-- OVERLAY CARGADOR FLOTANTE DE HISTÓRICOS (NUEVA MEJORA EN EL CENTRO DE LA PANTALLA) -->
+    <!-- OVERLAY CARGADOR FLOTANTE DE HISTÓRICOS -->
     <div id="loadingOverlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-[130] hidden">
         <div class="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center gap-3 border border-gray-150 animate-fade-in">
             <div class="text-blue-600 text-4xl animate-spin">
@@ -446,15 +443,14 @@
         </div>
     </div>
 
-    <!-- TOAST NOTIFICATION -->
-    <div id="toast" class="fixed bottom-6 right-6 bg-blue-900 text-white py-3 px-5 rounded-xl shadow-2xl flex items-center gap-2 text-xs transition duration-300 transform translate-y-20 opacity-0 z-[200]">
-        <i id="toastIcon" class="fa-solid fa-circle-check text-green-400"></i>
-        <span id="toastMessage"></span>
+    <!-- TOAST NOTIFICATION CENTRADA (MENSAJES AL MEDIO DE LA PANTALLA) -->
+    <div id="toast" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white text-slate-800 py-6 px-8 rounded-2xl shadow-2xl flex flex-col items-center gap-3 text-sm transition duration-300 opacity-0 scale-95 pointer-events-none z-[200] max-w-md w-11/12 text-center border border-gray-200">
+        <div id="toastIconContainer" class="text-4xl"></div>
+        <span id="toastMessage" class="font-bold leading-relaxed text-slate-700"></span>
     </div>
 
-    <!-- LOGICA JAVASCRIPT NATIVA -->
+    <!-- LÓGICA JAVASCRIPT NATIVA -->
     <script>
-        // --- BASES DE DATOS DE PRUEBA (AUTOCOMPLETADO) ---
         let dbIe = {
             '0123456': { dreUgel: 'UGEL 01 - SAN JUAN DE MIRAFLORES', ie: '6004 S. ANTUNEZ DE MAYOLO', lugar: 'LIMA', nivel: 'SECUNDARIA', distrito: 'VILLA EL SALVADOR' },
             '0987654': { dreUgel: 'UGEL 03 - BREÑA', ie: '10 DE OCTUBRE', lugar: 'LIMA', nivel: 'PRIMARIA', distrito: 'BREÑA' }
@@ -464,27 +460,24 @@
             '40003344': { nombres: 'RODRIGUEZ FLORES, MARIA', cargo: 'PROFESOR F.F.', condicion: 'CONTRATADO', jornada: '30' }
         };
 
-        // Códigos válidos para el control de asistencia en calendario
         const CODIGOS_VALIDOS = ['A', 'I', '3T', 'J', 'LS', 'PS', 'T', 'H', 'F'];
 
-        // --- ESTADO PRINCIPAL ---
-        let currentRole = null; // 'DIRECTOR' o 'ADMIN'
-        let reportsDatabase = []; // Lista completa de reportes de la nube
-        let filterCodQuery = ""; // Query de filtrado por Código Modular para Director y Administrador
-        let filterMonthQuery = ""; // Query de filtrado por Mes para Director y Administrador
-        let employeeIdToDelete = null; // Guardará temporalmente el ID de personal a eliminar
+        let currentRole = null;
+        let reportsDatabase = [];
+        let filterCodQuery = "";
+        let filterMonthQuery = "";
+        let employeeIdToDelete = null;
         
         let appData = {
             id: '',
-            codigoModular: '', dreUgel: '', mesAno: '',
+            codigoModular: '', dreUgel: 'UGEL 03', mesAno: '2026-05',
             ie: '', lugar: '', nivel: '', distrito: '',
             empleados: [],
-            isSaved: false // Identifica si ya está persistido en la nube
+            isSaved: false 
         };
         let activeTab = 'ANEXO3';
         let autoSaveTimeout = null; 
 
-        // Variables de URLs almacenadas localmente
         let googleSheetsUrl = localStorage.getItem('minedu_sheets_db_url') || "";
         let csvIeUrl = localStorage.getItem('minedu_csv_ie') || "";
         let csvPersonalUrl = localStorage.getItem('minedu_csv_personal') || "";
@@ -497,7 +490,7 @@
             loadCsvDbs(); 
         };
 
-        // --- PARSER Y CARGA DE CSVS PARA AUTOCOMPLETADO ---
+        // --- PARSER Y CARGA DE CSVS ---
         function parseCSV(text) {
             const lines = text.split('\n');
             return lines.map(line => {
@@ -545,7 +538,7 @@
                             }
                         }
                     }
-                } catch(e) { console.error("Error cargando CSV IE", e); }
+                } catch(e) { console.error("Error CSV IE", e); }
             }
 
             if (csvPersonalUrl) {
@@ -575,11 +568,11 @@
                             }
                         }
                     }
-                } catch(e) { console.error("Error cargando CSV Personal", e); }
+                } catch(e) { console.error("Error CSV Personal", e); }
             }
         }
 
-        // --- MANEJO DE ROLES (LOGIN/LOGOUT) ---
+        // --- MANEJO DE ROLES ---
         function setRole(role) {
             currentRole = role;
             document.getElementById('loginView').classList.add('hidden');
@@ -587,8 +580,6 @@
             document.getElementById('appView').classList.add('flex');
             
             document.getElementById('headerRole').innerText = role === 'DIRECTOR' ? 'Director de I.E.' : 'Especialista UGEL';
-            
-            // Mostrar el buscador y filtro unificados para ambos roles
             document.getElementById('searchFilterContainer').classList.remove('hidden');
             
             if(role === 'ADMIN') {
@@ -604,12 +595,9 @@
                 document.getElementById('btnCreateReport').classList.remove('hidden');
                 document.getElementById('adminBadge').classList.add('hidden');
                 document.getElementById('hintCodModular').classList.remove('hidden');
-                
                 applyDirectorFieldsLock();
             }
-            
             updateCloudStatus();
-            
             if(googleSheetsUrl) {
                 loadFromSheets(true);
             } else {
@@ -625,17 +613,9 @@
             clearTimeout(autoSaveTimeout);
         }
 
-        // --- FILTRADOS DE REPORTES UNIFICADOS ---
-        function filterReportsByCod(val) {
-            filterCodQuery = val.trim();
-            renderDashboard();
-        }
-
-        function filterReportsByMonth(val) {
-            filterMonthQuery = val.trim();
-            renderDashboard();
-        }
-
+        // --- DASHBOARD Y FILTROS ---
+        function filterReportsByCod(val) { filterCodQuery = val.trim(); renderDashboard(); }
+        function filterReportsByMonth(val) { filterMonthQuery = val.trim(); renderDashboard(); }
         function clearAllFilters() {
             document.getElementById('searchCod').value = "";
             document.getElementById('filterMonth').value = "";
@@ -644,34 +624,17 @@
             renderDashboard();
         }
 
-        // --- DASHBOARD E INDEPENDENCIA ---
         function renderDashboard() {
             const tableBody = document.getElementById('reportsTableBody');
             document.getElementById('dashboardSection').classList.remove('hidden');
             document.getElementById('editorSection').classList.add('hidden');
 
-            // Filtrar reportes aplicando ambos criterios combinados (Modular + Mes)
             let filteredReports = reportsDatabase;
-            if (filterCodQuery) {
-                filteredReports = filteredReports.filter(rep => 
-                    rep.codigoModular && rep.codigoModular.includes(filterCodQuery)
-                );
-            }
-            if (filterMonthQuery) {
-                filteredReports = filteredReports.filter(rep => 
-                    rep.mesAno && rep.mesAno === filterMonthQuery
-                );
-            }
+            if (filterCodQuery) filteredReports = filteredReports.filter(rep => rep.codigoModular && rep.codigoModular.includes(filterCodQuery));
+            if (filterMonthQuery) filteredReports = filteredReports.filter(rep => rep.mesAno && rep.mesAno === filterMonthQuery);
 
             if (filteredReports.length === 0) {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="4" class="p-12 text-center text-gray-400 italic">
-                            <i class="fa-solid fa-folder-open text-2xl mb-1 block"></i>
-                            Bandeja vacía
-                        </td>
-                    </tr>
-                `;
+                tableBody.innerHTML = `<tr><td colspan="4" class="p-12 text-center text-gray-400 italic"><i class="fa-solid fa-folder-open text-2xl mb-1 block"></i>Bandeja vacía</td></tr>`;
                 return;
             }
 
@@ -680,43 +643,32 @@
                 const btnText = currentRole === 'ADMIN' ? 'Visualizar Anexos' : 'Editar';
                 const btnColor = currentRole === 'ADMIN' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-blue-600 hover:bg-blue-700';
 
-                html += `
-                    <tr class="border-b border-gray-150 hover:bg-slate-50 transition">
-                        <td class="p-4">
-                            <div class="font-extrabold text-slate-800">${rep.ie || 'Sin Nombre'}</div>
-                            <div class="text-xs text-blue-600 font-bold uppercase">${rep.codigoModular} - ${rep.distrito} - ${rep.nivel}</div>
-                        </td>
-                        <td class="p-4 text-slate-600 font-bold">${rep.mesAno}</td>
-                        <td class="p-4 text-slate-500 font-semibold">${rep.empleados ? rep.empleados.length : 0} integrantes</td>
-                        <td class="p-4 text-center">
-                            <div class="flex justify-center gap-2">
-                                <button onclick="openReport('${rep.id}')" class="${btnColor} text-white font-bold px-3.5 py-1.5 rounded-lg text-xs transition">
-                                    ${btnText}
-                                </button>
-                                ${currentRole === 'ADMIN' ? `
-                                <button onclick="exportSingleReport('${rep.id}')" class="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-emerald-700 transition" title="Exportar a Excel">
-                                    Excel
-                                </button>
-                                <button onclick="printReportFromDashboard('${rep.id}', 'ANEXO3')" class="bg-blue-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-blue-700 transition" title="Imprimir Anexo 03">
-                                    <i class="fa-solid fa-print"></i> A3
-                                </button>
-                                <button onclick="printReportFromDashboard('${rep.id}', 'ANEXO4')" class="bg-red-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-red-700 transition" title="Imprimir Anexo 04">
-                                    <i class="fa-solid fa-print"></i> A4
-                                </button>
-                                ` : ''}
-                            </div>
-                        </td>
-                    </tr>
-                `;
+                html += `<tr class="border-b border-gray-150 hover:bg-slate-50 transition">
+                    <td class="p-4">
+                        <div class="font-extrabold text-slate-800">${rep.ie || 'Sin Nombre'}</div>
+                        <div class="text-xs text-blue-600 font-bold uppercase">${rep.codigoModular} - ${rep.distrito} - ${rep.nivel}</div>
+                    </td>
+                    <td class="p-4 text-slate-600 font-bold">${rep.mesAno}</td>
+                    <td class="p-4 text-slate-500 font-semibold">${rep.empleados ? rep.empleados.length : 0} integrantes</td>
+                    <td class="p-4 text-center">
+                        <div class="flex justify-center gap-2">
+                            <button onclick="openReport('${rep.id}')" class="${btnColor} text-white font-bold px-3.5 py-1.5 rounded-lg text-xs transition">${btnText}</button>
+                            ${currentRole === 'ADMIN' ? `
+                            <button onclick="exportSingleReport('${rep.id}')" class="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-emerald-700 transition" title="Exportar a Excel">Excel</button>
+                            <button onclick="printReportFromDashboard('${rep.id}', 'ANEXO3')" class="bg-blue-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-blue-700 transition" title="Imprimir Anexo 03"><i class="fa-solid fa-print"></i> A3</button>
+                            <button onclick="printReportFromDashboard('${rep.id}', 'ANEXO4')" class="bg-red-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-red-700 transition" title="Imprimir Anexo 04"><i class="fa-solid fa-print"></i> A4</button>
+                            ` : ''}
+                        </div>
+                    </td>
+                </tr>`;
             });
             tableBody.innerHTML = html;
         }
 
-        // --- IMPRESIÓN DIRECTA DESDE EL DASHBOARD ---
+        // --- MANEJO DE REPORTES Y FORMULARIOS ---
         function printReportFromDashboard(reportId, tabType) {
             const rep = reportsDatabase.find(r => r.id === reportId);
             if (!rep) return;
-            
             const prevAppData = JSON.stringify(appData);
             const prevActiveTab = activeTab;
             const prevSectionHidden = document.getElementById('editorSection').classList.contains('hidden');
@@ -733,7 +685,6 @@
             document.getElementById('meta-distrito').value = appData.distrito || '';
 
             renderTables();
-
             document.getElementById('editorSection').classList.remove('hidden');
             document.getElementById('dashboardSection').classList.add('hidden');
 
@@ -747,14 +698,12 @@
 
             setTimeout(() => {
                 window.print();
-                
                 appData = JSON.parse(prevAppData);
                 activeTab = prevActiveTab;
                 if (prevSectionHidden) {
                     document.getElementById('editorSection').classList.add('hidden');
                     document.getElementById('dashboardSection').classList.remove('hidden');
                 }
-                
                 document.getElementById('meta-cod').value = appData.codigoModular || '';
                 document.getElementById('meta-dre').value = appData.dreUgel || '';
                 document.getElementById('meta-mes').value = appData.mesAno || '';
@@ -762,12 +711,10 @@
                 document.getElementById('meta-lugar').value = appData.lugar || '';
                 document.getElementById('meta-nivel').value = appData.nivel || '';
                 document.getElementById('meta-distrito').value = appData.distrito || '';
-                
                 renderTables();
             }, 250);
         }
 
-        // --- SISTEMA DE BLOQUEO DE EDICIÓN PARA EL DIRECTOR ---
         function applyDirectorFieldsLock() {
             if (currentRole !== 'DIRECTOR') return;
 
@@ -808,16 +755,11 @@
         function createNewReport() {
             const today = new Date();
             const month = String(today.getMonth() + 1).padStart(2, '0');
-            
             appData = {
                 id: 'REP_' + Date.now(),
                 codigoModular: '', dreUgel: '', mesAno: `${today.getFullYear()}-${month}`,
-                ie: '', lugar: '', nivel: '', distrito: '',
-                empleados: [],
-                isSaved: false // Inicialmente desprotegido
+                ie: '', lugar: '', nivel: '', distrito: '', empleados: [], isSaved: false 
             };
-
-            // Limpiar inputs en la interfaz
             document.getElementById('meta-cod').value = '';
             document.getElementById('meta-dre').value = '';
             document.getElementById('meta-mes').value = appData.mesAno;
@@ -825,7 +767,6 @@
             document.getElementById('meta-lugar').value = '';
             document.getElementById('meta-nivel').value = '';
             document.getElementById('meta-distrito').value = '';
-
             document.getElementById('dashboardSection').classList.add('hidden');
             document.getElementById('editorSection').classList.remove('hidden');
             applyDirectorFieldsLock();
@@ -836,7 +777,6 @@
             const rep = reportsDatabase.find(r => r.id === reportId);
             if (rep) {
                 appData = JSON.parse(JSON.stringify(rep)); 
-
                 document.getElementById('meta-cod').value = appData.codigoModular || '';
                 document.getElementById('meta-dre').value = appData.dreUgel || '';
                 document.getElementById('meta-mes').value = appData.mesAno || '';
@@ -859,16 +799,13 @@
             loadFromSheets(true); 
         }
 
-        // --- FUNCIONES CORE ---
         function initMesAno() {
             const today = new Date();
             const month = String(today.getMonth() + 1).padStart(2, '0');
             appData.mesAno = `${today.getFullYear()}-${month}`;
             document.getElementById('meta-mes').value = appData.mesAno;
-            document.getElementById('inputSheetsUrl').value = googleSheetsUrl;
         }
 
-        // Generar días calendario del mes seleccionado
         function getMonthDays() {
             if (!appData.mesAno) return [];
             const [year, month] = appData.mesAno.split('-');
@@ -895,7 +832,6 @@
             triggerAutoSave();
         }
 
-        // Función personalizada para control de eliminación Sí/No (Evita alertas nativas de iframe)
         function confirmRemoveEmployee(id) {
             if (currentRole === 'ADMIN') return;
             employeeIdToDelete = id;
@@ -912,17 +848,15 @@
             closeDeleteModal();
         }
 
-        closeDeleteModal = function() {
+        function closeDeleteModal() {
             employeeIdToDelete = null;
             document.getElementById('modalConfirmDelete').classList.add('hidden');
         }
 
-        // Registro explícito en el contexto global para asegurar el correcto funcionamiento del botón borrar
         window.confirmRemoveEmployee = confirmRemoveEmployee;
         window.executeDelete = executeDelete;
         window.closeDeleteModal = closeDeleteModal;
 
-        // Modificado para guardar correctamente campos de texto con el auto-save correspondiente y siempre en mayúsculas
         function updateEmp(id, field, value) {
             if (currentRole === 'ADMIN') return;
             const emp = appData.empleados.find(e => e.id === id);
@@ -932,13 +866,11 @@
             }
         }
 
-        // Validación estricta para que solo se ingresen códigos de la leyenda
         function updateAsist(id, day, value) {
             if (currentRole === 'ADMIN') return;
             const emp = appData.empleados.find(e => e.id === id);
             if (emp) {
                 const upperVal = value.toUpperCase().trim();
-                
                 if (upperVal === '') {
                     emp.asistencia[day] = '';
                     triggerAutoSave();
@@ -948,26 +880,13 @@
                     triggerAutoSave();
                     renderTables();
                 } else {
-                    // Si el código no es válido, emitir toast y reestablecer la tabla
                     showToast(`Código "${upperVal}" no válido. Use la leyenda.`, "error");
                     renderTables();
                 }
             }
         }
 
-        // --- AUTOCOMPLETADO ---
-        function handleIeLookup(val) {
-            if (currentRole === 'ADMIN') return;
-            appData.codigoModular = val;
-
-            if (val.trim().length === 0) {
-                clearIeFields();
-            } else if (val.trim().length === 7) {
-                buscarIE();
-            }
-            triggerAutoSave();
-        }
-
+        // --- AUTOCOMPLETADO EXACTO ---
         function clearIeFields() {
             appData.dreUgel = ''; document.getElementById('meta-dre').value = '';
             appData.ie = ''; document.getElementById('meta-ie').value = '';
@@ -999,31 +918,15 @@
             }
         }
 
-        // Ajustar dinámicamente el ancho (atributo size) para que los datos quepan de forma exacta en una sola línea fluida
-        // Soporta de forma nativa el wrap o salto de línea automático según el ajuste máximo del espacio
-        function adjustInputWidth(input, minSize) {
-            const valLen = input.value ? input.value.length : 0;
-            const calculatedSize = Math.max(minSize, valLen);
-            input.setAttribute('size', calculatedSize);
-        }
-
-        // Ajusta de manera dinámica la fuente y la altura para Observaciones manteniendo el alto de fila fijo (32px)
-        // Soporta de forma nativa el wrap o salto de línea automático según el ajuste máximo del espacio
-        function adjustObsWidthAndHeight(textarea) {
-            if (!textarea) return;
-            // Forzar conversión instantánea de mayúsculas en tiempo real al escribir
-            textarea.value = textarea.value.toUpperCase();
-
-            // Restablecer fuente estándar temporalmente para medir la altura real de desborde (scrollHeight)
-            textarea.style.fontSize = '10px';
-            
-            let currentSize = 10;
-            // Se reduce de forma gradual si sobrepasa la altura física asignada de la celda de Excel (32px)
-            // Esto asegura que todo el texto encaje en varias líneas sin alterar la altura de la fila
-            while (textarea.scrollHeight > 32 && currentSize > 6.0) {
-                currentSize -= 0.5;
-                textarea.style.fontSize = `${currentSize}px`;
+        function handleIeLookup(val) {
+            if (currentRole === 'ADMIN') return;
+            appData.codigoModular = val;
+            if (val.trim().length === 0) {
+                clearIeFields();
+            } else if (val.trim().length === 7) {
+                buscarIE();
             }
+            triggerAutoSave();
         }
 
         function handleDniLookup(id, val) {
@@ -1046,13 +949,28 @@
             }
         }
 
-        // --- MANEJO DE TABS ---
+        function adjustInputWidth(input, minSize) {
+            const valLen = input.value ? input.value.length : 0;
+            const calculatedSize = Math.max(minSize, valLen);
+            input.setAttribute('size', calculatedSize);
+        }
+
+        function adjustObsWidthAndHeight(textarea) {
+            if (!textarea) return;
+            textarea.value = textarea.value.toUpperCase();
+            textarea.style.fontSize = '10px';
+            let currentSize = 10;
+            while (textarea.scrollHeight > 32 && currentSize > 6.0) {
+                currentSize -= 0.5;
+                textarea.style.fontSize = `${currentSize}px`;
+            }
+        }
+
+        // --- SISTEMA DE TABS Y TABLAS ---
         function switchTab(tabId) {
             activeTab = tabId;
             document.getElementById('viewAnexo3').classList.add('hidden');
             document.getElementById('viewAnexo4').classList.add('hidden');
-            
-            // Restablecer estilos de botones
             document.getElementById('btnTab3').className = "px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition text-gray-500 hover:text-slate-800";
             document.getElementById('btnTab4').className = "px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition text-gray-500 hover:text-slate-800";
 
@@ -1066,7 +984,6 @@
             renderTables();
         }
 
-        // --- RENDERIZADO DE TABLAS ---
         function renderTables() {
             updateMetaPrint();
             if (activeTab === 'ANEXO3') renderAnexo3();
@@ -1095,7 +1012,6 @@
             const tbody = document.getElementById('bodyAnexo3');
             const isReadonly = currentRole === 'ADMIN' ? 'readonly' : '';
             
-            // Render Headers con fusion rowspan="2" y "Jor. Lab." separada en dos líneas
             let headHTML = `
                 <tr class="bg-blue-50 text-blue-900 font-bold border border-slate-400">
                     <th rowspan="2" style="border: 1px solid #94a3b8; min-width: 24px; max-width: 24px;" class="p-1 bg-blue-50 text-center align-middle">N°</th>
@@ -1127,13 +1043,11 @@
 
             let bodyHTML = '';
             appData.empleados.forEach((emp, index) => {
-                // Anchos mínimos adaptados. "sizeJornada" reducido para Jor. Lab. (máximo 2-3 números)
                 const sizeDni = Math.max(3, emp.dni ? emp.dni.length : 0);
                 const sizeNombres = Math.max(19, emp.nombres ? emp.nombres.length : 0);
                 const sizeCargo = Math.max(5, emp.cargo ? emp.cargo.length : 0);
                 const sizeCondicion = Math.max(9, emp.condicion ? emp.condicion.length : 0);
                 const sizeJornada = Math.max(4, emp.jornada ? emp.jornada.length : 0);
-                const sizeObs = Math.max(13, emp.observaciones ? emp.observaciones.length : 0);
 
                 bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400 text-[10px]">
                     <td style="border: 1px solid #94a3b8; min-width: 24px; max-width: 24px;" class="p-1 bg-white text-center align-middle font-bold">${index + 1}</td>
@@ -1166,26 +1080,21 @@
                     if (isWknd) {
                         bodyHTML += `<td class="border border-slate-400 p-0 ${bg} align-middle"><span class="block w-full text-center py-1.5 font-bold">-</span></td>`;
                     } else {
-                        // Cambiado a onchange para que no lance error parcial de validación antes de terminar de escribir (ej: al tipear 'LS' o 'PS')
                         bodyHTML += `<td class="border border-slate-400 p-0 ${bg} align-middle">
                             <input type="text" maxlength="2" style="text-transform: uppercase;" ${isReadonly} class="w-full h-8 p-0 outline-none text-center uppercase bg-transparent text-[10px] font-bold" value="${val}" onchange="updateAsist('${emp.id}', ${d.day}, this.value)" />
                         </td>`;
                     }
                 });
 
-                // Input de Tardanzas en Minutos optimizado (tipo text de size 3 para que sea muy angosto y con autoguardado de oninput)
                 bodyHTML += `
                     <td style="width: 45px; min-width: 45px; max-width: 45px;" class="border border-slate-400 p-0 bg-amber-50/30 align-middle">
                         <input type="text" maxlength="3" size="3" style="text-transform: uppercase;" ${isReadonly} class="w-full h-8 p-0.5 text-center outline-none bg-transparent font-bold text-amber-900 uppercase" value="${emp.tardanzasM || ''}" oninput="this.value=this.value.replace(/[^0-9]/g,''); updateEmp('${emp.id}', 'tardanzasM', this.value)">
                     </td>
                     
-                    <!-- Campo Observaciones en Textarea con alto de 32px, multilineal (whitespace-normal) y autoajuste de texto dinámico de fuente y de ancho lineal -->
                     <td class="border border-slate-400 p-0.5 align-middle">
-                        <!-- whitespace-normal permite el wrap o salto de línea automático según el ajuste del espacio horizontal -->
                         <textarea ${isReadonly} class="bg-transparent outline-none text-[10px] py-0.5 whitespace-normal uppercase leading-tight resize-none overflow-y-auto text-left border-0" style="height: 32px; text-transform: uppercase; font-size: 10px; width: 100%; display: block;" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustObsWidthAndHeight(this);" placeholder="Observaciones" data-id="${emp.id}">${emp.observaciones || ''}</textarea>
                     </td>
                     
-                    <!-- Columna independiente para el botón de eliminar al final de la fila bajo "X" -->
                     ${currentRole === 'DIRECTOR' ? `
                     <td class="border border-slate-400 p-0.5 no-print align-middle text-center w-8">
                         <button onclick="confirmRemoveEmployee('${emp.id}')" class="text-red-500 hover:text-red-700 bg-red-50 p-1 rounded transition" title="Eliminar Personal">
@@ -1196,7 +1105,6 @@
             });
             tbody.innerHTML = bodyHTML;
 
-            // Disparar redimensionamiento dinámico y ajuste de fuente tras renderizar todos los elementos
             document.querySelectorAll('#bodyAnexo3 input[type="text"]').forEach(input => {
                 adjustInputWidth(input, 4);
             });
@@ -1205,7 +1113,6 @@
             });
         }
 
-        // --- CONSOLIDACIÓN DINÁMICA DE ASISTENCIA A ANEXO 04 ---
         function calculateAnexo4(emp) {
             let inasistenciasDias = 0;
             let permisosSGDias = 0;
@@ -1213,25 +1120,12 @@
 
             if (emp.asistencia) {
                 Object.values(emp.asistencia).forEach(val => {
-                    // I y 3T acumulan como Inasistencias
-                    if (val === 'I' || val === '3T') {
-                        inasistenciasDias++;
-                    }
-                    // LS y PS acumulan como Licencias / Permisos Sin Goce
-                    if (val === 'LS' || val === 'PS') {
-                        permisosSGDias++;
-                    }
-                    // H acumula como días de huelga de manera automatizada
-                    if (val === 'H') {
-                        huelgaDias++;
-                    }
+                    if (val === 'I' || val === '3T') inasistenciasDias++;
+                    if (val === 'LS' || val === 'PS') permisosSGDias++;
+                    if (val === 'H') huelgaDias++;
                 });
             }
-            return {
-                inasistenciasDias: inasistenciasDias,
-                permisosSGDias: permisosSGDias,
-                huelgaDias: huelgaDias
-            };
+            return { inasistenciasDias, permisosSGDias, huelgaDias };
         }
 
         function renderAnexo4() {
@@ -1247,10 +1141,8 @@
 
             let bodyHTML = '';
             appData.empleados.forEach((emp, index) => {
-                // Cálculo de indicadores automatizados
                 const calcs = calculateAnexo4(emp);
 
-                // Corregida y unificada la clase a border-slate-400 para que se dibujen las celdas y filas correctamente
                 bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400">
                     <td class="border border-slate-400 p-2 font-bold text-center align-middle">${index + 1}</td>
                     <td class="border border-slate-400 p-2 font-bold text-blue-900 text-center align-middle uppercase" style="text-transform: uppercase;">${emp.dni}</td>
@@ -1262,15 +1154,12 @@
                     <td class="border border-slate-400 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias}</td>
                     
                     <td class="border border-slate-400 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-10 p-2 text-center outline-none bg-transparent" value="${emp.tardanzasH || ''}" oninput="updateEmp('${emp.id}', 'tardanzasH', this.value)"></td>
-                    
-                    <!-- Sincronizado para Anexo 04 -->
                     <td class="border border-slate-400 p-0 bg-amber-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM || ''}" oninput="updateEmp('${emp.id}', 'tardanzasM', this.value)"></td>
                     
                     <td class="border border-slate-400 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGH || ''}" oninput="updateEmp('${emp.id}', 'permisosSGH', this.value)"></td>
                     <td class="border border-slate-400 p-0 bg-blue-50/30 align-middle"><input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.permisosSGM || ''}" oninput="updateEmp('${emp.id}', 'permisosSGM', this.value)"></td>
                     <td class="border border-slate-400 p-2 bg-blue-50 font-bold text-blue-700 text-center align-middle">${calcs.permisosSGDias}</td>
                     
-                    <!-- Campo Huelga/Paro se automatiza desde el código 'H' (Anexo 03) -->
                     <td class="border border-slate-400 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.huelgaDias}</td>
                     <td class="border border-slate-400 p-1 align-middle min-w-[150px]">
                         <textarea ${isReadonly} class="bg-transparent outline-none text-[10px] py-0.5 whitespace-normal uppercase leading-tight resize-none overflow-y-auto text-left border-0" style="height: 32px; text-transform: uppercase; font-size: 10px; width: 100%; display: block;" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustObsWidthAndHeight(this);" placeholder="Observaciones">${emp.observaciones || ''}</textarea>
@@ -1300,7 +1189,7 @@
             csvIeUrl = urlIe;
             csvPersonalUrl = urlPersonal;
             
-            showToast("Bases vinculadas y guardadas. Cargando...", "success");
+            showToast("Bases vinculadas y guardadas", "success");
             loadCsvDbs();
             updateCloudStatus();
             toggleModal('modalConfig');
@@ -1339,7 +1228,22 @@
                 return;
             }
             
-            // Si el guardado no es silencioso (fue por click del botón), activamos el nuevo modal de progreso central
+            // COMPROBACIÓN EXHAUSTIVA DE DUPLICADOS EN LA BASE DE TRABAJO LOCAL SINCRO (BLOQUEO INCONDICIONAL)
+            if (appData.codigoModular && appData.mesAno) {
+                const duplicate = reportsDatabase.find(r => 
+                    String(r.codigoModular).trim() === String(appData.codigoModular).trim() && 
+                    String(r.mesAno).trim() === String(appData.mesAno).trim() && 
+                    String(r.id).trim() !== String(appData.id).trim()
+                );
+                
+                if (duplicate) {
+                    updateCloudStatus();
+                    // Alerta de advertencia al centro exacto de la pantalla (Evita que el POST se realice)
+                    showToast(`Ya existe un reporte registrado en la base de datos para esta Institución Educativa en el mes seleccionado (${appData.mesAno}). No se permiten registros duplicados.`, "error");
+                    return; // Detiene la operación completamente
+                }
+            }
+            
             if (!isSilent) {
                 document.getElementById('savingSpinner').classList.remove('hidden');
                 document.getElementById('savingSuccessIcon').classList.add('hidden');
@@ -1348,14 +1252,11 @@
                 document.getElementById('savingTitle').innerText = "Guardando datos...";
                 document.getElementById('savingText').innerText = "Sincronizando el reporte de asistencia con Google Sheets.";
                 document.getElementById('modalSaving').classList.remove('hidden');
+                
+                appData.isSaved = true;
             } else {
                 updateCloudStatus('syncing');
             }
-
-            // Cambiar bandera a 'isSaved = true' al momento de guardar
-            appData.isSaved = true;
-            // Bloquear de inmediato el campo modular al hacer clic en Guardar en Nube
-            applyDirectorFieldsLock();
 
             const index = reportsDatabase.findIndex(r => r.id === appData.id);
             if (index !== -1) {
@@ -1373,10 +1274,9 @@
                 
                 if (data.status === "success") {
                     updateCloudStatus();
-                    applyDirectorFieldsLock(); // Aplica bloqueo visual inmediato de campos modular y mes
+                    applyDirectorFieldsLock(); 
                     
                     if (!isSilent) {
-                        // Cambiar vista del modal central a Guardado Exitoso
                         document.getElementById('savingSpinner').classList.add('hidden');
                         document.getElementById('savingSuccessIcon').classList.remove('hidden');
                         document.getElementById('savingCloseBtn').classList.remove('hidden');
@@ -1405,7 +1305,6 @@
             }
         }
 
-        // Variable global para controlar la animación y el estado de descarga de reportes
         let isLoadingReports = false;
 
         async function loadFromSheets(isSilent = false) {
@@ -1416,7 +1315,7 @@
             }
             
             isLoadingReports = true;
-            document.getElementById('loadingOverlay').classList.remove('hidden'); // Mostrar cargador flotante dinámico
+            document.getElementById('loadingOverlay').classList.remove('hidden');
 
             if (!isSilent) showToast("Descargando base de datos...", "info");
             try {
@@ -1436,11 +1335,10 @@
             }
             
             isLoadingReports = false;
-            document.getElementById('loadingOverlay').classList.add('hidden'); // Ocultar cargador flotante dinámico
-            renderDashboard(); // Vuelve a renderizar la tabla con la información final cargada de Google Sheets
+            document.getElementById('loadingOverlay').classList.add('hidden');
+            renderDashboard(); 
         }
 
-        // --- EXPORTAR EXCEL ---
         function exportSingleReport(reportId) {
             const report = reportsDatabase.find(r => r.id === reportId);
             if (!report) return;
@@ -1484,10 +1382,30 @@
         function showToast(msg, type) {
             const toast = document.getElementById('toast');
             if (!toast) return;
-            document.getElementById('toastMessage').innerText = msg;
-            toast.className = `fixed bottom-6 right-6 text-white py-3 px-5 rounded-xl shadow-2xl flex items-center gap-2 text-xs transition duration-300 transform z-[200] ${type === 'error' ? 'bg-red-700' : 'bg-blue-800'}`;
             
-            setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
+            const msgEl = document.getElementById('toastMessage');
+            const iconContainer = document.getElementById('toastIconContainer');
+            
+            if (type === 'error') {
+                iconContainer.innerHTML = '<i class="fa-solid fa-circle-xmark text-red-600 animate-bounce"></i>';
+                toast.className = `fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white text-slate-800 border-2 border-red-200 py-8 px-10 rounded-2xl shadow-2xl flex flex-col items-center gap-4 text-sm transition duration-300 opacity-100 scale-100 z-[200] max-w-md w-11/12 text-center backdrop-blur-sm`;
+            } else if (type === 'success') {
+                iconContainer.innerHTML = '<i class="fa-solid fa-circle-check text-green-600 animate-pulse"></i>';
+                toast.className = `fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white text-slate-800 border-2 border-green-200 py-8 px-10 rounded-2xl shadow-2xl flex flex-col items-center gap-4 text-sm transition duration-300 opacity-100 scale-100 z-[200] max-w-md w-11/12 text-center backdrop-blur-sm`;
+            } else {
+                iconContainer.innerHTML = '<i class="fa-solid fa-circle-info text-blue-600"></i>';
+                toast.className = `fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white text-slate-800 border-2 border-blue-200 py-8 px-10 rounded-2xl shadow-2xl flex flex-col items-center gap-4 text-sm transition duration-300 opacity-100 scale-100 z-[200] max-w-md w-11/12 text-center backdrop-blur-sm`;
+            }
+            
+            toast.style.pointerEvents = 'auto';
+            msgEl.innerHTML = `${msg}<br><button onclick="closeToast()" class="mt-5 px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition border border-gray-200 shadow-sm">Entendido</button>`;
+        }
+
+        function closeToast() {
+            const toast = document.getElementById('toast');
+            if(toast) {
+                toast.className = "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white text-slate-800 py-6 px-8 rounded-2xl shadow-2xl flex flex-col items-center gap-3 text-sm transition duration-300 opacity-0 scale-95 pointer-events-none z-[200] max-w-sm w-11/12 text-center";
+            }
         }
     </script>
 </body>
