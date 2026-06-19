@@ -35,6 +35,12 @@
             main { padding: 0 !important; }
             .overflow-x-auto { overflow: visible !important; }
             table { zoom: 80% !important; }
+            
+            /* Forzar a los navegadores a renderizar y rellenar los sombreados/colores de fondo */
+            th, td, thead, tr, table {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
         }
     </style>
 </head>
@@ -262,6 +268,7 @@
                         </div>
 
                         <div class="overflow-x-auto custom-scrollbar p-4">
+                            <!-- table-auto permite que las columnas crezcan de forma fluida lineal -->
                             <table class="w-full text-[10px] sm:text-xs border-collapse text-center print-table table-auto whitespace-nowrap">
                                 <thead id="headAnexo3"></thead>
                                 <tbody id="bodyAnexo3"></tbody>
@@ -1005,6 +1012,7 @@
             }
         }
 
+        // --- BÚSQUEDA DE DNI ---
         function handleDniLookup(id, val) {
             if (currentRole === 'ADMIN') return;
             updateEmp(id, 'dni', val);
@@ -1193,7 +1201,7 @@
             let totalPermisoSGMinutos = 0;
 
             if (emp.asistencia) {
-                Object.keys(emp.asistencia).forEach(dayKey => {
+                Object.values(emp.asistencia).forEach(dayKey => {
                     const val = emp.asistencia[dayKey];
                     const dayNum = parseInt(dayKey);
                     if (val === 'I' || val === '3T') inasistenciasDias++;
