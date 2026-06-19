@@ -24,15 +24,17 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Reglas de impresión */
+        /* Reglas de impresión optimizadas para autoajustar horizontalmente a una hoja A4 */
         @media print {
             body { background-color: white !important; }
             .no-print { display: none !important; }
-            @page { size: landscape; margin: 8mm; }
+            @page { size: A4 landscape; margin: 5mm; }
             .print-table { width: 100% !important; page-break-inside: auto; }
             tr { page-break-inside: avoid; page-break-after: auto; }
             #appView { display: block !important; height: auto !important; }
             main { padding: 0 !important; }
+            .overflow-x-auto { overflow: visible !important; }
+            table { zoom: 80% !important; }
         }
     </style>
 </head>
@@ -260,7 +262,6 @@
                         </div>
 
                         <div class="overflow-x-auto custom-scrollbar p-4">
-                            <!-- table-auto permite que las columnas crezcan de forma fluida lineal -->
                             <table class="w-full text-[10px] sm:text-xs border-collapse text-center print-table table-auto whitespace-nowrap">
                                 <thead id="headAnexo3"></thead>
                                 <tbody id="bodyAnexo3"></tbody>
@@ -1029,17 +1030,6 @@
             input.setAttribute('size', calculatedSize);
         }
 
-        function adjustObsWidthAndHeight(textarea) {
-            if (!textarea) return;
-            textarea.value = textarea.value.toUpperCase();
-            textarea.style.fontSize = '10px';
-            let currentSize = 10;
-            while (textarea.scrollHeight > 32 && currentSize > 6.0) {
-                currentSize -= 0.5;
-                textarea.style.fontSize = `${currentSize}px`;
-            }
-        }
-
         // --- SISTEMAS DE TABS Y TABLAS ---
         function switchTab(tabId) {
             activeTab = tabId;
@@ -1445,6 +1435,7 @@
             renderDashboard(); 
         }
 
+        // --- EXPORTAR EXCEL ---
         function exportSingleReport(reportId) {
             const report = reportsDatabase.find(r => r.id === reportId);
             if (!report) return;
