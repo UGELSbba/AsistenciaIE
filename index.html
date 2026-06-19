@@ -423,7 +423,7 @@
         </div>
     </div>
 
-    <!-- MODAL GUARDANDO EN NUBE (SOLO CON CARGADOR CIRCULAR, SE CIERRA AUTOMÁTICAMENTE AL TERMINAR) -->
+    <!-- MODAL GUARDANDO EN NUBE -->
     <div id="modalSaving" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4 z-[120] hidden animate-fade-in">
         <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-150 flex flex-col gap-4 text-center">
             <div id="savingSpinner" class="text-blue-600 text-4xl mb-2">
@@ -434,7 +434,7 @@
         </div>
     </div>
 
-    <!-- OVERLAY CARGADOR FLOTANTE DE HISTÓRICOS -->
+    <!-- OVERLAY CARGADOR FLOTANTE -->
     <div id="loadingOverlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-[130] hidden">
         <div class="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center gap-3 border border-gray-150 animate-fade-in">
             <div class="text-blue-600 text-4xl animate-spin">
@@ -444,7 +444,7 @@
         </div>
     </div>
 
-    <!-- TOAST NOTIFICATION CENTRADA EN LA PARTE SUPERIOR (CIERRE AUTOMÁTICO, SIN BOTONES) -->
+    <!-- TOAST NOTIFICATION -->
     <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 bg-white text-slate-800 border border-slate-200 py-3 px-6 rounded-full shadow-2xl flex items-center gap-3 text-xs font-semibold transition-all duration-300 transform -translate-y-24 opacity-0 z-[250] pointer-events-none">
         <div id="toastIconContainer" class="flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-600 shrink-0">
             <i id="toastIcon" class="fa-solid fa-circle-check"></i>
@@ -656,7 +656,6 @@
             renderDashboard();
         }
 
-        // --- RENDERIZACIÓN DE DASHBOARD ---
         function renderDashboard() {
             const tableBody = document.getElementById('reportsTableBody');
             document.getElementById('dashboardSection').classList.remove('hidden');
@@ -1213,9 +1212,9 @@
             let totalPermisoSGMinutos = 0;
 
             if (emp.asistencia) {
-                Object.values(emp.asistencia).forEach(dayKey => {
-                    const val = emp.asistencia[dayKey];
-                    const dayNum = parseInt(dayKey);
+                // CORRECCIÓN CLAVE: Utilizar Object.entries para leer adecuadamente la dupla [día, código]
+                Object.entries(emp.asistencia).forEach(([dayStr, val]) => {
+                    const dayNum = parseInt(dayStr);
                     if (val === 'I' || val === '3T') inasistenciasDias++;
                     if (val === 'LS' || val === 'PS') permisosSGDias++;
                     if (val === 'H') huelgaDias++;
@@ -1322,10 +1321,6 @@
             } else {
                 status.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> <span class="text-red-600">Base no vinculada</span>`;
             }
-        }
-
-        function triggerAutoSave() {
-            // Desactivado de forma absoluta para prevenir guardar reportes incompletos o vacíos.
         }
 
         function closeSavingModal() {
@@ -1514,14 +1509,14 @@
                 icon.className = "fa-solid fa-circle-info";
             }
 
-            toast.classList.remove('-translate-y-24', 'opacity-0');
+            toast.classList.remove('-translate-y-20', 'opacity-0');
             toast.classList.add('translate-y-0', 'opacity-100');
 
             if (window.toastTimeout) clearTimeout(window.toastTimeout);
 
             window.toastTimeout = setTimeout(() => {
                 toast.classList.remove('translate-y-0', 'opacity-100');
-                toast.classList.add('-translate-y-24', 'opacity-0');
+                toast.classList.add('-translate-y-20', 'opacity-0');
             }, 3000);
         }
     </script>
