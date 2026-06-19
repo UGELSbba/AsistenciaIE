@@ -260,6 +260,7 @@
                         </div>
 
                         <div class="overflow-x-auto custom-scrollbar p-4">
+                            <!-- table-auto permite que las columnas crezcan de forma fluida lineal -->
                             <table class="w-full text-[10px] sm:text-xs border-collapse text-center print-table table-auto whitespace-nowrap">
                                 <thead id="headAnexo3"></thead>
                                 <tbody id="bodyAnexo3"></tbody>
@@ -287,7 +288,7 @@
                             <div class="mt-8 no-print print:block">
                                 <div class="flex justify-start px-4 mb-16">
                                     <label class="text-xs font-bold text-gray-700">Lugar y fecha: </label>
-                                    <input type="text" class="ml-2 border-b border-gray-400 outline-none w-64 text-xs bg-transparent focus:border-blue-600 text-gray-800 uppercase" style="text-transform: uppercase;" placeholder="................................................................">
+                                    <input type="text" class="ml-2 border-b border-gray-400 outline-none w-64 text-xs bg-transparent focus:border-blue-600 text-gray-800" placeholder="................................................................">
                                 </div>
                                 <div class="grid grid-cols-2 gap-8 text-center text-xs pb-8">
                                     <div><div class="border-t border-black pt-2 mx-12"></div><p class="font-bold text-blue-900">DIRECTOR(A) DE LA I.E.</p><p class="text-gray-500 mt-1 italic no-print">Firma Digital / Sello</p></div>
@@ -298,7 +299,7 @@
                     </div>
 
                     <div id="viewAnexo4" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                        <div class="p-4 bg-gray-50 border-b border-gray-200 flex flex-wrap justify-between items-center gap-2 no-print">
+                        <div class="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center no-print">
                             <div>
                                 <h2 class="font-extrabold text-lg text-red-800">ANEXO 04</h2>
                                 <p class="text-[10px] text-gray-500 font-bold uppercase">FORMATO 02: REPORTE DE INASISTENCIAS Y TARDANZAS</p>
@@ -315,6 +316,7 @@
                         </div>
 
                         <div class="overflow-x-auto custom-scrollbar p-4">
+                            <!-- Agregado border-slate-400 para que se dibuje la grilla del Anexo 4 -->
                             <table class="w-full text-xs border border-slate-400 border-collapse text-center print-table table-auto whitespace-nowrap">
                                 <thead>
                                     <tr class="bg-blue-50 text-blue-900 font-bold">
@@ -328,15 +330,15 @@
                                         <th colspan="2" class="border border-slate-400 bg-amber-50 p-1 text-amber-900 font-bold">Tardanzas</th>
                                         <th colspan="3" class="border border-slate-400 bg-blue-100 p-1 text-blue-900 font-bold">Permisos SG</th>
                                         <th class="border border-slate-400 bg-red-50 p-1 text-red-900 font-bold">Huelga/Paro</th>
-                                        <th rowspan="2" class="border border-slate-400 p-2">Observaciones</th>
+                                        <th rowspan="2" class="border border-slate-400 p-2 text-left">Observaciones</th>
                                     </tr>
                                     <tr class="bg-white text-[10px]">
                                         <th class="border border-slate-400 bg-red-50 p-1 font-bold text-red-700">Días</th>
-                                        <th class="border border-slate-400 bg-amber-50 p-1 text-amber-700">Horas</th>
-                                        <th class="border border-slate-400 bg-amber-50 p-1 text-amber-700">Minutos</th>
-                                        <th class="border border-slate-400 bg-blue-50 p-1 text-blue-700">Horas</th>
-                                        <th class="border border-slate-400 bg-blue-50 p-1 text-blue-700">Minutos</th>
-                                        <th class="border border-slate-400 bg-blue-50 p-1 font-bold text-blue-700">Días</th>
+                                        <th class="border border-slate-400 bg-amber-50 text-amber-700 p-1">Horas</th>
+                                        <th class="border border-slate-400 bg-amber-50 text-amber-700 p-1">Minutos</th>
+                                        <th class="border border-slate-400 bg-blue-50 text-blue-700 p-1">Horas</th>
+                                        <th class="border border-slate-400 bg-blue-50 text-blue-700 p-1">Minutos</th>
+                                        <th class="border border-slate-400 bg-blue-50 text-blue-700 p-1 font-bold">Días</th>
                                         <th class="border border-slate-400 bg-red-50 p-1 text-red-700">Días</th>
                                     </tr>
                                 </thead>
@@ -347,7 +349,7 @@
                             <div class="mt-8 no-print print:block">
                                 <div class="flex justify-start px-4 mb-16">
                                     <label class="text-xs font-bold text-gray-700">Lugar y fecha: </label>
-                                    <input type="text" class="ml-2 border-b border-gray-400 outline-none w-64 text-xs bg-transparent focus:border-blue-600 text-gray-800 uppercase" style="text-transform: uppercase;" placeholder="................................................................">
+                                    <input type="text" class="ml-2 border-b border-gray-400 outline-none w-64 text-xs bg-transparent focus:border-blue-600 text-gray-800" placeholder="................................................................">
                                 </div>
                                 <div class="grid grid-cols-2 gap-8 text-center text-xs pb-8">
                                     <div><div class="border-t border-black pt-2 mx-12"></div><p class="font-bold text-blue-900">DIRECTOR(A) DE LA I.E.</p><p class="text-gray-500 mt-1 italic no-print">Firma Digital / Sello</p></div>
@@ -442,6 +444,34 @@
         <span id="toastMessage" class="whitespace-nowrap"></span>
     </div>
 
+    <!-- MODAL: REGISTRO DE TIEMPO (T o PS) -->
+    <div id="modalTimePicker" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4 z-[150] hidden">
+        <div class="bg-white rounded-2xl max-w-xs w-full shadow-2xl border flex flex-col overflow-hidden animate-fade-in">
+            <div class="bg-blue-700 text-white p-4 flex justify-between items-center">
+                <h3 class="text-sm font-bold flex items-center gap-2" id="timePickerTitle">
+                    <i class="fa-solid fa-clock"></i> Registrar Tiempo
+                </h3>
+            </div>
+            <div class="p-6 text-sm flex flex-col gap-4">
+                <p class="text-xs text-gray-500 font-medium">Ingrese las horas y minutos acumulados para este día:</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Horas:</label>
+                        <input type="text" id="timePickerHoras" maxlength="2" class="w-full p-2 border border-slate-300 rounded-lg text-center font-bold text-slate-800 outline-none focus:border-blue-500" placeholder="00" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Minutos:</label>
+                        <input type="text" id="timePickerMinutos" maxlength="2" class="w-full p-2 border border-slate-300 rounded-lg text-center font-bold text-slate-800 outline-none focus:border-blue-500" placeholder="00" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 mt-2">
+                    <button onclick="closeTimePicker(false)" class="px-4 py-2 bg-gray-200 text-gray-700 font-bold rounded-lg text-xs hover:bg-gray-300">Cancelar</button>
+                    <button onclick="closeTimePicker(true)" class="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg text-xs hover:bg-blue-700 shadow-md">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- LÓGICA JAVASCRIPT NATIVA -->
     <script>
         // --- BASES DE DATOS DE PRUEBA (AUTOCOMPLETADO FALLBACK) ---
@@ -470,6 +500,7 @@
             isSaved: false 
         };
         let activeTab = 'ANEXO3';
+        let activeTimePickerCell = { empId: null, day: null, type: '' };
 
         // Declaración global de variables de conexión
         let googleSheetsUrl = localStorage.getItem('minedu_sheets_db_url') || "";
@@ -766,6 +797,12 @@
             const rep = reportsDatabase.find(r => r.id === reportId);
             if (rep) {
                 appData = JSON.parse(JSON.stringify(rep)); 
+                
+                // Asegurar que asistenciaDetalle exista para todos los empleados al abrir el reporte
+                appData.empleados.forEach(emp => {
+                    if (!emp.asistenciaDetalle) emp.asistenciaDetalle = {};
+                });
+
                 document.getElementById('meta-cod').value = appData.codigoModular || '';
                 document.getElementById('meta-dre').value = appData.dreUgel || '';
                 document.getElementById('meta-mes').value = appData.mesAno || '';
@@ -814,7 +851,7 @@
             if (currentRole === 'ADMIN') return;
             appData.empleados.push({
                 id: generateId(), dni: '', nombres: '', cargo: '', condicion: '', jornada: '',
-                asistencia: {}, tardanzasH: '', tardanzasM: '', permisosSGH: '', permisosSGM: '', huelgaParoDias: '', observaciones: ''
+                asistencia: {}, asistenciaDetalle: {}, tardanzasH: '', tardanzasM: '', permisosSGH: '', permisosSGM: '', huelgaParoDias: '', observaciones: ''
             });
             renderTables();
         }
@@ -851,16 +888,73 @@
             }
         }
 
+        // --- SISTEMA DEL TIME PICKER FLOTANTE ---
+        function openTimePicker(empId, day, type) {
+            activeTimePickerCell = { empId, day, type };
+            
+            const emp = appData.empleados.find(e => e.id === empId);
+            let horas = "";
+            let minutos = "";
+            
+            if (emp && emp.asistenciaDetalle && emp.asistenciaDetalle[day]) {
+                horas = emp.asistenciaDetalle[day].horas || "";
+                minutos = emp.asistenciaDetalle[day].minutos || "";
+            }
+            
+            document.getElementById('timePickerHoras').value = horas;
+            document.getElementById('timePickerMinutos').value = minutos;
+            
+            const typeText = type === 'T' ? 'Tardanza (T)' : 'Permiso Sin Goce (PS)';
+            document.getElementById('timePickerTitle').innerHTML = `<i class="fa-solid fa-clock"></i> Registrar ${typeText} (Día ${day})`;
+            
+            document.getElementById('modalTimePicker').classList.remove('hidden');
+            document.getElementById('timePickerHoras').focus();
+        }
+
+        function closeTimePicker(save) {
+            const { empId, day, type } = activeTimePickerCell;
+            const emp = appData.empleados.find(e => e.id === empId);
+            
+            if (emp) {
+                if (save) {
+                    const horas = document.getElementById('timePickerHoras').value.trim();
+                    const minutos = document.getElementById('timePickerMinutos').value.trim();
+                    
+                    if (!emp.asistenciaDetalle) emp.asistenciaDetalle = {};
+                    
+                    emp.asistenciaDetalle[day] = { 
+                        horas: parseInt(horas) || 0, 
+                        minutos: parseInt(minutos) || 0 
+                    };
+                    emp.asistencia[day] = type;
+                    showToast(`Tiempo guardado para el día ${day}: ${horas || 0}h ${minutos || 0}m`, "success");
+                } else {
+                    if (!emp.asistenciaDetalle || !emp.asistenciaDetalle[day]) {
+                        emp.asistencia[day] = '';
+                    }
+                }
+            }
+            
+            document.getElementById('modalTimePicker').classList.add('hidden');
+            renderTables();
+        }
+
         function updateAsist(id, day, value) {
             if (currentRole === 'ADMIN') return;
             const emp = appData.empleados.find(e => e.id === id);
             if (emp) {
                 const upperVal = value.toUpperCase().trim();
+                
                 if (upperVal === '') {
                     emp.asistencia[day] = '';
+                    if (emp.asistenciaDetalle) delete emp.asistenciaDetalle[day];
                     renderTables();
+                } else if (upperVal === 'T' || upperVal === 'PS') {
+                    // Abre modal flotante para pedir horas y minutos
+                    openTimePicker(id, day, upperVal);
                 } else if (CODIGOS_VALIDOS.includes(upperVal)) {
                     emp.asistencia[day] = upperVal;
+                    if (emp.asistenciaDetalle) delete emp.asistenciaDetalle[day];
                     renderTables();
                 } else {
                     showToast(`Código "${upperVal}" no válido. Use la leyenda.`, "error");
@@ -1057,10 +1151,21 @@
                     const val = emp.asistencia[d.day] || '';
                     const bg = isWknd ? 'bg-red-50 text-red-500' : (val ? 'bg-blue-100 font-bold text-blue-900' : 'bg-transparent');
                     
+                    // Comentarios Emergentes (Tooltips) para T y PS
+                    let hoverTitle = '';
+                    if (val === 'T' || val === 'PS') {
+                        const detail = emp.asistenciaDetalle && emp.asistenciaDetalle[d.day];
+                        if (detail) {
+                            hoverTitle = `Registrado: ${String(detail.horas).padStart(2, '0')}h ${String(detail.minutos).padStart(2, '0')}m`;
+                        } else {
+                            hoverTitle = 'Sin tiempo registrado';
+                        }
+                    }
+
                     if (isWknd) {
                         bodyHTML += `<td class="border border-slate-400 p-0 ${bg} align-middle"><span class="block w-full text-center py-1.5 font-bold">-</span></td>`;
                     } else {
-                        bodyHTML += `<td class="border border-slate-400 p-0 ${bg} align-middle">
+                        bodyHTML += `<td class="border border-slate-400 p-0 ${bg} align-middle" title="${hoverTitle}">
                             <input type="text" maxlength="2" style="text-transform: uppercase;" ${isReadonly} class="w-full h-8 p-0 outline-none text-center uppercase bg-transparent text-[10px] font-bold" value="${val}" onchange="updateAsist('${emp.id}', ${d.day}, this.value)" />
                         </td>`;
                     }
@@ -1093,25 +1198,55 @@
             });
         }
 
+        // --- CONSOLIDACIÓN DINÁMICA DE ASISTENCIA A ANEXO 04 ---
         function calculateAnexo4(emp) {
             let inasistenciasDias = 0;
             let permisosSGDias = 0;
             let huelgaDias = 0;
+            
+            let totalTardanzaMinutos = 0;
+            let totalPermisoSGMinutos = 0;
 
             if (emp.asistencia) {
-                Object.values(emp.asistencia).forEach(val => {
+                Object.keys(emp.asistencia).forEach(dayKey => {
+                    const val = emp.asistencia[dayKey];
+                    const dayNum = parseInt(dayKey);
                     if (val === 'I' || val === '3T') inasistenciasDias++;
                     if (val === 'LS' || val === 'PS') permisosSGDias++;
                     if (val === 'H') huelgaDias++;
+
+                    // Sumar tiempos automáticos desde la base oculta
+                    if (emp.asistenciaDetalle && emp.asistenciaDetalle[dayNum]) {
+                        const det = emp.asistenciaDetalle[dayNum];
+                        if (val === 'T') {
+                            totalTardanzaMinutos += (parseInt(det.horas) || 0) * 60 + (parseInt(det.minutos) || 0);
+                        }
+                        if (val === 'PS') {
+                            totalPermisoSGMinutos += (parseInt(det.horas) || 0) * 60 + (parseInt(det.minutos) || 0);
+                        }
+                    }
                 });
             }
-            return { inasistenciasDias, permisosSGDias, huelgaDias };
+
+            const tardanzasH = Math.floor(totalTardanzaMinutos / 60);
+            const tardanzasM = totalTardanzaMinutos % 60;
+
+            const permisosSGH = Math.floor(totalPermisoSGMinutos / 60);
+            const permisosSGM = totalPermisoSGMinutos % 60;
+
+            return { 
+                inasistenciasDias, 
+                permisosSGDias, 
+                huelgaDias,
+                tardanzasH: totalTardanzaMinutos > 0 ? tardanzasH : 0,
+                tardanzasM: totalTardanzaMinutos > 0 ? tardanzasM : 0,
+                permisosSGH: totalPermisoSGMinutos > 0 ? permisosSGH : 0,
+                permisosSGM: totalPermisoSGMinutos > 0 ? permisosSGM : 0
+            };
         }
 
         function renderAnexo4() {
             const tbody = document.getElementById('bodyAnexo4');
-            const isReadonly = currentRole === 'ADMIN' ? 'readonly' : '';
-
             if (!tbody) return;
 
             if (appData.empleados.length === 0) {
@@ -1123,44 +1258,31 @@
             appData.empleados.forEach((emp, index) => {
                 const calcs = calculateAnexo4(emp);
 
-                // Reemplazado input type="number" por input type="text" con longitud máxima de 2 caracteres numéricos
-                // Esto elimina las flechas spinner y soluciona completamente la visualización truncada de dos dígitos (ej. "12")
-                bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400">
-                    <td class="border border-slate-400 p-2 font-bold text-center align-middle">${index + 1}</td>
-                    <td class="border border-slate-400 p-2 font-bold text-blue-900 text-center align-middle uppercase" style="text-transform: uppercase;">${emp.dni}</td>
-                    <td class="border border-slate-400 p-2 text-left font-bold text-slate-800 align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.nombres}</td>
-                    <td class="border border-slate-400 p-2 text-left text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.cargo}</td>
-                    <td class="border border-slate-400 p-2 text-center text-xs align-middle leading-normal text-nowrap uppercase" style="text-transform: uppercase;">${emp.condicion}</td>
-                    <td class="border border-slate-400 p-2 font-bold text-center align-middle uppercase" style="text-transform: uppercase;">${emp.jornada}</td>
+                // ANEXO 4 ES TOTALMENTE DE SOLO LECTURA (SIN INPUTS EDITABLES EN NINGÚN CASO)
+                bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400 bg-slate-100/50">
+                    <td class="border border-slate-400 p-2 font-bold text-center align-middle bg-slate-200/55">${index + 1}</td>
+                    <td class="border border-slate-400 p-2 font-bold text-blue-900 text-center align-middle uppercase">${emp.dni}</td>
+                    <td class="border border-slate-400 p-2 text-left font-bold text-slate-800 align-middle leading-normal text-nowrap uppercase">${emp.nombres}</td>
+                    <td class="border border-slate-400 p-2 text-left text-xs align-middle leading-normal text-nowrap uppercase">${emp.cargo}</td>
+                    <td class="border border-slate-400 p-2 text-center text-xs align-middle leading-normal text-nowrap uppercase">${emp.condicion}</td>
+                    <td class="border border-slate-400 p-2 font-bold text-center align-middle uppercase">${emp.jornada}</td>
                     
-                    <td class="border border-slate-400 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias}</td>
+                    <td class="border border-slate-400 p-2 bg-red-100 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias}</td>
                     
-                    <td class="border border-slate-400 p-0 bg-amber-50/30 align-middle">
-                        <input type="text" maxlength="2" ${isReadonly} class="w-full h-10 p-2 text-center outline-none bg-transparent font-semibold" value="${emp.tardanzasH || ''}" oninput="this.value=this.value.replace(/[^0-9]/g,''); updateEmp('${emp.id}', 'tardanzasH', this.value)">
-                    </td>
-                    <td class="border border-slate-400 p-0 bg-amber-50/30 align-middle">
-                        <input type="text" maxlength="2" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM || ''}" oninput="this.value=this.value.replace(/[^0-9]/g,''); updateEmp('${emp.id}', 'tardanzasM', this.value)">
-                    </td>
+                    <td class="border border-slate-400 p-2 bg-amber-50 font-bold text-amber-900 text-center align-middle">${calcs.tardanzasH}</td>
+                    <td class="border border-slate-400 p-2 bg-amber-50 font-bold text-amber-900 text-center align-middle">${calcs.tardanzasM}</td>
                     
-                    <td class="border border-slate-400 p-0 bg-blue-50/30 align-middle">
-                        <input type="text" maxlength="2" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-semibold" value="${emp.permisosSGH || ''}" oninput="this.value=this.value.replace(/[^0-9]/g,''); updateEmp('${emp.id}', 'permisosSGH', this.value)">
-                    </td>
-                    <td class="border border-slate-400 p-0 bg-blue-50/30 align-middle">
-                        <input type="text" maxlength="2" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.permisosSGM || ''}" oninput="this.value=this.value.replace(/[^0-9]/g,''); updateEmp('${emp.id}', 'permisosSGM', this.value)">
-                    </td>
-                    <td class="border border-slate-400 p-2 bg-blue-50 font-bold text-blue-700 text-center align-middle">${calcs.permisosSGDias}</td>
+                    <td class="border border-slate-400 p-2 bg-blue-50 font-semibold text-blue-900 text-center align-middle">${calcs.permisosSGH}</td>
+                    <td class="border border-slate-400 p-2 bg-blue-50 font-semibold text-blue-900 text-center align-middle">${calcs.permisosSGM}</td>
+                    <td class="border border-slate-400 p-2 bg-blue-100 font-bold text-blue-700 text-center align-middle">${calcs.permisosSGDias}</td>
                     
                     <td class="border border-slate-400 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.huelgaDias}</td>
-                    <td class="border border-slate-400 p-1 align-middle min-w-[150px]">
-                        <textarea ${isReadonly} class="bg-transparent outline-none text-[10px] py-0.5 whitespace-normal uppercase leading-tight resize-none overflow-y-auto text-left border-0" style="height: 32px; text-transform: uppercase; font-size: 10px; width: 100%; display: block;" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustObsWidthAndHeight(this);" placeholder="Observaciones">${emp.observaciones || ''}</textarea>
+                    <td class="border border-slate-400 p-2 bg-gray-50 text-left text-xs text-slate-700 font-medium truncate max-w-xs uppercase">
+                        ${emp.observaciones || '-'}
                     </td>
                 </tr>`;
             });
             tbody.innerHTML = bodyHTML;
-
-            document.querySelectorAll('#bodyAnexo4 textarea').forEach(textarea => {
-                adjustObsWidthAndHeight(textarea);
-            });
         }
 
         // --- GOOGLE SHEETS API Y CONFIGURACIÓN ---
@@ -1196,10 +1318,6 @@
             } else {
                 status.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> <span class="text-red-600">Base no vinculada</span>`;
             }
-        }
-
-        function triggerAutoSave() {
-            // Desactivado de forma absoluta para prevenir guardar reportes incompletos o vacíos.
         }
 
         function closeSavingModal() {
@@ -1266,7 +1384,6 @@
                     
                     if (!isSilent) {
                         closeSavingModal();
-                        // Alerta se muestra directamente mediante Toast Autogestionado superior sin requerir botón
                         showToast("¡Guardado exitoso! El reporte de asistencia ha sido sincronizado correctamente con Google Sheets.", "success");
                     }
                 } else {
@@ -1343,7 +1460,12 @@
                             if(v==='H') huelga++;
                         });
                     }
-                    csvContent += `${index + 1},${emp.dni},"${emp.nombres}","${emp.cargo}","${emp.condicion}",${emp.jornada},${inasist},${emp.tardanzasH || 0},${emp.tardanzasM || 0},${emp.permisosSGH || 0},${emp.permisosSGM || 0},${permisos},${emp.huelgaParoDias || 0},"${emp.observaciones || ''}"\n`;
+                    
+                    const totalTardanzasMins = parseInt(emp.tardanzasM) || 0;
+                    const tardanzasH = Math.floor(totalTardanzasMins / 60);
+                    const tardanzasM = totalTardanzasMins % 60;
+                    
+                    csvContent += `${index + 1},${emp.dni},"${emp.nombres}","${emp.cargo}","${emp.condicion}",${emp.jornada},${inasist},${totalTardanzasMins > 0 ? tardanzasH : 0},${totalTardanzasMins > 0 ? tardanzasM : 0},0,0,${permisos},${huelga},"${emp.observaciones || ''}"\n`;
                 });
             }
 
