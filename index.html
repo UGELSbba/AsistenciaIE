@@ -244,7 +244,7 @@
                         </div>
                     </div>
 
-                    <!-- CONTENEDOR DE TABLAS (ANEXOS) -->
+                    <!-- CONTENEDOR DE TABLAR (ANEXOS) -->
                     <div id="viewAnexo3" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                         <div class="p-4 bg-gray-50 border-b border-gray-200 flex flex-wrap justify-between items-center gap-2 no-print">
                             <div>
@@ -268,7 +268,6 @@
                         </div>
 
                         <div class="overflow-x-auto custom-scrollbar p-4">
-                            <!-- table-auto permite que las columnas crezcan de forma fluida lineal -->
                             <table class="w-full text-[10px] sm:text-xs border-collapse text-center print-table table-auto whitespace-nowrap">
                                 <thead id="headAnexo3"></thead>
                                 <tbody id="bodyAnexo3"></tbody>
@@ -324,7 +323,7 @@
                         </div>
 
                         <div class="overflow-x-auto custom-scrollbar p-4">
-                            <!-- Agregado border-slate-400 para que se dibuje la grilla del Anexo 4 -->
+                            <!-- Tabla de consolidado estrictamente estática y de solo lectura -->
                             <table class="w-full text-xs border border-slate-400 border-collapse text-center print-table table-auto whitespace-nowrap">
                                 <thead>
                                     <tr class="bg-blue-50 text-blue-900 font-bold">
@@ -1208,28 +1207,49 @@
             let permisosSGDias = 0;
             let huelgaDias = 0;
             
-            let totalTardanzaMinutos = 0;
             let totalPermisoSGMinutos = 0;
+            
+            // Lista para almacenar de forma cronológica las tardanzas
+            let tardanzasList = [];
 
             if (emp.asistencia) {
-                // CORRECCIÓN CLAVE: Utilizar Object.entries para leer adecuadamente la dupla [día, código]
-                Object.entries(emp.asistencia).forEach(([dayStr, val]) => {
-                    const dayNum = parseInt(dayStr);
+                // Leer las asistencias y ordenarlas de forma cronológica (del día 1 al 31)
+                const entries = Object.entries(emp.asistencia)
+                    .map(([dayStr, val]) => ({ day: parseInt(dayStr), val: val }))
+                    .sort((a, b) => a.day - b.day);
+
+                entries.forEach(({ day, val }) => {
                     if (val === 'I' || val === '3T') inasistenciasDias++;
                     if (val === 'LS' || val === 'PS') permisosSGDias++;
                     if (val === 'H') huelgaDias++;
 
-                    // Sumar tiempos automáticos desde la base oculta
-                    if (emp.asistenciaDetalle && emp.asistenciaDetalle[dayNum]) {
-                        const det = emp.asistenciaDetalle[dayNum];
-                        if (val === 'T') {
-                            totalTardanzaMinutos += (parseInt(det.horas) || 0) * 60 + (parseInt(det.minutos) || 0);
+                    if (val === 'T') {
+                        let mins = 0;
+                        if (emp.asistenciaDetalle && emp.asistenciaDetalle[day]) {
+                            const det = emp.asistenciaDetalle[day];
+                            mins = (parseInt(det.horas) || 0) * 60 + (parseInt(det.minutos) || 0);
                         }
-                        if (val === 'PS') {
-                            totalPermisoSGMinutos += (parseInt(det.horas) || 0) * 60 + (parseInt(det.minutos) || 0);
-                        }
+                        tardanzasList.push({ day: day, minutes: mins });
+                    }
+
+                    if (val === 'PS' && emp.asistenciaDetalle && emp.asistenciaDetalle[day]) {
+                        const det = emp.asistenciaDetalle[day];
+                        totalPermisoSGMinutos += (parseInt(det.horas) || 0) * 60 + (parseInt(det.minutos) || 0);
                     }
                 });
+            }
+
+            // Aplicar la regla: cada 3 Tardanzas (T) acumuladas se convierten en 1 Falta
+            const numTardanzas = tardanzasList.length;
+            const extraFaltas = Math.floor(numTardanzas / 3);
+            inasistenciasDias += extraFaltas;
+
+            // Las primeras 3*extraFaltas tardanzas se ignoran cronológicamente (ya son falta)
+            // Solo sumamos horas y minutos de las remanentes (las últimas de la lista)
+            let totalTardanzaMinutos = 0;
+            const startIndex = extraFaltas * 3;
+            for (let i = startIndex; i < numTardanzas; i++) {
+                totalTardanzaMinutos += tardanzasList[i].minutes;
             }
 
             const tardanzasH = Math.floor(totalTardanzaMinutos / 60);
@@ -1251,6 +1271,7 @@
 
         function renderAnexo4() {
             const tbody = document.getElementById('bodyAnexo4');
+            const isReadonly = currentRole === 'ADMIN' ? 'readonly' : '';
             if (!tbody) return;
 
             if (appData.empleados.length === 0) {
@@ -1262,8 +1283,7 @@
             appData.empleados.forEach((emp, index) => {
                 const calcs = calculateAnexo4(emp);
 
-                // El Anexo 4 ahora se renderiza de forma 100% estática para visualización (solo lectura)
-                // Las observaciones se arrastran del Anexo 3 y se muestran directamente como texto formateado.
+                // El Anexo 4 es de solo lectura. Arrastra las observaciones del Anexo 3.
                 bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400 bg-slate-100/50">
                     <td class="border border-slate-400 p-2 font-bold text-center align-middle bg-slate-200/55">${index + 1}</td>
                     <td class="border border-slate-400 p-2 font-bold text-blue-900 text-center align-middle uppercase">${emp.dni}</td>
@@ -1321,6 +1341,10 @@
             } else {
                 status.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> <span class="text-red-600">Base no vinculada</span>`;
             }
+        }
+
+        function triggerAutoSave() {
+            // Desactivado de forma absoluta para prevenir guardar reportes incompletos o vacíos.
         }
 
         function closeSavingModal() {
