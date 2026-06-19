@@ -1095,7 +1095,6 @@
                     <th rowspan="2" class="p-1 border border-slate-400 text-center align-middle">CONDICIÓN</th>
                     <th rowspan="2" class="p-1 border border-slate-400 text-center align-middle leading-tight">Jor.<br/>Lab.</th>
                     <th colSpan="${days.length}" class="p-1 border border-slate-400 text-center tracking-widest bg-red-50 text-red-900 align-middle">DÍAS CALENDARIOS</th>
-                    <th rowspan="2" style="width: 45px; min-width: 45px; max-width: 45px;" class="p-1 border border-slate-400 bg-amber-100 text-amber-900 text-center align-middle">MIN.</th>
                     <th rowspan="2" class="p-1 border border-slate-400 bg-gray-100 text-left align-middle">OBSERVACIONES</th>
                     ${currentRole === 'DIRECTOR' ? `<th rowspan="2" class="p-1 no-print border border-slate-400 text-center align-middle">X</th>` : ''}
                 </tr>
@@ -1111,7 +1110,7 @@
             if (!tbody) return;
 
             if (appData.empleados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${days.length + (currentRole === 'DIRECTOR' ? 10 : 9)}" class="p-8 text-center text-slate-400 italic">No hay personal registrado en este formato.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${days.length + (currentRole === 'DIRECTOR' ? 8 : 7)}" class="p-8 text-center text-slate-400 italic">No hay personal registrado en este formato.</td></tr>`;
                 return;
             }
 
@@ -1172,10 +1171,6 @@
                 });
 
                 bodyHTML += `
-                    <td style="width: 45px; min-width: 45px; max-width: 45px;" class="border border-slate-400 p-0 bg-amber-50/30 align-middle">
-                        <input type="text" maxlength="3" size="3" style="text-transform: uppercase;" ${isReadonly} class="w-full h-8 p-0.5 text-center outline-none bg-transparent font-bold text-amber-900 uppercase" value="${emp.tardanzasM || ''}" oninput="this.value=this.value.replace(/[^0-9]/g,''); updateEmp('${emp.id}', 'tardanzasM', this.value)">
-                    </td>
-                    
                     <td class="border border-slate-400 p-0.5 align-middle">
                         <textarea ${isReadonly} class="bg-transparent outline-none text-[10px] py-0.5 whitespace-normal uppercase leading-tight resize-none overflow-y-auto text-left border-0" style="height: 32px; text-transform: uppercase; font-size: 10px; width: 100%; display: block;" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustObsWidthAndHeight(this);" placeholder="Observaciones" data-id="${emp.id}">${emp.observaciones || ''}</textarea>
                     </td>
@@ -1247,6 +1242,7 @@
 
         function renderAnexo4() {
             const tbody = document.getElementById('bodyAnexo4');
+            const isReadonly = currentRole === 'ADMIN' ? 'readonly' : '';
             if (!tbody) return;
 
             if (appData.empleados.length === 0) {
@@ -1258,7 +1254,8 @@
             appData.empleados.forEach((emp, index) => {
                 const calcs = calculateAnexo4(emp);
 
-                // ANEXO 4 ES TOTALMENTE DE SOLO LECTURA (SIN INPUTS EDITABLES EN NINGÚN CASO)
+                // ANEXO 4 ES TOTALMENTE DE SOLO LECTURA, EXCEPTO LA COLUMNA DE OBSERVACIONES, 
+                // LA CUAL AHORA TIENE EL MISMO COMPORTAMIENTO (TEXTAREA DINÁMICO) DEL ANEXO 3
                 bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400 bg-slate-100/50">
                     <td class="border border-slate-400 p-2 font-bold text-center align-middle bg-slate-200/55">${index + 1}</td>
                     <td class="border border-slate-400 p-2 font-bold text-blue-900 text-center align-middle uppercase">${emp.dni}</td>
@@ -1267,22 +1264,26 @@
                     <td class="border border-slate-400 p-2 text-center text-xs align-middle leading-normal text-nowrap uppercase">${emp.condicion}</td>
                     <td class="border border-slate-400 p-2 font-bold text-center align-middle uppercase">${emp.jornada}</td>
                     
-                    <td class="border border-slate-400 p-2 bg-red-100 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias}</td>
+                    <td class="border border-slate-400 p-2 bg-red-100 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias || '0'}</td>
                     
                     <td class="border border-slate-400 p-2 bg-amber-50 font-bold text-amber-900 text-center align-middle">${calcs.tardanzasH}</td>
                     <td class="border border-slate-400 p-2 bg-amber-50 font-bold text-amber-900 text-center align-middle">${calcs.tardanzasM}</td>
                     
                     <td class="border border-slate-400 p-2 bg-blue-50 font-semibold text-blue-900 text-center align-middle">${calcs.permisosSGH}</td>
                     <td class="border border-slate-400 p-2 bg-blue-50 font-semibold text-blue-900 text-center align-middle">${calcs.permisosSGM}</td>
-                    <td class="border border-slate-400 p-2 bg-blue-100 font-bold text-blue-700 text-center align-middle">${calcs.permisosSGDias}</td>
+                    <td class="border border-slate-400 p-2 bg-blue-100 font-bold text-blue-700 text-center align-middle">${calcs.permisosSGDias || '0'}</td>
                     
                     <td class="border border-slate-400 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.huelgaDias}</td>
-                    <td class="border border-slate-400 p-2 bg-gray-50 text-left text-xs text-slate-700 font-medium truncate max-w-xs uppercase">
-                        ${emp.observaciones || '-'}
+                    <td class="border border-slate-400 p-0.5 align-middle bg-white">
+                        <textarea ${isReadonly} class="bg-transparent outline-none text-[10px] py-0.5 whitespace-normal uppercase leading-tight resize-none overflow-y-auto text-left border-0" style="height: 32px; text-transform: uppercase; font-size: 10px; width: 100%; display: block;" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustObsWidthAndHeight(this);" placeholder="Observaciones" data-id="${emp.id}">${emp.observaciones || ''}</textarea>
                     </td>
                 </tr>`;
             });
             tbody.innerHTML = bodyHTML;
+
+            document.querySelectorAll('#bodyAnexo4 textarea').forEach(textarea => {
+                adjustObsWidthAndHeight(textarea);
+            });
         }
 
         // --- GOOGLE SHEETS API Y CONFIGURACIÓN ---
@@ -1318,6 +1319,10 @@
             } else {
                 status.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> <span class="text-red-600">Base no vinculada</span>`;
             }
+        }
+
+        function triggerAutoSave() {
+            // Desactivado de forma absoluta para prevenir guardar reportes incompletos o vacíos.
         }
 
         function closeSavingModal() {
