@@ -1095,6 +1095,7 @@
             updateMetaPrint();
             if (activeTab === 'ANEXO3') renderAnexo3();
             else renderAnexo4();
+            updateEditorButtons(); // Fuerza la actualización dinámica de los botones del Director y Excel
         }
 
         function updateMetaPrint() {
@@ -1417,6 +1418,16 @@
             if (!container) return;
 
             let html = '';
+            
+            // Mostrar u ocultar el botón de exportación a Excel dependiendo de si hay personal registrado
+            const btnExport = document.getElementById('btnExport');
+            if (btnExport) {
+                if (appData && appData.empleados && appData.empleados.length > 0) {
+                    btnExport.classList.remove('hidden');
+                } else {
+                    btnExport.classList.add('hidden');
+                }
+            }
             
             if (currentRole === 'DIRECTOR') {
                 if (appData.isSent !== true) {
