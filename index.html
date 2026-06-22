@@ -3,862 +3,340 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Asistencia MINEDU - Director y UGEL</title>
+    <title>Sistema de Asistencia MINEDU</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome para Iconos -->
+    <!-- FontAwesome para iconos institucionales -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-        
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #93c5fd; border-radius: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #2563eb; }
-
-        /* Animaciones */
-        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
         }
-
-        /* Reglas de impresión optimizadas para autoajustar horizontalmente a una hoja A4 */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* Estilos de impresión para Anexos Oficiales */
         @media print {
-            body { background-color: white !important; }
-            .no-print { display: none !important; }
-            @page { size: A4 landscape; margin: 5mm; }
-            .print-table { width: 100% !important; page-break-inside: auto; }
-            tr { page-break-inside: avoid; page-break-after: auto; }
-            #appView { display: block !important; height: auto !important; }
-            main { padding: 0 !important; }
-            .overflow-x-auto { overflow: visible !important; }
-            table { zoom: 80% !important; }
-            
-            /* Forzar a los navegadores a renderizar y rellenar los sombreados/colores de fondo */
-            th, td, thead, tr, table {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
+            body {
+                background-color: white !important;
+                color: black !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+            }
+            @page {
+                size: landscape;
+                margin: 8mm;
+            }
+            .print-card {
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
             }
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
-    <!-- ==========================================
-         VISTA 1: LOGIN (SELECCIÓN DE ROL)
-         ========================================== -->
-    <div id="loginView" class="flex flex-col items-center justify-center h-full w-full absolute inset-0 z-50 bg-slate-50">
-        <div class="bg-white p-8 rounded-2xl shadow-xl max-w-lg w-full text-center border border-gray-100 relative overflow-hidden animate-fade-in">
+    <!-- CABECERA INSTITUCIONAL -->
+    <header class="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-40 no-print shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="bg-red-700 text-white font-black p-2.5 rounded-lg text-xs uppercase flex items-center gap-1.5 shadow-md">
+                <i class="fa-solid fa-file-signature"></i> MINEDU
+            </div>
+            <div class="h-6 w-px bg-gray-300 hidden sm:block"></div>
+            <h1 class="font-extrabold text-blue-900 hidden sm:block tracking-tight text-sm uppercase">Mesa de Asistencia Digital - UGEL</h1>
+        </div>
+        
+        <!-- Estado de Sincronización en la Nube -->
+        <div class="flex items-center gap-4">
+            <div class="text-right">
+                <div id="userRoleBadge" class="font-extrabold text-xs uppercase tracking-wide text-slate-800">Cargando...</div>
+                <div id="cloud-status" class="text-red-600 font-bold text-[10px] uppercase flex items-center justify-end gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Desconectado
+                </div>
+            </div>
+            <button onclick="logoutRole()" class="bg-gray-100 hover:bg-red-50 hover:text-red-600 text-slate-600 p-2.5 rounded-xl transition" title="Salir de la sesión">
+                <i class="fa-solid fa-power-off"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- PANTALLA DE SELECCIÓN DE ROL / LOGIN -->
+    <div id="loginView" class="flex flex-col items-center justify-center flex-grow p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-xl max-w-lg w-full text-center border border-gray-150 relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-red-600 to-blue-700"></div>
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Escudo_nacional_del_Per%C3%BA.svg/150px-Escudo_nacional_del_Per%C3%BA.svg.png" alt="Escudo de Perú" class="h-20 mx-auto mb-4 opacity-90" />
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Escudo_nacional_del_Per%C3%BA.svg/150px-Escudo_nacional_del_Per%C3%BA.svg.png" alt="Escudo del Perú" class="h-20 mx-auto mb-4 opacity-90" />
             <h1 class="text-2xl font-black text-slate-800 mb-1">Mesa de Asistencia Digital</h1>
-            <p class="text-red-600 font-bold text-xs uppercase tracking-wider mb-4">MINEDU - UGEL</p>
-            <p class="text-gray-500 mb-6 text-sm leading-relaxed">
-                Plataforma web oficial para el llenado, almacenamiento individual y consolidación masiva de los <strong>Anexos 03 y 04</strong>.
-            </p>
+            <p class="text-red-600 font-bold text-xs uppercase tracking-wider mb-6">Plataforma Oficial MINEDU - UGEL</p>
             
             <div class="space-y-4">
-                <button onclick="setRole('DIRECTOR')" class="w-full flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition">
-                    <i class="fa-solid fa-users text-lg"></i>
-                    Ingresar como Director (Llenar y Enviar)
+                <button onclick="selectRole('DIRECTOR')" class="w-full flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition">
+                    <i class="fa-solid fa-user-tie text-lg"></i>
+                    Módulo del Director (Llenar y Enviar)
                 </button>
-                
-                <button onclick="setRole('ADMIN')" class="w-full flex items-center justify-center gap-3 bg-red-700 hover:bg-red-800 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition">
-                    <i class="fa-solid fa-eye text-lg"></i>
-                    Ingresar como Administrador UGEL
+                <button onclick="selectRole('ADMIN')" class="w-full flex items-center justify-center gap-3 bg-red-700 hover:bg-red-800 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition">
+                    <i class="fa-solid fa-shield-halved text-lg"></i>
+                    Módulo Administrador UGEL (Consolidar)
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- ==========================================
-         VISTA 2: APLICACIÓN PRINCIPAL (GRID)
-         ========================================== -->
-    <div id="appView" class="hidden flex-col h-full w-full animate-fade-in">
-        <!-- CABECERA -->
-        <header class="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-40 no-print shadow-sm shrink-0">
-            <div class="flex items-center gap-3">
-                <div class="bg-red-700 text-white font-black p-2 rounded-lg text-sm uppercase flex items-center gap-1.5 shadow-md">
-                    <i class="fa-solid fa-file-signature"></i> MINEDU
-                </div>
-                <div class="h-6 w-px bg-gray-300 hidden sm:block"></div>
-                <h1 class="font-extrabold text-blue-900 hidden sm:block tracking-tight text-sm uppercase">Mesa de Asistencia Digital</h1>
-                
-                <!-- Badge de Administrador -->
-                <div id="adminBadge" class="hidden ml-2 bg-red-100 text-red-800 border border-red-200 px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider items-center gap-1">
-                    <i class="fa-solid fa-eye"></i> Consolidador UGEL
-                </div>
-            </div>
-            <div class="flex items-center gap-4">
-                <div class="text-right">
-                    <div id="headerRole" class="font-extrabold text-xs uppercase tracking-wide text-slate-800">Director de I.E.</div>
-                    <div id="cloud-status" class="text-red-600 font-bold text-[10px] uppercase flex items-center justify-end gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Base no vinculada
-                    </div>
-                </div>
-                <button onclick="logout()" class="text-slate-400 hover:text-red-600 p-2 transition" title="Cerrar Sesión">
-                    <i class="fa-solid fa-power-off text-lg"></i>
+    <!-- MAIN SYSTEM VIEW (OCULTO POR DEFECTO) -->
+    <main id="systemView" class="hidden flex-grow max-w-[1400px] w-full mx-auto p-4 md:p-6 flex flex-col gap-4">
+
+        <!-- CONTROL SUPERIOR -->
+        <div class="flex flex-wrap items-center justify-between gap-4 no-print bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+            <div class="flex bg-gray-100 p-1.5 rounded-xl gap-1">
+                <button id="btnTab3" onclick="switchTab('ANEXO3')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-blue-700 shadow-sm">
+                    Anexo 03 (Asistencia)
+                </button>
+                <button id="btnTab4" onclick="switchTab('ANEXO4')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition text-gray-500 hover:text-slate-800">
+                    Anexo 04 (Inasistencias)
                 </button>
             </div>
-        </header>
+            
+            <div id="actionButtons" class="flex gap-2">
+                <!-- Se generan dinámicamente con JS según el Rol -->
+            </div>
+        </div>
 
-        <!-- AREA DE TRABAJO SCROLLABLE -->
-        <main class="flex-grow overflow-y-auto custom-scrollbar p-4 md:p-6 bg-slate-50">
-            <div class="max-w-[1400px] mx-auto flex flex-col gap-4">
-                
-                <!-- SECCIÓN DASHBOARD (Selección de escuelas o reportes según Rol) -->
-                <div id="dashboardSection" class="space-y-4 no-print">
-                    <div class="flex flex-wrap justify-between items-center gap-4">
+        <!-- FORMULARIO DE CABECERA (DATOS DE LA I.E.) -->
+        <div id="metaForm" class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm no-print">
+            <div class="flex flex-wrap items-center gap-2 lg:col-span-3 bg-gradient-to-r from-red-50 to-white p-3 rounded-lg border border-red-100">
+                <label class="font-bold text-red-900 text-xs">CÓDIGO MODULAR DE LA I.E.:</label>
+                <div class="flex gap-2">
+                    <input type="text" id="meta-cod" placeholder="Ej: 0123456" class="border border-gray-300 rounded-lg px-3 py-1.5 outline-none focus:border-red-500 w-36 bg-white font-bold" oninput="handleIeLookup(this.value)">
+                </div>
+                <span class="text-xs text-red-700 italic ml-2 hidden lg:inline">Búsqueda rápida en padrón. Pruebe: <strong>0123456</strong> o <strong>0987654</strong></span>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="font-bold text-gray-700 text-[10px] uppercase">DRE/UGEL:</label>
+                <input type="text" id="meta-dre" class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none" oninput="updateMetaField('dreUgel', this.value)">
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="font-bold text-gray-700 text-[10px] uppercase">MES Y AÑO DE ASISTENCIA:</label>
+                <input type="month" id="meta-mes" class="border border-blue-300 rounded-lg px-3 py-2 bg-white focus:border-blue-500 outline-none font-bold text-blue-900" onchange="updateMetaField('mesAno', this.value)">
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="font-bold text-gray-700 text-[10px] uppercase">INSTITUCIÓN EDUCATIVA:</label>
+                <input type="text" id="meta-ie" class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 font-bold text-red-900 focus:bg-white focus:border-blue-500 outline-none" oninput="updateMetaField('ie', this.value)">
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="font-bold text-gray-700 text-[10px] uppercase">LUGAR:</label>
+                <input type="text" id="meta-lugar" class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none" oninput="updateMetaField('lugar', this.value)">
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="font-bold text-gray-700 text-[10px] uppercase">NIVEL EDUCATIVO:</label>
+                <input type="text" id="meta-nivel" class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none" oninput="updateMetaField('nivel', this.value)">
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="font-bold text-gray-700 text-[10px] uppercase">DISTRITO:</label>
+                <input type="text" id="meta-distrito" class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none" oninput="updateMetaField('distrito', this.value)">
+            </div>
+        </div>
+
+        <!-- VISTA DE ANEXO 3 -->
+        <div id="viewAnexo3" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden print-card">
+            <div class="p-4 bg-gray-50 border-b border-gray-200 flex flex-wrap justify-between items-center gap-2 no-print">
+                <div>
+                    <h2 class="font-extrabold text-lg text-blue-900">ANEXO 03</h2>
+                    <p class="text-[10px] text-gray-500 font-bold uppercase">FORMATO 01: REPORTE DE ASISTENCIA DETALLADO</p>
+                </div>
+                <div class="flex gap-2">
+                    <button id="btnAddStaff" onclick="addEmployee()" class="px-4 py-1.5 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition">
+                        <i class="fa-solid fa-plus"></i> Agregar Personal
+                    </button>
+                    <button onclick="window.print()" class="px-4 py-1.5 bg-blue-100 text-blue-800 text-xs font-bold rounded-lg hover:bg-blue-200 transition">
+                        <i class="fa-solid fa-print"></i> Imprimir PDF
+                    </button>
+                </div>
+            </div>
+
+            <div id="printHeaderA3" class="hidden print:block text-center mb-6 pt-4">
+                <h2 class="font-black text-xl uppercase tracking-wider text-red-850">ANEXO 03</h2>
+                <p class="text-xs font-bold text-gray-600 uppercase">FORMATO 01: REPORTE DE ASISTENCIA DETALLADO</p>
+                <div class="grid grid-cols-4 text-left mt-4 text-[10px] border border-slate-400 p-3 rounded text-center" id="metaPrintA3"></div>
+            </div>
+
+            <div class="overflow-x-auto custom-scrollbar p-4">
+                <!-- Se centra el texto en el encabezado de la tabla para Anexo 03 -->
+                <table class="w-full text-[10px] sm:text-xs border border-slate-400 border-collapse print-table">
+                    <thead id="headAnexo3" class="text-center align-middle">
+                        <!-- Cabecera Generada Dinámicamente -->
+                    </thead>
+                    <tbody id="bodyAnexo3">
+                        <!-- Filas de Personal -->
+                    </tbody>
+                </table>
+
+                <div class="mt-6 border border-gray-200 rounded-lg p-3 bg-slate-50 text-[10px] flex flex-wrap gap-4 justify-center no-print">
+                    <div class="font-bold text-slate-700 mr-2">Códigos oficiales de Asistencia:</div>
+                    <div class="bg-white px-2 py-1 rounded border border-gray-150"><span class="font-bold text-blue-700">A</span>: Día laborado</div>
+                    <div class="bg-white px-2 py-1 rounded border border-gray-150"><span class="font-bold text-red-600">I</span>: Inasistencia injustificada</div>
+                    <div class="bg-white px-2 py-1 rounded border border-gray-150"><span class="font-bold text-amber-500">3T</span>: Tercera tardanza (Inasistencia)</div>
+                    <div class="bg-white px-2 py-1 rounded border border-gray-150"><span class="font-bold text-indigo-700">J</span>: Inasistencia justificada</div>
+                    <div class="bg-white px-2 py-1 rounded border border-gray-150"><span class="font-bold text-purple-700">LS</span>: Licencia sin goce</div>
+                </div>
+
+                <div id="printSignatureA3" class="hidden print:block mt-16">
+                    <div class="grid grid-cols-2 gap-12 text-center text-xs">
                         <div>
-                            <h2 id="dashboardTitle" class="text-xl font-black text-slate-800">Cargando...</h2>
-                            <p class="text-xs text-gray-500 font-bold uppercase">Sincronización en la Nube Activa</p>
+                            <div class="border-t border-slate-400 pt-2 mx-8"></div>
+                            <p class="font-bold text-slate-800 uppercase">Director de la I.E.</p>
+                            <p class="text-slate-500 text-[10px]">Firma y Sello Oficial</p>
                         </div>
-                        <div class="flex gap-2">
-                            <button id="btnAdminConfig" onclick="toggleModal('modalConfig')" class="hidden bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 transition shadow-sm">
-                                <i class="fa-solid fa-database"></i> Configurar Base de Datos
-                            </button>
-                            <button onclick="loadFromSheets()" class="bg-blue-50 text-blue-700 border border-blue-200 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 transition">
-                                <i class="fa-solid fa-sync"></i> Sincronizar Nube
-                            </button>
-                            <button id="btnCreateReport" onclick="createNewReport()" class="hidden bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-md transition flex items-center gap-2">
-                                <i class="fa-solid fa-plus"></i> Crear Reporte del Mes
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- BUSCADOR CON CÓDIGO MODULAR Y FILTRO DE MES (Para Ambos Paneles) -->
-                    <div id="searchFilterContainer" class="hidden flex flex-wrap items-center gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm no-print">
-                        <div class="flex items-center gap-2 text-red-700 font-bold text-xs uppercase">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                            <span>Buscador por Código Modular:</span>
-                        </div>
-                        <input type="text" id="searchCod" placeholder="Escribe el código modular..." maxlength="7" oninput="filterReportsByCod(this.value)" class="border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-red-500 w-56 bg-white font-bold text-red-900 shadow-inner uppercase" style="text-transform: uppercase;" />
-                        
-                        <div class="flex items-center gap-2 text-blue-900 font-bold text-xs uppercase ml-2">
-                            <i class="fa-solid fa-calendar-days"></i>
-                            <span>Filtrar por Mes:</span>
-                        </div>
-                        <input type="month" id="filterMonth" onchange="filterReportsByMonth(this.value)" class="border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-blue-500 bg-white font-bold text-blue-900 shadow-inner" />
-                        
-                        <button onclick="clearAllFilters()" class="bg-gray-100 hover:bg-gray-200 text-slate-700 font-bold px-3 py-1.5 rounded-lg text-xs transition border border-gray-300 ml-auto">
-                            Limpiar Filtros
-                        </button>
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                        <div class="p-4 bg-gray-50 border-b border-gray-200 text-xs font-bold text-slate-600">
-                            HISTORIAL DE REPORTES REGISTRADOS EN TU GOOGLE SHEET
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse text-sm">
-                                <thead>
-                                    <tr class="bg-slate-100 border-b border-gray-200 text-xs font-bold text-slate-700">
-                                        <th class="p-4">Institución Educativa / Código Modular</th>
-                                        <th class="p-4">Mes / Año</th>
-                                        <th class="p-4">Personal Registrado</th>
-                                        <th class="p-4 text-center">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="reportsTableBody">
-                                    <tr>
-                                        <td colspan="4" class="p-12 text-center text-gray-400 italic">
-                                            <i class="fa-solid fa-folder-open text-2xl mb-1 block"></i>
-                                            Bandeja vacía
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- SECCIÓN EDICIÓN DEL REPORTE (Se muestra cuando se edita un anexo) -->
-                <div id="editorSection" class="hidden flex-col gap-4">
-                    <!-- CONTROLES SUPERIORES Y TABS -->
-                    <div class="flex flex-wrap items-center justify-between gap-4 no-print bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                        <div class="flex items-center gap-3">
-                            <button onclick="backToDashboard()" class="text-slate-500 hover:text-slate-800 flex items-center gap-1 font-bold text-xs uppercase transition mr-2">
-                                <i class="fa-solid fa-arrow-left"></i> Volver al Panel
-                            </button>
-                            <div class="flex bg-gray-100 p-1.5 rounded-xl gap-1">
-                                <button id="btnTab3" onclick="switchTab('ANEXO3')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-blue-700 shadow-sm">
-                                    Anexo 03 (Asistencia)
-                                </button>
-                                <button id="btnTab4" onclick="switchTab('ANEXO4')" class="px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-red-700 shadow-sm">
-                                    Anexo 04 (Inasistencias)
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="flex gap-2">
-                            <button id="btnExport" onclick="exportarExcel()" class="hidden bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold px-4 py-2.5 rounded-lg text-xs flex items-center gap-2 hover:bg-emerald-100 transition" title="Descargar en Excel">
-                                <i class="fa-solid fa-file-csv"></i> Excel
-                            </button>
-                            
-                            <!-- CONTENEDOR DINÁMICO DE BOTONES DE ACCIÓN -->
-                            <div id="editorButtonsContainer" class="flex gap-2"></div>
-                        </div>
-                    </div>
-
-                    <!-- FORMULARIO DE CABECERA (DATOS I.E.) -->
-                    <div id="formCabecera" class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm no-print">
-                        <div class="flex flex-wrap items-center gap-2 lg:col-span-3 bg-gradient-to-r from-red-50 to-white p-3 rounded-lg border border-red-100">
-                            <label class="font-bold text-red-900">CÓDIGO MODULAR DE LA I.E.:</label>
-                            <div class="flex gap-2">
-                                <input type="text" id="meta-cod" placeholder="Escriba los 7 dígitos..." maxlength="7" class="border border-gray-300 rounded-lg px-3 py-1.5 outline-none focus:border-red-500 w-44 bg-white font-bold text-red-900 uppercase" style="text-transform: uppercase;" oninput="handleIeLookup(this.value)">
-                            </div>
-                            <span class="text-xs text-red-700 italic ml-2 hidden lg:inline" id="hintCodModular">Se autocompletará al ingresar los 7 números.</span>
-                        </div>
-
-                        <!-- Campos deshabilitados de solo lectura para el panel del Director y del Admin -->
-                        <div class="flex flex-col gap-1">
-                            <label class="font-bold text-gray-700 text-[10px] uppercase">DRE/UGEL:</label>
-                            <input type="text" id="meta-dre" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold uppercase" style="text-transform: uppercase;" oninput="appData.dreUgel = this.value;">
-                        </div>
-
-                        <div class="flex flex-col gap-1">
-                            <label class="font-bold text-gray-700 text-[10px] uppercase">MES Y AÑO DE ASISTENCIA:</label>
-                            <input type="month" id="meta-mes" class="border border-blue-300 rounded-lg px-3 py-2 bg-white focus:border-blue-500 outline-none font-bold text-blue-900" onchange="appData.mesAno = this.value; renderTables();">
-                        </div>
-
-                        <div class="flex flex-col gap-1">
-                            <label class="font-bold text-gray-700 text-[10px] uppercase">INSTITUCIÓN EDUCATIVA:</label>
-                            <input type="text" id="meta-ie" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed font-bold text-gray-500 outline-none uppercase" style="text-transform: uppercase;" oninput="appData.ie = this.value;">
-                        </div>
-
-                        <div class="flex flex-col gap-1">
-                            <label class="font-bold text-gray-700 text-[10px] uppercase">LUGAR:</label>
-                            <input type="text" id="meta-lugar" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold uppercase" style="text-transform: uppercase;" oninput="appData.lugar = this.value;">
-                        </div>
-
-                        <div class="flex flex-col gap-1">
-                            <label class="font-bold text-gray-700 text-[10px] uppercase">NIVEL EDUCATIVO:</label>
-                            <input type="text" id="meta-nivel" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold uppercase" style="text-transform: uppercase;" oninput="appData.nivel = this.value;">
-                        </div>
-
-                        <div class="flex flex-col gap-1">
-                            <label class="font-bold text-gray-700 text-[10px] uppercase">DISTRITO:</label>
-                            <input type="text" id="meta-distrito" readonly class="border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed outline-none text-gray-500 font-semibold uppercase" style="text-transform: uppercase;" oninput="appData.distrito = this.value;">
-                        </div>
-                    </div>
-
-                    <!-- CONTENEDOR DE TABLAS (ANEXOS) -->
-                    <div id="viewAnexo3" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                        <div class="p-4 bg-gray-50 border-b border-gray-200 flex flex-wrap justify-between items-center gap-2 no-print">
-                            <div>
-                                <h2 class="font-extrabold text-lg text-blue-900">ANEXO 03</h2>
-                                <p class="text-[10px] text-gray-500 font-bold uppercase">FORMATO 01: REPORTE DE ASISTENCIA DETALLADO</p>
-                            </div>
-                            <div class="flex gap-2">
-                                <button id="btnAddStaff" onclick="addEmployee()" class="px-4 py-1.5 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition shadow-sm">
-                                    <i class="fa-solid fa-plus"></i> Agregar Personal
-                                </button>
-                                <button onclick="window.print()" class="px-4 py-1.5 bg-blue-100 text-blue-800 text-xs font-bold rounded-lg hover:bg-blue-200 transition">
-                                    <i class="fa-solid fa-print"></i> PDF / Imprimir
-                                </button>
-                            </div>
-                        </div>
-
-                        <div id="printHeaderA3" class="hidden print:block text-center mb-6 pt-4">
-                            <h2 class="font-black text-xl uppercase tracking-wider text-red-800">ANEXO 03</h2>
-                            <p class="text-xs font-bold text-gray-600 uppercase">FORMATO 01: REPORTE DE ASISTENCIA DETALLADO</p>
-                            <div class="grid grid-cols-4 text-left mt-4 text-[10px] border border-slate-400 p-3 rounded" id="metaPrintA3"></div>
-                        </div>
-
-                        <div class="overflow-x-auto custom-scrollbar p-4">
-                            <table class="w-full text-[10px] sm:text-xs border-collapse text-center print-table table-auto whitespace-nowrap">
-                                <thead id="headAnexo3"></thead>
-                                <tbody id="bodyAnexo3"></tbody>
-                            </table>
-
-                            <!-- SECCIÓN LEYENDA -->
-                            <div class="mt-6 border border-gray-200 rounded-lg p-4 bg-slate-50 text-[10px] no-print animate-fade-in">
-                                <div class="font-extrabold text-slate-800 uppercase mb-2 border-b border-gray-200 pb-1 flex items-center gap-1.5">
-                                    <i class="fa-solid fa-circle-info text-blue-600"></i> Leyenda:
-                                </div>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                                    <div class="bg-white px-2.5 py-1.5 rounded border border-gray-150"><span class="font-bold text-blue-700">A</span>: Día laborado</div>
-                                    <div class="bg-white px-2.5 py-1.5 rounded border border-gray-150"><span class="font-bold text-red-600">I</span>: Inasistencia</div>
-                                    <div class="bg-white px-2.5 py-1.5 rounded border border-gray-150"><span class="font-bold text-amber-500">3T</span>: Tercera tardanza considerada como inasistencia injustificada</div>
-                                    <div class="bg-white px-2.5 py-1.5 rounded border border-gray-150"><span class="font-bold text-blue-700">J</span>: Inasistencia justificada (licencia, permiso, vacaciones)</div>
-                                    <div class="bg-white px-2.5 py-1.5 rounded border border-gray-150"><span class="font-bold text-blue-700">LS</span>: Licencia sin goce de remuneraciones</div>
-                                    <div class="bg-white px-2.5 py-1.5 rounded border border-gray-150"><span class="font-bold text-blue-700">PS</span>: Permiso sin goce de remuneraciones</div>
-                                    <div class="bg-white px-2.5 py-1.5 rounded border border-gray-150"><span class="font-bold text-amber-500">T</span>: Tardanza</div>
-                                    <div class="bg-white px-2.5 py-1.5 rounded border border-gray-150"><span class="font-bold text-red-700">H</span>: Huelga o paro</div>
-                                    <div class="bg-white px-2.5 py-1.5 rounded border border-gray-150"><span class="font-bold text-slate-600">F</span>: Feriado</div>
-                                </div>
-                            </div>
-
-                            <!-- Firmas -->
-                            <div class="mt-8 no-print print:block">
-                                <div class="flex justify-start px-4 mb-16">
-                                    <label class="text-xs font-bold text-gray-700">Lugar y fecha: </label>
-                                    <input type="text" class="ml-2 border-b border-gray-400 outline-none w-64 text-xs bg-transparent focus:border-blue-600 text-gray-800" placeholder="................................................................">
-                                </div>
-                                <div class="grid grid-cols-2 gap-8 text-center text-xs pb-8">
-                                    <div><div class="border-t border-black pt-2 mx-12"></div><p class="font-bold text-blue-900">DIRECTOR(A) DE LA I.E.</p><p class="text-gray-500 mt-1 italic no-print">Firma Digital / Sello</p></div>
-                                    <div><div class="border-t border-black pt-2 mx-12"></div><p class="font-bold text-blue-900">CONEI / APAFA</p><p class="text-gray-500 mt-1 italic no-print">Visto Bueno (V°B°)</p></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="viewAnexo4" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                        <div class="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center no-print">
-                            <div>
-                                <h2 class="font-extrabold text-lg text-red-800">ANEXO 04</h2>
-                                <p class="text-[10px] text-gray-500 font-bold uppercase">FORMATO 02: REPORTE DE INASISTENCIAS Y TARDANZAS</p>
-                            </div>
-                            <button onclick="window.print()" class="px-4 py-1.5 bg-blue-100 text-blue-800 text-xs font-bold rounded-lg hover:bg-blue-200 transition">
-                                <i class="fa-solid fa-print"></i> PDF / Imprimir
-                            </button>
-                        </div>
-
-                        <div id="printHeaderA4" class="hidden print:block text-center mb-6 pt-4">
-                            <h2 class="font-black text-xl uppercase tracking-wider text-red-800">ANEXO 04</h2>
-                            <p class="text-xs font-bold text-gray-600 uppercase">FORMATO 02: REPORTE DE INASISTENCIAS, TARDANZAS Y PERMISOS</p>
-                            <div class="grid grid-cols-4 text-left mt-4 text-[10px] border border-slate-400 p-3 rounded" id="metaPrintA4"></div>
-                        </div>
-
-                        <div class="overflow-x-auto custom-scrollbar p-4">
-                            <!-- Agregado border-slate-400 para que se dibuje la grilla del Anexo 4 -->
-                            <table class="w-full text-xs border border-slate-400 border-collapse text-center print-table table-auto whitespace-nowrap">
-                                <thead>
-                                    <tr class="bg-blue-50 text-blue-900 font-bold">
-                                        <th rowspan="2" class="border border-slate-400 p-2 w-8">N°</th>
-                                        <th rowspan="2" class="border border-slate-400 p-2">DNI</th>
-                                        <th rowspan="2" class="border border-slate-400 p-2 text-left">APELLIDOS Y NOMBRES</th>
-                                        <th rowspan="2" class="border border-slate-400 p-2 text-left">CARGO</th>
-                                        <th rowspan="2" class="border border-slate-400 p-2">CONDICIÓN</th>
-                                        <th rowspan="2" class="border border-slate-400 p-2">Jor. Lab.</th>
-                                        <th class="border border-slate-400 bg-red-100 p-1 text-red-900 font-bold">Inasistencias</th>
-                                        <th colspan="2" class="border border-slate-400 bg-amber-50 p-1 text-amber-900 font-bold">Tardanzas</th>
-                                        <th colspan="3" class="border border-slate-400 bg-blue-100 p-1 text-blue-900 font-bold">Permisos SG</th>
-                                        <th class="border border-slate-400 bg-red-50 p-1 text-red-900 font-bold">Huelga/Paro</th>
-                                        <th rowspan="2" class="border border-slate-400 p-2 text-left">Observaciones</th>
-                                    </tr>
-                                    <tr class="bg-white text-[10px]">
-                                        <th class="border border-slate-400 bg-red-50 p-1 font-bold text-red-700">Días</th>
-                                        <th class="border border-slate-400 bg-amber-50 text-amber-700 p-1">Horas</th>
-                                        <th class="border border-slate-400 bg-amber-50 text-amber-700 p-1">Minutos</th>
-                                        <th class="border border-slate-400 bg-blue-50 text-blue-700 p-1">Horas</th>
-                                        <th class="border border-slate-400 bg-blue-50 text-blue-700 p-1">Minutos</th>
-                                        <th class="border border-slate-400 bg-blue-50 text-blue-700 p-1 font-bold">Días</th>
-                                        <th class="border border-slate-400 bg-red-50 p-1 text-red-700">Días</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="bodyAnexo4"></tbody>
-                            </table>
-                            
-                            <!-- Firmas -->
-                            <div class="mt-8 no-print print:block">
-                                <div class="flex justify-start px-4 mb-16">
-                                    <label class="text-xs font-bold text-gray-700">Lugar y fecha: </label>
-                                    <input type="text" class="ml-2 border-b border-gray-400 outline-none w-64 text-xs bg-transparent focus:border-blue-600 text-gray-800" placeholder="................................................................">
-                                </div>
-                                <div class="grid grid-cols-2 gap-8 text-center text-xs pb-8">
-                                    <div><div class="border-t border-black pt-2 mx-12"></div><p class="font-bold text-blue-900">DIRECTOR(A) DE LA I.E.</p><p class="text-gray-500 mt-1 italic no-print">Firma Digital / Sello</p></div>
-                                    <div><div class="border-t border-black pt-2 mx-12"></div><p class="font-bold text-blue-900">CONEI / APAFA</p><p class="text-gray-500 mt-1 italic no-print">Visto Bueno (V°B°)</p></div>
-                                </div>
-                            </div>
+                        <div>
+                            <div class="border-t border-slate-400 pt-2 mx-8"></div>
+                            <p class="font-bold text-slate-800 uppercase">Especialista UGEL / V° B°</p>
+                            <p class="text-slate-500 text-[10px]">Recepción y Conformidad</p>
                         </div>
                     </div>
                 </div>
             </div>
-        </main>
-    </div>
+        </div>
 
-    <!-- MODAL: CONFIGURACIÓN GOOGLE SHEETS -->
-    <div id="modalConfig" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4 z-[100] hidden">
-        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border flex flex-col overflow-hidden">
-            <div class="bg-blue-700 text-white p-5 flex justify-between items-center">
-                <h3 class="text-base font-bold flex items-center gap-2"><i class="fa-solid fa-database"></i> Configuración de Conexiones</h3>
-                <button onclick="toggleModal('modalConfig')" class="text-white hover:text-red-200 text-lg"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="p-6 text-sm flex flex-col gap-4 overflow-y-auto max-h-[70vh] custom-scrollbar">
-                
-                <div class="bg-red-50 text-red-900 p-3 rounded-lg text-xs border border-red-200">
-                    <strong>1. Base de Guardado Principal:</strong> Pega la URL de tu App Script para guardar los reportes.
-                </div>
+        <!-- VISTA DE ANEXO 4 -->
+        <div id="viewAnexo4" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden print-card">
+            <div class="p-4 bg-gray-50 border-b border-gray-200 flex flex-wrap justify-between items-center gap-2 no-print">
                 <div>
-                    <label class="block font-bold text-blue-900 mb-1">URL App Script (Guardar Datos):</label>
-                    <input type="text" id="inputSheetsUrl" class="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 font-mono text-xs uppercase" style="text-transform: uppercase;" placeholder="https://script.google.com/macros/s/.../exec">
+                    <h2 class="font-extrabold text-lg text-red-800">ANEXO 04</h2>
+                    <p class="text-[10px] text-gray-500 font-bold uppercase">FORMATO 02: REPORTE DE INASISTENCIAS Y TARDANZAS</p>
                 </div>
+                <button onclick="window.print()" class="px-4 py-1.5 bg-blue-100 text-blue-800 text-xs font-bold rounded-lg hover:bg-blue-200 transition">
+                    <i class="fa-solid fa-print"></i> Imprimir PDF
+                </button>
+            </div>
 
-                <div class="bg-blue-50 text-blue-900 p-3 rounded-lg text-xs border border-red-200 mt-4">
-                    <strong>2. Autocompletado desde Google Sheets:</strong> Pega las URLs de tus hojas de Google Sheets publicadas como CSV para autocompletar Colegios y DNI.
-                </div>
-                <div>
-                    <label class="block font-bold text-blue-900 mb-1">URL CSV - Padrón de I.E.:</label>
-                    <input type="text" id="inputCsvIe" class="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 font-mono text-xs" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv">
-                </div>
-                <div>
-                    <label class="block font-bold text-blue-900 mb-1">URL CSV - Padrón Personal:</label>
-                    <input type="text" id="inputCsvPersonal" class="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 font-mono text-xs" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv">
-                </div>
+            <div id="printHeaderA4" class="hidden print:block text-center mb-6 pt-4">
+                <h2 class="font-black text-xl uppercase tracking-wider text-red-800">ANEXO 04</h2>
+                <p class="text-xs font-bold text-gray-600 uppercase">FORMATO 02: REPORTE DE INASISTENCIAS, TARDANZAS Y PERMISOS</p>
+                <div class="grid grid-cols-4 text-left mt-4 text-[10px] border border-slate-400 p-3 rounded text-center" id="metaPrintA4"></div>
+            </div>
 
-                <div class="flex justify-end gap-2 mt-4">
-                    <button onclick="toggleModal('modalConfig')" class="px-4 py-2 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300">Cancelar</button>
-                    <button onclick="saveConfig()" class="px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700"><i class="fa-solid fa-save"></i> Guardar y Enlazar</button>
+            <div class="overflow-x-auto custom-scrollbar p-4">
+                <!-- Se centra el texto en el encabezado de la tabla para Anexo 04 -->
+                <table class="w-full text-xs border border-slate-400 border-collapse print-table">
+                    <thead>
+                        <tr class="bg-blue-50 text-blue-900 font-bold text-center align-middle">
+                            <th rowspan="2" class="border border-slate-400 p-2 w-8 text-center">N°</th>
+                            <th rowspan="2" class="border border-slate-400 p-2 text-center">DNI</th>
+                            <th rowspan="2" class="border border-slate-400 p-2 text-center min-w-[200px]">APELLIDOS Y NOMBRES</th>
+                            <th rowspan="2" class="border border-slate-400 p-2 text-center">CARGO</th>
+                            <th rowspan="2" class="border border-slate-400 p-2 text-center">CONDICIÓN</th>
+                            <th rowspan="2" class="border border-slate-400 p-2 text-center w-12">Jor. Lab.</th>
+                            <th class="border border-slate-400 bg-red-100 p-1 text-red-900 font-bold text-center">Inasistencias</th>
+                            <th colspan="2" class="border border-slate-400 bg-amber-50 p-1 text-amber-900 font-bold text-center">Tardanzas</th>
+                            <th colspan="3" class="border border-slate-400 bg-blue-100 p-1 text-blue-900 font-bold text-center">Permisos SG</th>
+                            <th class="border border-slate-400 bg-red-50 p-1 text-red-900 font-bold text-center">Huelga/Paro</th>
+                            <th rowspan="2" class="border border-slate-400 p-2 text-center">Observaciones</th>
+                        </tr>
+                        <tr class="bg-white text-[10px] text-center align-middle">
+                            <th class="border border-slate-400 bg-red-50 p-1 font-bold text-red-700 text-center">Días</th>
+                            <th class="border border-slate-400 bg-amber-50 p-1 text-amber-700 text-center">Horas</th>
+                            <th class="border border-slate-400 bg-amber-50 p-1 text-amber-700 text-center">Minutos</th>
+                            <th class="border border-slate-400 bg-blue-50 p-1 text-blue-700 text-center">Horas</th>
+                            <th class="border border-slate-400 bg-blue-50 p-1 text-blue-700 text-center">Minutos</th>
+                            <th class="border border-slate-400 bg-blue-50 p-1 font-bold text-blue-700 text-center">Días</th>
+                            <th class="border border-slate-400 bg-red-50 p-1 text-red-700 text-center">Días</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bodyAnexo4" class="text-center align-middle">
+                        <!-- Calculado Automáticamente -->
+                    </tbody>
+                </table>
+
+                <div id="printSignatureA4" class="hidden print:block mt-16">
+                    <div class="grid grid-cols-2 gap-12 text-center text-xs">
+                        <div>
+                            <div class="border-t border-slate-400 pt-2 mx-8"></div>
+                            <p class="font-bold text-slate-800 uppercase">Director de la I.E.</p>
+                            <p class="text-slate-500 text-[10px]">Firma y Sello Oficial</p>
+                        </div>
+                        <div>
+                            <div class="border-t border-slate-400 pt-2 mx-8"></div>
+                            <p class="font-bold text-slate-800 uppercase">Especialista UGEL / V° B°</p>
+                            <p class="text-slate-500 text-[10px]">Recepción y Conformidad</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
-    <!-- MODAL CONFIRMACION ELIMINAR -->
-    <div id="modalConfirmDelete" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4 z-[110] hidden">
-        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-150 flex flex-col gap-4 text-center animate-fade-in">
-            <div class="text-red-600 text-4xl mb-2">
-                <i class="fa-solid fa-circle-question animate-pulse"></i>
-            </div>
-            <h3 class="text-base font-bold text-slate-800">¿Está seguro de que desea eliminar a este personal?</h3>
-            <p class="text-xs text-gray-500">Esta acción no se puede deshacer de forma local.</p>
-            <div class="flex justify-center gap-3 mt-2">
-                <button onclick="closeDeleteModal()" class="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-lg text-xs transition">NO</button>
-                <button onclick="executeDelete()" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-xs transition shadow-md">SÍ</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL CONFIRMACION ENVIAR A UGEL (SI/NO DE BLOQUEO) -->
-    <div id="modalConfirmSend" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4 z-[115] hidden animate-fade-in">
-        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-150 flex flex-col gap-4 text-center">
-            <div class="text-red-700 text-4xl mb-2">
-                <i class="fa-solid fa-circle-exclamation animate-pulse"></i>
-            </div>
-            <h3 class="text-base font-bold text-slate-800">¿Desea enviar este reporte a la UGEL?</h3>
-            <p class="text-xs text-gray-500 font-medium">Una vez enviado oficialmente, el reporte se bloqueará y no podrá editarse.</p>
-            <div class="flex justify-center gap-3 mt-2">
-                <button onclick="closeSendModal(false)" class="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-lg text-xs transition">NO</button>
-                <button onclick="closeSendModal(true)" class="px-5 py-2 bg-red-700 hover:bg-red-800 text-white font-bold rounded-lg text-xs transition shadow-md">SÍ</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL GUARDANDO EN NUBE (SOLO CON CARGADOR CIRCULAR, SE CIERRA AUTOMÁTICAMENTE AL TERMINAR) -->
-    <div id="modalSaving" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4 z-[120] hidden animate-fade-in">
-        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-150 flex flex-col gap-4 text-center">
-            <div id="savingSpinner" class="text-blue-600 text-4xl mb-2">
-                <i class="fa-solid fa-circle-notch fa-spin"></i>
-            </div>
-            <h3 id="savingTitle" class="text-base font-bold text-slate-800">Guardando datos...</h3>
-            <p id="savingText" class="text-xs text-gray-500">Enviando el reporte de asistencia al servidor de la UGEL.</p>
-        </div>
-    </div>
-
-    <!-- OVERLAY CARGADOR FLOTANTE DE HISTÓRICOS -->
-    <div id="loadingOverlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-[130] hidden">
-        <div class="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center gap-3 border border-gray-150 animate-fade-in">
-            <div class="text-blue-600 text-4xl animate-spin">
-                <i class="fa-solid fa-circle-notch"></i>
-            </div>
-            <span class="text-xs text-slate-700 font-extrabold uppercase tracking-wider animate-pulse">Sincronizando Base de Datos...</span>
-        </div>
-    </div>
-
-    <!-- TOAST NOTIFICATION CENTRADA EN LA PARTE SUPERIOR (CIERRE AUTOMÁTICO, SIN BOTONES) -->
-    <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 bg-white text-slate-800 border border-slate-200 py-3 px-6 rounded-full shadow-2xl flex items-center gap-3 text-xs font-semibold transition-all duration-300 transform -translate-y-24 opacity-0 z-[250] pointer-events-none">
-        <div id="toastIconContainer" class="flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-600 shrink-0">
+    <!-- TOAST DE NOTIFICACIÓN -->
+    <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 bg-white text-slate-800 border border-slate-200 py-2.5 px-5 rounded-full shadow-2xl flex items-center gap-2.5 text-xs font-semibold transition-all duration-300 transform -translate-y-20 opacity-0 z-[200] pointer-events-none">
+        <div id="toastIconContainer" class="flex items-center justify-center w-5.5 h-5.5 rounded-full bg-green-100 text-green-600 shrink-0 p-1">
             <i id="toastIcon" class="fa-solid fa-circle-check"></i>
         </div>
         <span id="toastMessage" class="whitespace-nowrap"></span>
     </div>
 
-    <!-- MODAL: REGISTRO DE TIEMPO (T o PS) -->
-    <div id="modalTimePicker" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4 z-[150] hidden">
-        <div class="bg-white rounded-2xl max-w-xs w-full shadow-2xl border flex flex-col overflow-hidden animate-fade-in">
-            <div class="bg-blue-700 text-white p-4 flex justify-between items-center">
-                <h3 class="text-sm font-bold flex items-center gap-2" id="timePickerTitle">
-                    <i class="fa-solid fa-clock"></i> Registrar Tiempo
-                </h3>
-            </div>
-            <div class="p-6 text-sm flex flex-col gap-4">
-                <p class="text-xs text-gray-500 font-medium">Ingrese las horas y minutos acumulados para este día:</p>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Horas:</label>
-                        <input type="text" id="timePickerHoras" maxlength="2" class="w-full p-2 border border-slate-300 rounded-lg text-center font-bold text-slate-800 outline-none focus:border-blue-500" placeholder="00" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Minutos:</label>
-                        <input type="text" id="timePickerMinutos" maxlength="2" class="w-full p-2 border border-slate-300 rounded-lg text-center font-bold text-slate-800 outline-none focus:border-blue-500" placeholder="00" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
-                    </div>
-                </div>
-                <div class="flex justify-end gap-2 mt-2">
-                    <button onclick="closeTimePicker(false)" class="px-4 py-2 bg-gray-200 text-gray-700 font-bold rounded-lg text-xs hover:bg-gray-300">Cancelar</button>
-                    <button onclick="closeTimePicker(true)" class="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg text-xs hover:bg-blue-700 shadow-md">Guardar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- LÓGICA JAVASCRIPT NATIVA -->
     <script>
-        // --- BASES DE DATOS DE PRUEBA (AUTOCOMPLETADO FALLBACK) ---
-        let dbIe = {
-            '0123456': { dreUgel: 'UGEL 01 - SAN JUAN DE MIRAFLORES', ie: '6004 S. ANTUNEZ DE MAYOLO', lugar: 'LIMA', nivel: 'SECUNDARIA', distrito: 'VILLA EL SALVADOR' },
-            '0987654': { dreUgel: 'UGEL 03 - BREÑA', ie: '10 DE OCTUBRE', lugar: 'LIMA', nivel: 'PRIMARIA', distrito: 'BREÑA' }
-        };
-        let dbPersonal = {
-            '40001122': { nombres: 'QUISPE MENDOZA, JUAN', cargo: 'PROFESOR', condicion: 'NOMBRADO', jornada: '30' },
-            '40003344': { nombres: 'RODRIGUEZ FLORES, MARIA', cargo: 'PROFESOR F.F.', condicion: 'CONTRATADO', jornada: '30' }
+        // --- BASES DE DATOS DE PRUEBA (AUTOCOMPLETADO) ---
+        const DB_IE = {
+            '0123456': { dreUgel: 'UGEL 01 - SAN JUAN DE MIRAFLORES', ie: '6004 SANTIAGO ANTÚNEZ DE MAYOLO', lugar: 'VILLA EL SALVADOR', nivel: 'SECUNDARIA', distrito: 'VILLA EL SALVADOR', tipo: 'PÚBLICA', provincia: 'LIMA' },
+            '0987654': { dreUgel: 'UGEL 03 - BREÑA', ie: '10 DE OCTUBRE', lugar: 'BREÑA', nivel: 'PRIMARIA', distrito: 'BREÑA', tipo: 'PÚBLICA', provincia: 'LIMA' }
         };
 
-        const CODIGOS_VALIDOS = ['A', 'I', '3T', 'J', 'LS', 'PS', 'T', 'H', 'F'];
+        const DB_PERSONAL = {
+            '40001122': { nombres: 'QUISPE MENDOZA, JUAN CARLOS', cargo: 'PROFESOR DE AULA', condicion: 'NOMBRADO', jornada: '30' },
+            '40003344': { nombres: 'RODRIGUEZ FLORES, MARIA ELENA', cargo: 'DOCENTE DE EDUCACIÓN FÍSICA', condicion: 'CONTRATADO', jornada: '30' },
+            '40005566': { nombres: 'HUAMAN MAMANI, LUIS ALBERTO', cargo: 'AUXILIAR DE EDUCACIÓN', condicion: 'NOMBRADO', jornada: '40' }
+        };
 
-        let currentRole = null;
-        let reportsDatabase = [];
-        let filterCodQuery = "";
-        let filterMonthQuery = "";
-        let employeeIdToDelete = null;
-        
+        // --- ESTADO PRINCIPAL DE LA APLICACIÓN ---
         let appData = {
-            id: '',
-            codigoModular: '', dreUgel: 'UGEL 03', mesAno: '2026-05',
-            ie: '', lugar: '', nivel: '', distrito: '',
+            id: Date.now().toString(),
+            codigoModular: '',
+            dreUgel: 'UGEL 03',
+            mesAno: '',
+            ie: '',
+            lugar: '',
+            nivel: '',
+            distrito: '',
+            tipo: '',
+            provincia: 'LIMA',
             empleados: [],
-            isSaved: false,
-            isSent: false // Estado de envío a UGEL
+            isSent: false
         };
+
+        let currentRole = null; // 'DIRECTOR' o 'ADMIN'
         let activeTab = 'ANEXO3';
-        let activeTimePickerCell = { empId: null, day: null, type: '' };
+        let googleSheetsUrl = localStorage.getItem('minedu_sheets_url') || '';
+        let csvPersonalUrl = ''; 
+        let autoSaveTimeout = null;
 
-        // Declaración global de variables de conexión
-        let googleSheetsUrl = localStorage.getItem('minedu_sheets_db_url') || "";
-        let csvIeUrl = localStorage.getItem('minedu_csv_ie') || "";
-        let csvPersonalUrl = localStorage.getItem('minedu_csv_personal') || "";
-
-        // --- PARSER Y CARGA DE CSVS ---
-        function parseCSV(text) {
-            const lines = text.split('\n');
-            return lines.map(line => {
-                const result = [];
-                let current = '';
-                let inQuotes = false;
-                for (let i = 0; i < line.length; i++) {
-                    const char = line[i];
-                    if (char === '"') inQuotes = !inQuotes;
-                    else if (char === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
-                    else current += char;
-                }
-                result.push(current.trim());
-                return result;
-            });
-        }
-
-        async function loadCsvDbs() {
-            if (csvIeUrl) {
-                try {
-                    const res = await fetch(csvIeUrl);
-                    const text = await res.text();
-                    const rows = parseCSV(text);
-                    if(rows.length > 1) {
-                        const headers = rows[0].map(h => h.toLowerCase().replace(new RegExp('[^a-z]', 'g'), ''));
-                        const iCod = headers.findIndex(h => h.includes('codigo'));
-                        const iDre = headers.findIndex(h => h.includes('dre') || h.includes('ugel'));
-                        const iIe = headers.findIndex(h => h.includes('institucion') || h.includes('ie'));
-                        const iLugar = headers.findIndex(h => h.includes('lugar'));
-                        const iNivel = headers.findIndex(h => h.includes('nivel'));
-                        const iDistrito = headers.findIndex(h => h.includes('distrito'));
-                        
-                        if (iCod !== -1) {
-                            dbIe = {}; 
-                            for(let i=1; i<rows.length; i++) {
-                                if(rows[i][iCod]) {
-                                    dbIe[rows[i][iCod].trim()] = {
-                                        dreUgel: iDre!==-1 ? rows[i][iDre] : '',
-                                        ie: iIe!==-1 ? rows[i][iIe] : '',
-                                        lugar: iLugar!==-1 ? rows[i][iLugar] : '',
-                                        nivel: iNivel!==-1 ? rows[i][iNivel] : '',
-                                        distrito: iDistrito!==-1 ? rows[i][iDistrito] : ''
-                                    };
-                                }
-                            }
-                        }
-                    }
-                } catch(e) { console.error("Error CSV IE", e); }
-            }
-
-            if (csvPersonalUrl) {
-                try {
-                    const res = await fetch(csvPersonalUrl);
-                    const text = await res.text();
-                    const rows = parseCSV(text);
-                    if(rows.length > 1) {
-                        const headers = rows[0].map(h => h.toLowerCase().replace(new RegExp('[^a-z]', 'g'), ''));
-                        const iDni = headers.findIndex(h => h.includes('dni') || h.includes('documento'));
-                        const iNom = headers.findIndex(h => h.includes('nombre') || h.includes('apellido'));
-                        const iCargo = headers.findIndex(h => h.includes('cargo'));
-                        const iCond = headers.findIndex(h => h.includes('condicion'));
-                        const iJor = headers.findIndex(h => h.includes('jornada') || h.includes('horas'));
-                        
-                        if (iDni !== -1) {
-                            dbPersonal = {};
-                            for(let i=1; i<rows.length; i++) {
-                                if(rows[i][iDni]) {
-                                    dbPersonal[rows[i][iDni].trim()] = {
-                                        nombres: iNom!==-1 ? rows[i][iNom] : '',
-                                        cargo: iCargo!==-1 ? rows[i][iNom] : '', 
-                                        condicion: iCond!==-1 ? rows[i][iCond] : '',
-                                        jornada: iJor!==-1 ? rows[i][iJor] : ''
-                                    };
-                                }
-                            }
-                        }
-                    }
-                } catch(e) { console.error("Error CSV Personal", e); }
-            }
-        }
-
-        // --- MANEJO DE ROLES ---
-        function setRole(role) {
-            currentRole = role;
-            document.getElementById('loginView').classList.add('hidden');
-            document.getElementById('appView').classList.remove('hidden');
-            document.getElementById('appView').classList.add('flex');
-            
-            document.getElementById('headerRole').innerText = role === 'DIRECTOR' ? 'Director de I.E.' : 'Especialista UGEL';
-            document.getElementById('searchFilterContainer').classList.remove('hidden');
-            
-            if(role === 'ADMIN') {
-                document.getElementById('btnAdminConfig').classList.remove('hidden');
-                document.getElementById('btnCreateReport').classList.add('hidden');
-                document.getElementById('adminBadge').classList.remove('hidden');
-                document.getElementById('hintCodModular').classList.add('hidden');
-                document.getElementById('meta-cod').readOnly = true;
-                
-                document.querySelectorAll('#formCabecera input').forEach(inp => inp.readOnly = true);
-            } else {
-                document.getElementById('btnAdminConfig').classList.add('hidden');
-                document.getElementById('btnCreateReport').classList.remove('hidden');
-                document.getElementById('adminBadge').classList.add('hidden');
-                document.getElementById('hintCodModular').classList.remove('hidden');
-                applyDirectorFieldsLock();
-            }
-            updateCloudStatus();
-            if(googleSheetsUrl) {
-                loadFromSheets(true);
-            } else {
-                renderDashboard();
-            }
-        }
-
-        function logout() {
-            currentRole = null;
-            document.getElementById('appView').classList.add('hidden');
-            document.getElementById('appView').classList.remove('flex');
-            document.getElementById('loginView').classList.remove('hidden');
-        }
-
-        // --- DASHBOARD Y FILTROS ---
-        function filterReportsByCod(val) { filterCodQuery = val.trim(); renderDashboard(); }
-        function filterReportsByMonth(val) { filterMonthQuery = val.trim(); renderDashboard(); }
-        function clearAllFilters() {
-            document.getElementById('searchCod').value = "";
-            document.getElementById('filterMonth').value = "";
-            filterCodQuery = "";
-            filterMonthQuery = "";
-            renderDashboard();
-        }
-
-        function renderDashboard() {
-            const tableBody = document.getElementById('reportsTableBody');
-            document.getElementById('dashboardSection').classList.remove('hidden');
-            document.getElementById('editorSection').classList.add('hidden');
-
-            let filteredReports = reportsDatabase;
-            
-            // FILTRADO ESTRICTO DE SEGURIDAD:
-            // El Administrador de la UGEL solo puede ver reportes que hayan sido oficialmente ENVIADOS (isSent === true)
-            if (currentRole === 'ADMIN') {
-                filteredReports = filteredReports.filter(rep => rep.isSent === true);
-            }
-            
-            if (filterCodQuery) filteredReports = filteredReports.filter(rep => rep.codigoModular && rep.codigoModular.includes(filterCodQuery));
-            if (filterMonthQuery) filteredReports = filteredReports.filter(rep => rep.mesAno && rep.mesAno === filterMonthQuery);
-
-            if (filteredReports.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="4" class="p-12 text-center text-gray-400 italic"><i class="fa-solid fa-folder-open text-2xl mb-1 block"></i>Bandeja vacía</td></tr>`;
-                return;
-            }
-
-            let html = '';
-            filteredReports.forEach((rep, idx) => {
-                // Si el reporte ya fue enviado, la acción del director pasa de ser "Editar" a "Ver reporte"
-                const isSent = rep.isSent === true;
-                const btnText = currentRole === 'ADMIN' ? 'Visualizar Anexos' : (isSent ? 'Ver reporte' : 'Editar');
-                const btnColor = currentRole === 'ADMIN' ? 'bg-indigo-600 hover:bg-indigo-700' : (isSent ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700');
-
-                let adminButtons = '';
-                if (currentRole === 'ADMIN') {
-                    adminButtons = `
-                        <button onclick="exportSingleReport('${rep.id}')" class="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-emerald-700 transition" title="Exportar a Excel">Excel</button>
-                        <button onclick="printReportFromDashboard('${rep.id}', 'ANEXO3')" class="bg-blue-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-blue-700 transition" title="Imprimir Anexo 03"><i class="fa-solid fa-print"></i> A3</button>
-                        <button onclick="printReportFromDashboard('${rep.id}', 'ANEXO4')" class="bg-red-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-red-700 transition" title="Imprimir Anexo 04"><i class="fa-solid fa-print"></i> A4</button>
-                    `;
-                }
-
-                html += `<tr class="border-b border-gray-150 hover:bg-slate-50 transition">
-                    <td class="p-4">
-                        <div class="font-extrabold text-slate-800">${rep.ie || 'Sin Nombre'}</div>
-                        <div class="text-xs text-blue-600 font-bold uppercase">${rep.codigoModular} - ${rep.distrito || ''} - ${rep.nivel || ''}</div>
-                    </td>
-                    <td class="p-4 text-slate-600 font-bold">${rep.mesAno}</td>
-                    <td class="p-4 text-slate-500 font-semibold">${rep.empleados ? rep.empleados.length : 0} integrantes</td>
-                    <td class="p-4 text-center">
-                        <div class="flex justify-center gap-2">
-                            <button onclick="openReport('${rep.id}')" class="${btnColor} text-white font-bold px-3.5 py-1.5 rounded-lg text-xs transition">${btnText}</button>
-                            ${adminButtons}
-                        </div>
-                    </td>
-                </tr>`;
-            });
-            tableBody.innerHTML = html;
-        }
-
-        // --- MANEJO DE REPORTES Y FORMULARIOS ---
-        function printReportFromDashboard(reportId, tabType) {
-            const rep = reportsDatabase.find(r => r.id === reportId);
-            if (!rep) return;
-            const prevAppData = JSON.stringify(appData);
-            const prevActiveTab = activeTab;
-            const prevSectionHidden = document.getElementById('editorSection').classList.contains('hidden');
-
-            appData = JSON.parse(JSON.stringify(rep));
-            activeTab = tabType;
-            
-            document.getElementById('meta-cod').value = appData.codigoModular || '';
-            document.getElementById('meta-dre').value = appData.dreUgel || '';
-            document.getElementById('meta-mes').value = appData.mesAno || '';
-            document.getElementById('meta-ie').value = appData.ie || '';
-            document.getElementById('meta-lugar').value = appData.lugar || '';
-            document.getElementById('meta-nivel').value = appData.nivel || '';
-            document.getElementById('meta-distrito').value = appData.distrito || '';
-
+        window.onload = () => {
+            initMesAno();
+            checkUrlParams();
             renderTables();
-            document.getElementById('editorSection').classList.remove('hidden');
-            document.getElementById('dashboardSection').classList.add('hidden');
-
-            if (tabType === 'ANEXO3') {
-                document.getElementById('viewAnexo3').classList.remove('hidden');
-                document.getElementById('viewAnexo4').classList.add('hidden');
-            } else {
-                document.getElementById('viewAnexo4').classList.remove('hidden');
-                document.getElementById('viewAnexo3').classList.add('hidden');
-            }
-
-            setTimeout(() => {
-                window.print();
-                appData = JSON.parse(prevAppData);
-                activeTab = prevActiveTab;
-                if (prevSectionHidden) {
-                    document.getElementById('editorSection').classList.add('hidden');
-                    document.getElementById('dashboardSection').classList.remove('hidden');
-                }
-                document.getElementById('meta-cod').value = appData.codigoModular || '';
-                document.getElementById('meta-dre').value = appData.dreUgel || '';
-                document.getElementById('meta-mes').value = appData.mesAno || '';
-                document.getElementById('meta-ie').value = appData.ie || '';
-                document.getElementById('meta-lugar').value = appData.lugar || '';
-                document.getElementById('meta-nivel').value = appData.nivel || '';
-                document.getElementById('meta-distrito').value = appData.distrito || '';
-                renderTables();
-            }, 250);
-        }
-
-        function applyDirectorFieldsLock() {
-            if (currentRole !== 'DIRECTOR') return;
-
-            const isSaved = appData.isSaved === true;
-            const isSent = appData.isSent === true;
-            const codInput = document.getElementById('meta-cod');
-            const mesInput = document.getElementById('meta-mes');
-
-            if (isSaved || isSent) {
-                codInput.readOnly = true;
-                codInput.className = 'border border-gray-300 rounded-lg px-3 py-1.5 outline-none bg-gray-100 text-gray-500 cursor-not-allowed w-44 font-bold uppercase';
-                mesInput.readOnly = true;
-                mesInput.className = 'border border-blue-300 rounded-lg px-3 py-2 bg-gray-100 text-gray-500 cursor-not-allowed outline-none font-bold w-full';
-                const hint = document.getElementById('hintCodModular');
-                if(hint) {
-                    if (isSent) {
-                        hint.innerHTML = `<i class="fa-solid fa-lock text-red-600"></i> Reporte ENVIADO a la UGEL. Bloqueado de forma permanente.`;
-                    } else {
-                        hint.innerHTML = `<i class="fa-solid fa-lock text-red-600"></i> Código Modular y Mes Bloqueados. El reporte ya ha sido guardado en la nube.`;
-                    }
-                }
-            } else {
-                codInput.readOnly = false;
-                codInput.className = 'border border-gray-300 rounded-lg px-3 py-1.5 outline-none focus:border-red-500 w-44 bg-white font-bold text-red-900 uppercase';
-                mesInput.readOnly = false;
-                mesInput.className = 'border border-blue-300 rounded-lg px-3 py-2 bg-white focus:border-blue-500 outline-none font-bold text-blue-900 w-full';
-                const hint = document.getElementById('hintCodModular');
-                if(hint) hint.innerHTML = "Se autocompletará al ingresar los 7 números.";
-            }
-
-            const lockedFields = ['meta-dre', 'meta-ie', 'meta-lugar', 'meta-nivel', 'meta-distrito'];
-            lockedFields.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.readOnly = true;
-                    el.className = 'border border-gray-200 rounded-lg px-3 py-2 bg-gray-100 text-gray-500 cursor-not-allowed outline-none w-full uppercase';
-                }
-            });
-        }
-
-        function createNewReport() {
-            const today = new Date();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            appData = {
-                id: 'REP_' + Date.now(),
-                codigoModular: '', dreUgel: '', mesAno: `${today.getFullYear()}-${month}`,
-                ie: '', lugar: '', nivel: '', distrito: '', empleados: [], isSaved: false, isSent: false
-            };
-            document.getElementById('meta-cod').value = '';
-            document.getElementById('meta-dre').value = '';
-            document.getElementById('meta-mes').value = appData.mesAno;
-            document.getElementById('meta-ie').value = '';
-            document.getElementById('meta-lugar').value = '';
-            document.getElementById('meta-nivel').value = '';
-            document.getElementById('meta-distrito').value = '';
-            document.getElementById('dashboardSection').classList.add('hidden');
-            document.getElementById('editorSection').classList.remove('hidden');
-            applyDirectorFieldsLock();
-            renderTables();
-        }
-
-        function openReport(reportId) {
-            const rep = reportsDatabase.find(r => r.id === reportId);
-            if (rep) {
-                appData = JSON.parse(JSON.stringify(rep)); 
-                
-                // Asegurar que asistenciaDetalle exista para todos los empleados al abrir el reporte
-                appData.empleados.forEach(emp => {
-                    if (!emp.asistenciaDetalle) emp.asistenciaDetalle = {};
-                });
-
-                document.getElementById('meta-cod').value = appData.codigoModular || '';
-                document.getElementById('meta-dre').value = appData.dreUgel || '';
-                document.getElementById('meta-mes').value = appData.mesAno || '';
-                document.getElementById('meta-ie').value = appData.ie || '';
-                document.getElementById('meta-lugar').value = appData.lugar || '';
-                document.getElementById('meta-nivel').value = appData.nivel || '';
-                document.getElementById('meta-distrito').value = appData.distrito || '';
-
-                document.getElementById('dashboardSection').classList.add('hidden');
-                document.getElementById('editorSection').classList.remove('hidden');
-                applyDirectorFieldsLock();
-                renderTables();
-            }
-        }
-
-        function backToDashboard() {
-            document.getElementById('dashboardSection').classList.remove('hidden');
-            document.getElementById('editorSection').classList.add('hidden');
-            loadFromSheets(true); 
-        }
+        };
 
         function initMesAno() {
             const today = new Date();
@@ -867,6 +345,113 @@
             document.getElementById('meta-mes').value = appData.mesAno;
         }
 
+        function checkUrlParams() {
+            // Verificar si hay configuración guardada de url en local storage
+            updateCloudStatus();
+        }
+
+        // --- MANEJO DE ROLES ---
+        function selectRole(role) {
+            currentRole = role;
+            document.getElementById('loginView').classList.add('hidden');
+            document.getElementById('systemView').classList.remove('hidden');
+            
+            const badge = document.getElementById('userRoleBadge');
+            if (role === 'DIRECTOR') {
+                badge.innerText = "Director de I.E.";
+                badge.className = "font-extrabold text-xs uppercase tracking-wide text-blue-850";
+            } else {
+                badge.innerText = "Especialista UGEL (ADMIN)";
+                badge.className = "font-extrabold text-xs uppercase tracking-wide text-red-700";
+            }
+            
+            updateEditorButtons();
+            renderTables();
+        }
+
+        function logoutRole() {
+            currentRole = null;
+            document.getElementById('systemView').classList.add('hidden');
+            document.getElementById('loginView').classList.remove('hidden');
+        }
+
+        // --- DINÁMICA DE BOTONES SEGÚN ROL ---
+        function updateEditorButtons() {
+            const btnContainer = document.getElementById('actionButtons');
+            const btnAddStaff = document.getElementById('btnAddStaff');
+            
+            if (!btnContainer) return;
+            btnContainer.innerHTML = '';
+
+            const isReadonly = currentRole === 'ADMIN' || appData.isSent === true;
+
+            // Mostrar/Ocultar botón "Agregar Personal" en Anexo 3
+            if (btnAddStaff) {
+                if (isReadonly) btnAddStaff.classList.add('hidden');
+                else btnAddStaff.classList.remove('hidden');
+            }
+
+            if (currentRole === 'DIRECTOR') {
+                if (appData.isSent) {
+                    btnContainer.innerHTML = `
+                        <div class="flex items-center gap-1.5 px-3 py-2 bg-green-50 text-green-700 rounded-xl text-xs border border-green-200">
+                            <i class="fa-solid fa-circle-check"></i> Reporte Enviado a la UGEL
+                        </div>
+                    `;
+                } else {
+                    btnContainer.innerHTML = `
+                        <button onclick="saveToSheets(false)" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-lg text-xs flex items-center gap-2 transition shadow-sm">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> Guardar en Nube
+                        </button>
+                        <button onclick="sendReportToUgel()" class="bg-red-700 hover:bg-red-800 text-white font-bold px-4 py-2.5 rounded-lg text-xs flex items-center gap-2 transition shadow-sm">
+                            <i class="fa-solid fa-paper-plane"></i> Enviar a UGEL
+                        </button>
+                    `;
+                }
+            } else if (currentRole === 'ADMIN') {
+                // El administrador sí tiene acceso al botón "Excel" y a la configuración de Base de Datos
+                btnContainer.innerHTML = `
+                    <button onclick="configureDatabase()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-lg text-xs flex items-center gap-2 transition border border-slate-300">
+                        <i class="fa-solid fa-database text-slate-500"></i> Configurar Sheets
+                    </button>
+                    <button onclick="exportToExcel()" class="bg-[#e6f4ea] text-[#137333] hover:bg-[#d2ebd9] font-bold px-4 py-2.5 rounded-lg text-xs flex items-center gap-2 transition border border-[#a3cfbb] shadow-sm">
+                        <i class="fa-solid fa-file-excel"></i> Excel
+                    </button>
+                `;
+            }
+        }
+
+        // --- PROCESOS DE GUARDADO Y ENVÍO ---
+        function sendReportToUgel() {
+            if (appData.empleados.length === 0) {
+                showToast("Debe registrar al menos un docente antes de enviar.", "error");
+                return;
+            }
+            if (!appData.codigoModular) {
+                showToast("Por favor complete el Código Modular de la escuela.", "error");
+                return;
+            }
+            
+            if (confirm("¿Está seguro de enviar este reporte de asistencia a la UGEL? Una vez enviado, el formulario pasará a modo Solo Lectura.")) {
+                appData.isSent = true;
+                saveToSheets(true);
+                updateEditorButtons();
+                renderTables();
+                showToast("¡Reporte oficial enviado a la UGEL con éxito!", "success");
+            }
+        }
+
+        function configureDatabase() {
+            const url = prompt("Ingrese la URL de Apps Script de su Google Sheets de la UGEL:", googleSheetsUrl);
+            if (url !== null) {
+                localStorage.setItem('minedu_sheets_url', url.trim());
+                googleSheetsUrl = url.trim();
+                updateCloudStatus();
+                showToast("URL de Google Sheets actualizada.", "success");
+            }
+        }
+
+        // --- CÁLCULOS DEL CALENDARIO ---
         function getMonthDays() {
             if (!appData.mesAno) return [];
             const [year, month] = appData.mesAno.split('-');
@@ -881,199 +466,253 @@
             return days;
         }
 
-        function generateId() { return Date.now().toString() + Math.floor(Math.random()*1000); }
+        // --- AUTOCOMPLETADO DE DATOS (AUTO-LOOKUP) ---
+        function handleIeLookup(val) {
+            appData.codigoModular = val;
+            if (DB_IE[val]) {
+                const ieData = DB_IE[val];
+                document.getElementById('meta-dre').value = ieData.dreUgel; appData.dreUgel = ieData.dreUgel;
+                document.getElementById('meta-ie').value = ieData.ie; appData.ie = ieData.ie;
+                document.getElementById('meta-lugar').value = ieData.lugar; appData.lugar = ieData.lugar;
+                document.getElementById('meta-nivel').value = ieData.nivel; appData.nivel = ieData.nivel;
+                document.getElementById('meta-distrito').value = ieData.distrito; appData.distrito = ieData.distrito;
+                appData.tipo = ieData.tipo;
+                appData.provincia = ieData.provincia;
+                showToast("I.E. Autocompletada desde el padrón", "success");
+            }
+            triggerAutoSave();
+        }
+
+        function handleDniLookup(id, dniVal) {
+            const emp = appData.empleados.find(e => e.id === id);
+            if (!emp) return;
+            
+            emp.dni = dniVal;
+
+            if (dniVal.length === 8 && DB_PERSONAL[dniVal]) {
+                const match = DB_PERSONAL[dniVal];
+                emp.nombres = match.nombres;
+                // CORRECCIÓN CLAVE: Mapear correctamente la propiedad cargo de la base de datos
+                emp.cargo = match.cargo; 
+                emp.condicion = match.condicion;
+                emp.jornada = match.jornada;
+                
+                renderTables();
+                showToast("Personal docente autocompletado", "success");
+                triggerAutoSave();
+            }
+        }
+
+        function updateMetaField(field, value) {
+            appData[field] = value;
+            triggerAutoSave();
+        }
+
+        function updateEmpField(id, field, value) {
+            const emp = appData.empleados.find(e => e.id === id);
+            if (emp) {
+                emp[field] = value.toUpperCase();
+                triggerAutoSave();
+            }
+        }
+
+        function updateAttendance(id, day, value) {
+            const emp = appData.empleados.find(e => e.id === id);
+            if (emp) {
+                emp.asistencia[day] = value.toUpperCase();
+                triggerAutoSave();
+                renderAnexo4(); // Sincroniza dinámicamente Anexo 4
+            }
+        }
 
         function addEmployee() {
-            if (currentRole === 'ADMIN') return;
             appData.empleados.push({
-                id: generateId(), dni: '', nombres: '', cargo: '', condicion: '', jornada: '',
-                asistencia: {}, asistenciaDetalle: {}, tardanzasH: '', tardanzasM: '', permisosSGH: '', permisosSGM: '', huelgaParoDias: '', observaciones: ''
+                id: Date.now().toString() + Math.floor(Math.random()*100),
+                dni: '', nombres: '', cargo: '', condicion: '', jornada: '',
+                asistencia: {}, tardanzasH: '', tardanzasM: '', permisosSGH: '', permisosSGM: '', huelgaParoDias: '', observaciones: ''
             });
             renderTables();
+            triggerAutoSave();
         }
 
-        function confirmRemoveEmployee(id) {
-            if (currentRole === 'ADMIN') return;
-            employeeIdToDelete = id;
-            document.getElementById('modalConfirmDelete').classList.remove('hidden');
-        }
-
-        function executeDelete() {
-            if (employeeIdToDelete) {
-                appData.empleados = appData.empleados.filter(e => e.id !== employeeIdToDelete);
-                renderTables();
-                showToast("Personal eliminado de la tabla", "success");
-            }
-            closeDeleteModal();
-        }
-
-        function closeDeleteModal() {
-            employeeIdToDelete = null;
-            document.getElementById('modalConfirmDelete').classList.add('hidden');
-        }
-
-        function updateEmp(id, field, value) {
-            if (currentRole === 'ADMIN') return;
-            const emp = appData.empleados.find(e => e.id === id);
-            if (emp) { 
-                emp[field] = value.toUpperCase(); 
-            }
-        }
-
-        // --- SISTEMA DEL TIME PICKER FLOTANTE ---
-        function openTimePicker(empId, day, type) {
-            activeTimePickerCell = { empId, day, type };
-            
-            const emp = appData.empleados.find(e => e.id === empId);
-            let horas = "";
-            let minutos = "";
-            
-            if (emp && emp.asistenciaDetalle && emp.asistenciaDetalle[day]) {
-                horas = emp.asistenciaDetalle[day].horas || "";
-                minutos = emp.asistenciaDetalle[day].minutos || "";
-            }
-            
-            document.getElementById('timePickerHoras').value = horas;
-            document.getElementById('timePickerMinutos').value = minutos;
-            
-            const typeText = type === 'T' ? 'Tardanza (T)' : 'Permiso Sin Goce (PS)';
-            document.getElementById('timePickerTitle').innerHTML = `<i class="fa-solid fa-clock"></i> Registrar ${typeText} (Día ${day})`;
-            
-            document.getElementById('modalTimePicker').classList.remove('hidden');
-            document.getElementById('timePickerHoras').focus();
-        }
-
-        function closeTimePicker(save) {
-            const { empId, day, type } = activeTimePickerCell;
-            const emp = appData.empleados.find(e => e.id === empId);
-            
-            if (emp) {
-                if (save) {
-                    const horas = document.getElementById('timePickerHoras').value.trim();
-                    const minutes = document.getElementById('timePickerMinutos').value.trim();
-                    
-                    if (!emp.asistenciaDetalle) emp.asistenciaDetalle = {};
-                    
-                    emp.asistenciaDetalle[day] = { 
-                        horas: parseInt(horas) || 0, 
-                        minutos: parseInt(minutes) || 0 
-                    };
-                    emp.asistencia[day] = type;
-                    showToast(`Tiempo guardado para el día ${day}: ${horas || 0}h ${minutes || 0}m`, "success");
-                } else {
-                    if (!emp.asistenciaDetalle || !emp.asistenciaDetalle[day]) {
-                        emp.asistencia[day] = '';
-                    }
-                }
-            }
-            
-            document.getElementById('modalTimePicker').classList.add('hidden');
+        function removeEmployee(id) {
+            appData.empleados = appData.empleados.filter(e => e.id !== id);
             renderTables();
+            triggerAutoSave();
         }
 
-        function updateAsist(id, day, value) {
-            if (currentRole === 'ADMIN') return;
-            const emp = appData.empleados.find(e => e.id === id);
-            if (emp) {
-                const upperVal = value.toUpperCase().trim();
-                
-                if (upperVal === '') {
-                    emp.asistencia[day] = '';
-                    if (emp.asistenciaDetalle) delete emp.asistenciaDetalle[day];
-                    renderTables();
-                } else if (upperVal === 'T' || upperVal === 'PS') {
-                    // Abre modal flotante para pedir horas y minutos
-                    openTimePicker(id, day, upperVal);
-                } else if (CODIGOS_VALIDOS.includes(upperVal)) {
-                    emp.asistencia[day] = upperVal;
-                    if (emp.asistenciaDetalle) delete emp.asistenciaDetalle[day];
-                    renderTables();
-                } else {
-                    showToast(`Código "${upperVal}" no válido. Use la leyenda.`, "error");
-                    renderTables();
-                }
-            }
+        // --- RENDERIZADO DE TABLAS ---
+        function renderTables() {
+            updateMetaPrint();
+            renderAnexo3();
+            renderAnexo4();
         }
 
-        // --- AUTOCOMPLETADO EXACTO ---
-        function clearIeFields() {
-            appData.dreUgel = ''; document.getElementById('meta-dre').value = '';
-            appData.ie = ''; document.getElementById('meta-ie').value = '';
-            appData.lugar = ''; document.getElementById('meta-lugar').value = '';
-            appData.nivel = ''; document.getElementById('meta-nivel').value = '';
-            appData.distrito = ''; document.getElementById('meta-distrito').value = '';
+        function updateMetaPrint() {
+            const metaHtml = `
+                <div><strong>DRE/UGEL:</strong> ${appData.dreUgel}</div>
+                <div><strong>CÓD. MODULAR:</strong> ${appData.codigoModular}</div>
+                <div><strong>MES Y AÑO:</strong> ${appData.mesAno}</div>
+                <div><strong>I.E.:</strong> ${appData.ie}</div>
+                <div><strong>LUGAR:</strong> ${appData.lugar}</div>
+                <div><strong>NIVEL:</strong> ${appData.nivel}</div>
+                <div><strong>DISTRITO:</strong> ${appData.distrito}</div>
+                <div><strong>PROVINCIA:</strong> ${appData.provincia}</div>
+            `;
+            document.getElementById('metaPrintA3').innerHTML = metaHtml;
+            document.getElementById('metaPrintA4').innerHTML = metaHtml;
         }
 
-        function buscarIE() {
-            if (currentRole === 'ADMIN') return;
-            const val = document.getElementById('meta-cod').value.trim();
-            if (val.length === 0) {
-                clearIeFields();
+        function renderAnexo3() {
+            const days = getMonthDays();
+            const thead = document.getElementById('headAnexo3');
+            const tbody = document.getElementById('bodyAnexo3');
+            
+            const isReadonly = currentRole === 'ADMIN' || appData.isSent === true ? 'readonly' : '';
+            const isReadonlyBool = currentRole === 'ADMIN' || appData.isSent === true;
+
+            // CORRECCIÓN CLAVE: Encabezados del Anexo 03 perfectamente centrados (text-center, align-middle)
+            let headHTML = `
+                <tr class="bg-blue-50 text-blue-900 font-bold border border-slate-400">
+                    <th rowspan="2" style="border: 1px solid #94a3b8; min-width: 24px; max-width: 24px;" class="p-1 bg-blue-50 text-center align-middle">N°</th>
+                    <th rowspan="2" style="border: 1px solid #94a3b8; border-right: 2px solid #64748b; min-width: 65px; max-width: 65px;" class="p-1 bg-blue-50 text-center align-middle">DNI</th>
+                    <th rowspan="2" style="border: 1px solid #94a3b8; min-width: 150px;" class="p-1 bg-blue-50 text-center align-middle">APELLIDOS Y NOMBRES</th>
+                    <th rowspan="2" class="p-1 border border-slate-400 text-center align-middle">CARGO</th>
+                    <th rowspan="2" class="p-1 border border-slate-400 text-center align-middle">CONDICIÓN</th>
+                    <th rowspan="2" class="p-1 border border-slate-400 text-center align-middle leading-tight">Jor.<br/>Lab.</th>
+                    <th colSpan="${days.length}" class="p-1 border border-slate-400 text-center tracking-widest bg-red-50 text-red-900 align-middle">DÍAS CALENDARIOS</th>
+                    <th rowspan="2" style="width: 45px; min-width: 45px; max-width: 45px;" class="p-1 border border-slate-400 bg-amber-100 text-amber-900 text-center align-middle">MIN.</th>
+                    <th rowspan="2" class="p-1 border border-slate-400 bg-gray-100 text-center align-middle">OBSERVACIONES</th>
+                    ${(!isReadonlyBool) ? '<th rowspan="2" class="p-1 no-print border border-slate-400 text-center align-middle">X</th>' : ''}
+                </tr>
+                <tr class="bg-white text-[9px] border border-slate-400">
+            `;
+            days.forEach(d => {
+                const bg = d.isWeekend ? 'bg-red-100 text-red-800' : 'bg-blue-50 text-blue-800';
+                headHTML += `<th class="border border-slate-400 p-0.5 w-5 font-bold text-center ${bg}">${d.day}<br/><span class="text-[6px] font-normal">${d.dayName}</span></th>`;
+            });
+            headHTML += `</tr>`;
+            thead.innerHTML = headHTML;
+
+            // Renderizado de Filas de Personal
+            if (appData.empleados.length === 0) {
+                tbody.innerHTML = `<tr><td colSpan="${days.length + 9}" class="p-8 text-center text-slate-400 italic">No hay personal docente registrado en la plantilla.</td></tr>`;
                 return;
             }
 
-            const data = dbIe[val];
-            if (data) {
-                document.getElementById('meta-dre').value = data.dreUgel || ''; appData.dreUgel = data.dreUgel || '';
-                document.getElementById('meta-ie').value = data.ie || ''; appData.ie = data.ie || '';
-                document.getElementById('meta-lugar').value = data.lugar || ''; appData.lugar = data.lugar || '';
-                document.getElementById('meta-nivel').value = data.nivel || ''; appData.nivel = data.nivel || '';
-                document.getElementById('meta-distrito').value = data.distrito || ''; appData.distrito = data.distrito || '';
-                showToast("I.E. autocompletada desde el padrón", "success");
-            } else {
-                showToast("Código Modular no encontrado en el Padrón (Sheets)", "error");
-                clearIeFields();
-            }
-        }
+            let bodyHTML = '';
+            appData.empleados.forEach((emp, index) => {
+                bodyHTML += `
+                    <tr class="hover:bg-slate-50 transition border-b border-slate-300">
+                        <td class="border border-slate-300 p-1 font-bold text-center bg-gray-50">${index + 1}</td>
+                        <td class="border border-slate-300 p-0">
+                            <input type="text" maxLength="8" ${isReadonly} class="w-full h-full p-1 text-center bg-transparent outline-none font-bold text-blue-900" value="${emp.dni}" oninput="handleDniLookup('${emp.id}', this.value)">
+                        </td>
+                        <td class="border border-slate-300 p-0 text-left">
+                            <input type="text" ${isReadonly} class="w-full h-full p-1.5 bg-transparent outline-none font-semibold text-slate-800" value="${emp.nombres}" oninput="updateEmpField('${emp.id}', 'nombres', this.value)">
+                        </td>
+                        <td class="border border-slate-300 p-0">
+                            <input type="text" ${isReadonly} class="w-full h-full p-1 text-center bg-transparent outline-none text-xs" value="${emp.cargo}" oninput="updateEmpField('${emp.id}', 'cargo', this.value)">
+                        </td>
+                        <td class="border border-slate-300 p-0">
+                            <input type="text" ${isReadonly} class="w-full h-full p-1 text-center bg-transparent outline-none text-xs" value="${emp.condicion}" oninput="updateEmpField('${emp.id}', 'condicion', this.value)">
+                        </td>
+                        <td class="border border-slate-300 p-0">
+                            <input type="text" ${isReadonly} class="w-full h-full p-1 text-center bg-transparent outline-none font-bold text-xs" value="${emp.jornada}" oninput="updateEmpField('${emp.id}', 'jornada', this.value)">
+                        </td>
+                `;
 
-        function handleIeLookup(val) {
-            if (currentRole === 'ADMIN') return;
-            appData.codigoModular = val.toUpperCase();
-            if (val.trim().length === 0) {
-                clearIeFields();
-            } else if (val.trim().length === 7) {
-                buscarIE();
-            }
-        }
-
-        function handleDniLookup(id, val) {
-            if (currentRole === 'ADMIN') return;
-            updateEmp(id, 'dni', val);
-            if (val.trim().length === 8) {
-                const data = dbPersonal[val.trim()];
-                if (data) {
-                    const emp = appData.empleados.find(e => e.id === id);
-                    if(emp) {
-                        emp.nombres = data.nombres || '';
-                        emp.cargo = data.cargo || '';
-                        emp.condicion = data.condicion || '';
-                        emp.jornada = data.jornada || '';
-                        renderTables(); 
-                        showToast("Personal autocompletado", "success");
+                days.forEach(d => {
+                    const val = emp.asistencia[d.day] || '';
+                    const isWk = d.isWeekend;
+                    const bg = isWk ? 'bg-red-50 text-red-500' : (val ? 'bg-blue-100 font-bold text-blue-900' : 'bg-transparent');
+                    
+                    if (isWk || isReadonlyBool) {
+                        bodyHTML += `<td class="border border-slate-300 p-0 text-center font-bold ${bg}">${isWk ? '-' : val}</td>`;
+                    } else {
+                        bodyHTML += `
+                            <td class="border border-slate-300 p-0 ${bg}">
+                                <input type="text" maxLength="2" class="w-full h-full p-1 outline-none text-center uppercase bg-transparent text-xs font-bold" value="${val}" oninput="updateAttendance('${emp.id}', ${d.day}, this.value)">
+                            </td>
+                        `;
                     }
-                }
+                });
+
+                bodyHTML += `
+                        <td class="border border-slate-300 p-0 bg-amber-50/30">
+                            <input type="number" ${isReadonly} class="w-full h-full p-1 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM || ''}" oninput="updateEmpField('${emp.id}', 'tardanzasM', this.value)">
+                        </td>
+                        <td class="border border-slate-300 p-0">
+                            <input type="text" ${isReadonly} class="w-full h-full p-1 outline-none bg-transparent text-[10px]" value="${emp.observaciones || ''}" oninput="updateEmpField('${emp.id}', 'observaciones', this.value)">
+                        </td>
+                        ${(!isReadonlyBool) ? `
+                        <td class="border border-slate-300 p-1 no-print text-center">
+                            <button onclick="removeEmployee('${emp.id}')" class="text-red-500 hover:text-red-700 bg-red-50 px-2 py-1 rounded"><i class="fa-solid fa-trash"></i></button>
+                        </td>` : ''}
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = bodyHTML;
+        }
+
+        function renderAnexo4() {
+            const tbody = document.getElementById('bodyAnexo4');
+            const isReadonly = currentRole === 'ADMIN' || appData.isSent === true ? 'readonly' : '';
+
+            if (appData.empleados.length === 0) {
+                tbody.innerHTML = `<tr><td colSpan="14" class="p-8 text-center text-slate-400 italic">No hay personal docente registrado.</td></tr>`;
+                return;
             }
+
+            let bodyHTML = '';
+            appData.empleados.forEach((emp, index) => {
+                // Cálculo inteligente basado en el Anexo 3
+                let inasistenciasDias = 0;
+                let permisosSGDias = 0;
+                Object.values(emp.asistencia).forEach(val => {
+                    if (val === 'I' || val === '3T') inasistenciasDias++;
+                    if (val === 'LS') permisosSGDias++;
+                });
+
+                bodyHTML += `
+                    <tr class="hover:bg-red-50/30 transition border-b border-slate-300">
+                        <td class="border border-slate-300 p-2 font-bold text-center">${index + 1}</td>
+                        <td class="border border-slate-300 p-2 font-bold text-slate-700 text-center">${emp.dni}</td>
+                        <td class="border border-slate-300 p-2 text-left font-bold text-slate-800">${emp.nombres}</td>
+                        <td class="border border-slate-300 p-2 text-center text-xs">${emp.cargo}</td>
+                        <td class="border border-slate-300 p-2 text-center text-xs">${emp.condicion}</td>
+                        <td class="border border-slate-300 p-2 text-center font-bold">${emp.jornada}</td>
+                        
+                        <td class="border border-slate-300 p-2 bg-red-50 font-bold text-red-700 text-center">${inasistenciasDias || '0'}</td>
+                        
+                        <td class="border border-slate-300 p-0 bg-amber-50/30 w-12">
+                            <input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.tardanzasH || ''}" oninput="updateEmpField('${emp.id}', 'tardanzasH', this.value)">
+                        </td>
+                        <td class="border border-slate-300 p-0 bg-amber-50/30 w-12">
+                            <input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-amber-900" value="${emp.tardanzasM || ''}" oninput="updateEmpField('${emp.id}', 'tardanzasM', this.value)">
+                        </td>
+                        
+                        <td class="border border-slate-300 p-0 bg-blue-50/30 w-12">
+                            <input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGH || ''}" oninput="updateEmpField('${emp.id}', 'permisosSGH', this.value)">
+                        </td>
+                        <td class="border border-slate-300 p-0 bg-blue-50/30 w-12">
+                            <input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent" value="${emp.permisosSGM || ''}" oninput="updateEmpField('${emp.id}', 'permisosSGM', this.value)">
+                        </td>
+                        <td class="border border-slate-300 p-2 bg-blue-50 font-bold text-blue-700 text-center">${permisosSGDias || '0'}</td>
+                        
+                        <td class="border border-slate-300 p-0 bg-red-50/30 w-12">
+                            <input type="number" ${isReadonly} class="w-full h-full p-2 text-center outline-none bg-transparent font-bold text-red-700" value="${emp.huelgaParoDias || ''}" oninput="updateEmpField('${emp.id}', 'huelgaParoDias', this.value)">
+                        </td>
+                        <td class="border border-slate-300 p-0">
+                            <input type="text" ${isReadonly} class="w-full h-full p-2 text-left outline-none bg-transparent text-xs" value="${emp.observaciones || ''}" oninput="updateEmpField('${emp.id}', 'observaciones', this.value)">
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = bodyHTML;
         }
 
-        function adjustInputWidth(input, minSize) {
-            const valLen = input.value ? input.value.length : 0;
-            const calculatedSize = Math.max(minSize, valLen);
-            input.setAttribute('size', calculatedSize);
-        }
-
-        // Autoajusta fuente y scroll de Textareas para observaciones en la grilla
-        function adjustObsWidthAndHeight(textarea) {
-            if (!textarea) return;
-            textarea.value = textarea.value.toUpperCase();
-            textarea.style.fontSize = '10px';
-            let currentSize = 10;
-            while (textarea.scrollHeight > 32 && currentSize > 6.0) {
-                currentSize -= 0.5;
-                textarea.style.fontSize = `${currentSize}px`;
-            }
-        }
-
-        // --- SISTEMAS DE TABS Y TABLAS ---
+        // --- MANEJO DE TABS ---
         function switchTab(tabId) {
             activeTab = tabId;
             document.getElementById('viewAnexo3').classList.add('hidden');
@@ -1086,618 +725,106 @@
                 document.getElementById('btnTab3').className = "px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-blue-700 shadow-sm";
             } else {
                 document.getElementById('viewAnexo4').classList.remove('hidden');
-                document.getElementById('btnTab4').className = "px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-red-700 shadow-sm";
+                document.getElementById('btnTab4').className = "px-5 py-2 rounded-lg font-extrabold text-xs uppercase transition bg-white text-blue-700 shadow-sm";
             }
             renderTables();
         }
 
-        function renderTables() {
-            updateMetaPrint();
-            if (activeTab === 'ANEXO3') renderAnexo3();
-            else renderAnexo4();
-            updateEditorButtons(); // Fuerza la actualización dinámica de los botones del Director y Excel
-        }
-
-        function updateMetaPrint() {
-            const metaHtml = `
-                <div><strong>DRE/UGEL:</strong> ${appData.dreUgel}</div>
-                <div><strong>CÓDIGO MODULAR:</strong> ${appData.codigoModular}</div>
-                <div><strong>MES Y AÑO:</strong> ${appData.mesAno}</div>
-                <div><strong>I.E.:</strong> ${appData.ie}</div>
-                <div><strong>LUGAR:</strong> ${appData.lugar}</div>
-                <div><strong>NIVEL:</strong> ${appData.nivel}</div>
-                <div><strong>DISTRITO:</strong> ${appData.distrito}</div>
-            `;
-            const elA3 = document.getElementById('metaPrintA3');
-            const elA4 = document.getElementById('metaPrintA4');
-            if (elA3) elA3.innerHTML = metaHtml;
-            if (elA4) elA4.innerHTML = metaHtml;
-        }
-
-        function renderAnexo3() {
-            const days = getMonthDays();
-            const thead = document.getElementById('headAnexo3');
-            const tbody = document.getElementById('bodyAnexo3');
-            const isReadonly = currentRole === 'ADMIN' || appData.isSent === true ? 'readonly' : '';
-            
-            // Ocultar botón de agregar personal en modo de solo lectura / enviado
-            const btnAddStaff = document.getElementById('btnAddStaff');
-            if (btnAddStaff) {
-                if (isReadonly) btnAddStaff.classList.add('hidden');
-                else btnAddStaff.classList.remove('hidden');
-            }
-
-            const deleteHeaderHtml = (currentRole === 'DIRECTOR' && appData.isSent !== true) 
-                ? '<th rowspan="2" class="p-1 no-print border border-slate-400 text-center align-middle">X</th>' 
-                : '';
-
-            let headHTML = `
-                <tr class="bg-blue-50 text-blue-900 font-bold border border-slate-400">
-                    <th rowspan="2" style="border: 1px solid #94a3b8; min-width: 24px; max-width: 24px;" class="p-1 bg-blue-50 text-center align-middle">N°</th>
-                    <th rowspan="2" style="border: 1px solid #94a3b8; border-right: 2px solid #64748b; min-width: 65px; max-width: 65px;" class="p-1 bg-blue-50 text-center align-middle">DNI</th>
-                    <th rowspan="2" style="border: 1px solid #94a3b8; min-width: 150px;" class="p-1 bg-blue-50 text-left align-middle">APELLIDOS Y NOMBRES</th>
-                    <th rowspan="2" class="p-1 border border-slate-400 text-left align-middle">CARGO</th>
-                    <th rowspan="2" class="p-1 border border-slate-400 text-center align-middle">CONDICIÓN</th>
-                    <th rowspan="2" class="p-1 border border-slate-400 text-center align-middle leading-tight">Jor.<br/>Lab.</th>
-                    <th colSpan="${days.length}" class="p-1 border border-slate-400 text-center tracking-widest bg-red-50 text-red-900 align-middle">DÍAS CALENDARIOS</th>
-                    <th rowspan="2" class="p-1 border border-slate-400 bg-gray-100 text-left align-middle">OBSERVACIONES</th>
-                    ${deleteHeaderHtml}
-                </tr>
-                <tr class="bg-white text-[9px] border border-slate-400">
-            `;
-            days.forEach(d => {
-                const bg = d.isWeekend ? 'bg-red-100 text-red-800' : 'bg-blue-50 text-blue-800';
-                headHTML += `<th class="border border-slate-400 p-0.5 w-5 font-bold ${bg}">${d.day}<br/><span class="text-[6px] font-normal">${d.dayName}</span></th>`;
-            });
-            headHTML += `</tr>`;
-            if (thead) thead.innerHTML = headHTML;
-
-            if (!tbody) return;
-
-            if (appData.empleados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${days.length + (currentRole === 'DIRECTOR' && appData.isSent !== true ? 8 : 7)}" class="p-8 text-center text-slate-400 italic">No hay personal registrado en este formato.</td></tr>`;
-                return;
-            }
-
-            let bodyHTML = '';
-            appData.empleados.forEach((emp, index) => {
-                const sizeDni = Math.max(3, emp.dni ? emp.dni.length : 0);
-                const sizeNombres = Math.max(19, emp.nombres ? emp.nombres.length : 0);
-                const sizeCargo = Math.max(5, emp.cargo ? emp.cargo.length : 0);
-                const sizeCondicion = Math.max(9, emp.condicion ? emp.condicion.length : 0);
-                const sizeJornada = Math.max(4, emp.jornada ? emp.jornada.length : 0);
-
-                let actionCellHtml = '';
-                if (currentRole === 'DIRECTOR' && appData.isSent !== true) {
-                    actionCellHtml = `
-                    <td class="border border-slate-400 p-0.5 no-print align-middle text-center w-8">
-                        <button onclick="confirmRemoveEmployee('${emp.id}')" class="text-red-500 hover:text-red-700 bg-red-50 p-1 rounded transition" title="Eliminar Personal">
-                            <i class="fa-solid fa-trash-can text-[10px]"></i>
-                        </button>
-                    </td>`;
-                }
-
-                bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400 text-[10px]">
-                    <td style="border: 1px solid #94a3b8; min-width: 24px; max-width: 24px;" class="p-1 bg-white text-center align-middle font-bold">${index + 1}</td>
-                    
-                    <td style="border: 1px solid #94a3b8; border-right: 2px solid #64748b; min-width: 65px; max-width: 65px;" class="p-0.5 bg-white text-center align-middle">
-                        <input type="text" maxlength="8" size="${sizeDni}" style="text-transform: uppercase;" ${isReadonly} class="text-center bg-transparent outline-none font-bold text-blue-900 text-[10px] w-full whitespace-nowrap uppercase" value="${emp.dni}" oninput="handleDniLookup('${emp.id}', this.value); adjustInputWidth(this, 3);" />
-                    </td>
-                    
-                    <td style="border: 1px solid #94a3b8; min-width: 150px;" class="p-0.5 bg-white text-left align-middle">
-                        <input type="text" size="${sizeNombres}" style="text-transform: uppercase;" ${isReadonly} class="bg-transparent outline-none font-bold text-slate-800 text-[10px] w-full whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-0.5 truncate uppercase" value="${emp.nombres}" oninput="updateEmp('${emp.id}', 'nombres', this.value); adjustInputWidth(this, 19);" placeholder="Apellidos y Nombres" />
-                    </td>
-                    
-                    <td class="border border-slate-400 p-0.5 text-left align-middle">
-                        <input type="text" size="${sizeCargo}" style="text-transform: uppercase;" ${isReadonly} class="bg-transparent outline-none text-[10px] w-full whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-0.5 truncate uppercase" value="${emp.cargo}" oninput="updateEmp('${emp.id}', 'cargo', this.value); adjustInputWidth(this, 5);" placeholder="Cargo de Función" />
-                    </td>
-                    
-                    <td class="border border-slate-400 p-0.5 text-center align-middle">
-                        <input type="text" size="${sizeCondicion}" style="text-transform: uppercase;" ${isReadonly} class="bg-transparent outline-none text-[10px] text-center w-full whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-0.5 truncate uppercase" value="${emp.condicion}" oninput="updateEmp('${emp.id}', 'condicion', this.value); adjustInputWidth(this, 9);" placeholder="Condición" />
-                    </td>
-                    
-                    <td class="border border-slate-400 p-0.5 text-center align-middle">
-                        <input type="text" size="${sizeJornada}" style="text-transform: uppercase;" ${isReadonly} class="text-center bg-transparent outline-none font-bold text-[10px] w-full whitespace-nowrap uppercase" value="${emp.jornada}" oninput="updateEmp('${emp.id}', 'jornada', this.value); adjustInputWidth(this, 4);" placeholder="Hrs" />
-                    </td>
-                `;
-                days.forEach(d => {
-                    const isWknd = d.isWeekend;
-                    const val = emp.asistencia[d.day] || '';
-                    const bg = isWknd ? 'bg-red-50 text-red-500' : (val ? 'bg-blue-100 font-bold text-blue-900' : 'bg-transparent');
-                    
-                    // Comentarios Emergentes (Tooltips) para T y PS
-                    let hoverTitle = '';
-                    if (val === 'T' || val === 'PS') {
-                        const detail = emp.asistenciaDetalle && emp.asistenciaDetalle[d.day];
-                        if (detail) {
-                            hoverTitle = `Registrado: ${String(detail.horas).padStart(2, '0')}h ${String(detail.minutos).padStart(2, '0')}m`;
-                        } else {
-                            hoverTitle = 'Sin tiempo registrado';
-                        }
-                    }
-
-                    if (isWknd) {
-                        bodyHTML += `<td class="border border-slate-400 p-0 ${bg} align-middle"><span class="block w-full text-center py-1.5 font-bold">-</span></td>`;
-                    } else {
-                        bodyHTML += `<td class="border border-slate-400 p-0 ${bg} align-middle" title="${hoverTitle}">
-                            <input type="text" maxlength="2" style="text-transform: uppercase;" ${isReadonly} class="w-full h-8 p-0 outline-none text-center uppercase bg-transparent text-[10px] font-bold" value="${val}" onchange="updateAsist('${emp.id}', ${d.day}, this.value)" />
-                        </td>`;
-                    }
-                });
-
-                bodyHTML += `
-                    <td class="border border-slate-400 p-0.5 align-middle">
-                        <textarea ${isReadonly} class="bg-transparent outline-none text-[10px] py-0.5 whitespace-normal uppercase leading-tight resize-none overflow-y-auto text-left border-0" style="height: 32px; text-transform: uppercase; font-size: 10px; width: 100%; display: block;" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustObsWidthAndHeight(this);" placeholder="Observaciones" data-id="${emp.id}">${emp.observaciones || ''}</textarea>
-                    </td>
-                    ${actionCellHtml}
-                </tr>`;
-            });
-            tbody.innerHTML = bodyHTML;
-
-            document.querySelectorAll('#bodyAnexo3 input[type="text"]').forEach(input => {
-                adjustInputWidth(input, 4);
-            });
-            document.querySelectorAll('#bodyAnexo3 textarea').forEach(textarea => {
-                adjustObsWidthAndHeight(textarea);
-            });
-        }
-
-        // --- CONSOLIDACIÓN DINÁMICA DE ASISTENCIA A ANEXO 04 ---
-        function calculateAnexo4(emp) {
-            let inasistenciasDias = 0;
-            let permisosSGDias = 0;
-            let huelgaDias = 0;
-            
-            let totalPermisoSGMinutos = 0;
-            
-            // Lista para almacenar de forma cronológica las tardanzas
-            let tardanzasList = [];
-
-            if (emp.asistencia) {
-                // Leer las asistencias y ordenarlas de forma cronológica (del día 1 al 31)
-                const entries = Object.entries(emp.asistencia)
-                    .map(([dayStr, val]) => ({ day: parseInt(dayStr), val: val }))
-                    .sort((a, b) => a.day - b.day);
-
-                entries.forEach(({ day, val }) => {
-                    if (val === 'I' || val === '3T') inasistenciasDias++;
-                    if (val === 'LS' || val === 'PS') permisosSGDias++;
-                    if (val === 'H') huelgaDias++;
-
-                    if (val === 'T') {
-                        let mins = 0;
-                        if (emp.asistenciaDetalle && emp.asistenciaDetalle[day]) {
-                            const det = emp.asistenciaDetalle[day];
-                            mins = (parseInt(det.horas) || 0) * 60 + (parseInt(det.minutos) || 0);
-                        }
-                        tardanzasList.push({ day: day, minutes: mins });
-                    }
-
-                    if (val === 'PS' && emp.asistenciaDetalle && emp.asistenciaDetalle[day]) {
-                        const det = emp.asistenciaDetalle[day];
-                        totalPermisoSGMinutos += (parseInt(det.horas) || 0) * 60 + (parseInt(det.minutos) || 0);
-                    }
-                });
-            }
-
-            // Aplicar la regla de negocio: cada 3 Tardanzas (T) acumuladas se convierten en 1 Falta
-            const numTardanzas = tardanzasList.length;
-            const extraFaltas = Math.floor(numTardanzas / 3);
-            inasistenciasDias += extraFaltas;
-
-            // Las primeras 3*extraFaltas tardanzas se ignoran cronológicamente (ya son falta)
-            // Solo sumamos horas y minutos de las remanentes (las últimas de la lista)
-            let totalTardanzaMinutos = 0;
-            const startIndex = extraFaltas * 3;
-            for (let i = startIndex; i < numTardanzas; i++) {
-                totalTardanzaMinutos += tardanzasList[i].minutes;
-            }
-
-            const tardanzasH = Math.floor(totalTardanzaMinutos / 60);
-            const tardanzasM = totalTardanzaMinutos % 60;
-
-            const permisosSGH = Math.floor(totalPermisoSGMinutos / 60);
-            const permisosSGM = totalPermisoSGMinutos % 60;
-
-            return { 
-                inasistenciasDias, 
-                permisosSGDias, 
-                huelgaDias,
-                tardanzasH: totalTardanzaMinutos > 0 ? tardanzasH : 0,
-                tardanzasM: totalTardanzaMinutos > 0 ? tardanzasM : 0,
-                permisosSGH: totalPermisoSGMinutos > 0 ? permisosSGH : 0,
-                permisosSGM: totalPermisoSGMinutos > 0 ? permisosSGM : 0
-            };
-        }
-
-        function renderAnexo4() {
-            const tbody = document.getElementById('bodyAnexo4');
-            const isReadonly = currentRole === 'ADMIN' ? 'readonly' : '';
-            if (!tbody) return;
-
-            if (appData.empleados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="14" class="p-8 text-center text-slate-400 italic">No hay personal para consolidar.</td></tr>`;
-                return;
-            }
-
-            let bodyHTML = '';
-            appData.empleados.forEach((emp, index) => {
-                const calcs = calculateAnexo4(emp);
-
-                // El Anexo 4 es puramente estático y de solo lectura (No interactivo)
-                bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400 bg-slate-100/50">
-                    <td class="border border-slate-400 p-2 font-bold text-center align-middle bg-slate-200/55">${index + 1}</td>
-                    <td class="border border-slate-400 p-2 font-bold text-blue-900 text-center align-middle uppercase">${emp.dni}</td>
-                    <td class="border border-slate-400 p-2 text-left font-bold text-slate-800 align-middle leading-normal text-nowrap uppercase">${emp.nombres}</td>
-                    <td class="border border-slate-400 p-2 text-left text-xs align-middle leading-normal text-nowrap uppercase">${emp.cargo}</td>
-                    <td class="border border-slate-400 p-2 text-center text-xs align-middle leading-normal text-nowrap uppercase">${emp.condicion}</td>
-                    <td class="border border-slate-400 p-2 font-bold text-center align-middle uppercase">${emp.jornada}</td>
-                    
-                    <td class="border border-slate-400 p-2 bg-red-100 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias || '0'}</td>
-                    
-                    <td class="border border-slate-400 p-2 bg-amber-50 font-bold text-amber-900 text-center align-middle">${String(calcs.tardanzasH).padStart(2, '0')}</td>
-                    <td class="border border-slate-400 p-2 bg-amber-50 font-bold text-amber-900 text-center align-middle">${String(calcs.tardanzasM).padStart(2, '0')}</td>
-                    
-                    <td class="border border-slate-400 p-2 bg-blue-50 font-semibold text-blue-900 text-center align-middle">${String(calcs.permisosSGH).padStart(2, '0')}</td>
-                    <td class="border border-slate-400 p-2 bg-blue-50 font-semibold text-blue-900 text-center align-middle">${String(calcs.permisosSGM).padStart(2, '0')}</td>
-                    <td class="border border-slate-400 p-2 bg-blue-100 font-bold text-blue-700 text-center align-middle">${calcs.permisosSGDias || '0'}</td>
-                    
-                    <td class="border border-slate-400 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.huelgaDias}</td>
-                    <td class="border border-slate-400 p-2 text-left text-[10px] uppercase align-middle bg-white leading-tight whitespace-normal break-words max-w-[200px] font-semibold text-slate-700">${emp.observaciones || ''}</td>
-                </tr>`;
-            });
-            tbody.innerHTML = bodyHTML;
-        }
-
-        // --- SISTEMAS DE COPIA DEL REPORTE PARA EL SIGUIENTE MES ---
-        function getNextMonth(mesAnoStr) {
-            if (!mesAnoStr) return "";
-            let [year, month] = mesAnoStr.split('-').map(Number);
-            month++;
-            if (month > 12) {
-                month = 1;
-                year++;
-            }
-            return `${year}-${String(month).padStart(2, '0')}`;
-        }
-
-        function copyReportForNextMonth() {
-            const nextMonth = getNextMonth(appData.mesAno);
-            
-            // Conservar información de filiación del personal pero limpiar marcas, acumulados y observaciones
-            const copiedEmployees = appData.empleados.map(emp => ({
-                id: generateId(),
-                dni: emp.dni || '',
-                nombres: emp.nombres || '',
-                cargo: emp.cargo || '',
-                condicion: emp.condicion || '',
-                jornada: emp.jornada || '',
-                asistencia: {},
-                asistenciaDetalle: {},
-                tardanzasH: '',
-                tardanzasM: '',
-                permisosSGH: '',
-                permisosSGM: '',
-                huelgaParoDias: '',
-                observaciones: ''
-            }));
-
-            // Generar nueva estructura de reporte de borrador para el siguiente mes
-            appData = {
-                id: 'REP_' + Date.now(),
-                codigoModular: appData.codigoModular || '',
-                dreUgel: appData.dreUgel || '',
-                mesAno: nextMonth,
-                ie: appData.ie || '',
-                lugar: appData.lugar || '',
-                nivel: appData.nivel || '',
-                distrito: appData.distrito || '',
-                empleados: copiedEmployees,
-                isSaved: false,
-                isSent: false
-            };
-
-            // Forzar actualización visual de cabeceras en el DOM
-            document.getElementById('meta-cod').value = appData.codigoModular;
-            document.getElementById('meta-dre').value = appData.dreUgel;
-            document.getElementById('meta-mes').value = appData.mesAno;
-            document.getElementById('meta-ie').value = appData.ie;
-            document.getElementById('meta-lugar').value = appData.lugar;
-            document.getElementById('meta-nivel').value = appData.nivel;
-            document.getElementById('meta-distrito').value = appData.distrito;
-
-            applyDirectorFieldsLock();
-            renderTables();
-            updateEditorButtons();
-            showToast(`Copia creada con éxito para el mes de ${nextMonth}. El registro se encuentra vacío y listo para rellenar.`, "success");
-        }
-
-        // --- GESTIÓN DINÁMICA DE BOTONES EN EL EDITOR ---
-        function updateEditorButtons() {
-            const container = document.getElementById('editorButtonsContainer');
-            if (!container) return;
-
-            let html = '';
-            
-            // Mostrar u ocultar el botón de exportación a Excel dependiendo de si hay personal registrado (Solo visible para Administrador, nunca para Director)
-            const btnExport = document.getElementById('btnExport');
-            if (btnExport) {
-                if (currentRole === 'ADMIN' && appData && appData.empleados && appData.empleados.length > 0) {
-                    btnExport.classList.remove('hidden');
-                } else {
-                    btnExport.classList.add('hidden');
-                }
-            }
-            
-            if (currentRole === 'DIRECTOR') {
-                if (appData.isSent !== true) {
-                    // Botón Guardar en Nube (Siempre visible si no ha sido enviado)
-                    html += `
-                        <button id="btnSaveCloud" onclick="saveToSheets(false)" class="bg-blue-600 text-white font-black px-6 py-2.5 rounded-lg text-xs flex items-center gap-2 hover:bg-blue-700 transition shadow-md">
-                            <i class="fa-solid fa-cloud-arrow-up"></i> Guardar en Nube
-                        </button>
-                    `;
-                    // Botón Enviar a UGEL (Solo habilitado si ya se guardó al menos una vez en borrador)
-                    if (appData.isSaved === true) {
-                        html += `
-                            <button id="btnSendUgel" onclick="confirmSendToUgel()" class="bg-red-700 text-white font-black px-6 py-2.5 rounded-lg text-xs flex items-center gap-2 hover:bg-red-800 transition shadow-md">
-                                <i class="fa-solid fa-paper-plane"></i> Enviar a UGEL
-                            </button>
-                        `;
-                    }
-                } else {
-                    // Si ya fue enviado, mostramos el botón Copia de Anexo 3 y 4
-                    html += `
-                        <button id="btnCopyReport" onclick="copyReportForNextMonth()" class="bg-indigo-600 text-white font-black px-6 py-2.5 rounded-lg text-xs flex items-center gap-2 hover:bg-indigo-700 transition shadow-md">
-                            <i class="fa-solid fa-copy"></i> Copia de Anexo 3 y 4
-                        </button>
-                    `;
-                }
-            }
-            container.innerHTML = html;
-        }
-
-        // --- SISTEMA DE DIÁLOGO DE ENVÍO A UGEL ---
-        function confirmSendToUgel() {
-            document.getElementById('modalConfirmSend').classList.remove('hidden');
-        }
-
-        async function closeSendModal(confirm) {
-            document.getElementById('modalConfirmSend').classList.add('hidden');
-            if (confirm) {
-                appData.isSent = true;
-                appData.isSaved = true;
-                await saveToSheets(false);
-                applyDirectorFieldsLock();
-                renderTables();
-                updateEditorButtons();
-                showToast("¡Enviado con éxito! El reporte ha sido recibido por la UGEL y bloqueado para edición.", "success");
-            }
-        }
-
-        // --- GOOGLE SHEETS API Y CONFIGURACIÓN ---
-        function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
-        
-        function saveConfig() {
-            const url = document.getElementById('inputSheetsUrl').value.trim();
-            const urlIe = document.getElementById('inputCsvIe').value.trim();
-            const urlPersonal = document.getElementById('inputCsvPersonal').value.trim();
-            
-            localStorage.setItem('minedu_sheets_db_url', url);
-            localStorage.setItem('minedu_csv_ie', urlIe);
-            localStorage.setItem('minedu_csv_personal', urlPersonal);
-            
-            googleSheetsUrl = url;
-            csvIeUrl = urlIe;
-            csvPersonalUrl = urlPersonal;
-            
-            showToast("Bases vinculadas y guardadas. Cargando...", "success");
-            loadCsvDbs();
-            updateCloudStatus();
-            toggleModal('modalConfig');
-            loadFromSheets(true);
-        }
-
-        function updateCloudStatus(statusStr = '') {
-            const status = document.getElementById('cloud-status');
-            if (!status) return;
-            if (statusStr === 'syncing') {
-                status.innerHTML = `<i class="fa-solid fa-arrows-rotate fa-spin text-blue-500"></i> <span class="text-blue-600">Guardando...</span>`;
-            } else if (googleSheetsUrl) {
-                status.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> <span class="text-green-700">${currentRole === 'ADMIN' ? 'Modo UGEL' : 'Guardado en Sheets'}</span>`;
-            } else {
-                status.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> <span class="text-red-600">Base no vinculada</span>`;
-            }
-        }
-
+        // --- GOOGLE SHEETS SYNC & AUTOMATIC SAVE ---
         function triggerAutoSave() {
-            // Desactivado de forma absoluta para prevenir guardar reportes incompletos o vacíos.
-        }
-
-        function closeSavingModal() {
-            document.getElementById('modalSaving').classList.add('hidden');
+            if (!googleSheetsUrl || appData.isSent) return;
+            updateCloudStatus('saving');
+            clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(() => {
+                saveToSheets(true);
+            }, 1500);
         }
 
         async function saveToSheets(isSilent = false) {
-            if (currentRole === 'ADMIN') return;
-            if (!googleSheetsUrl) {
-                if (!isSilent) showToast("Primero debe vincular la base de datos", "error");
-                return;
-            }
-            
-            const codModularVal = (appData.codigoModular || "").trim();
-            if (codModularVal.length !== 7) {
-                if (!isSilent) {
-                    showToast("El Código Modular de la I.E. debe tener exactamente 7 caracteres para guardar.", "error");
-                } else {
-                    updateCloudStatus(); 
-                }
-                return; 
-            }
-            
-            if (appData.codigoModular && appData.mesAno) {
-                const duplicate = reportsDatabase.find(r => 
-                    String(r.codigoModular).trim() === String(appData.codigoModular).trim() && 
-                    String(r.mesAno).trim() === String(appData.mesAno).trim() && 
-                    String(r.id).trim() !== String(appData.id).trim()
-                );
-                
-                if (duplicate) {
-                    updateCloudStatus();
-                    showToast(`Ya existe un reporte registrado en la base de datos para esta Institución Educativa en el mes seleccionado (${appData.mesAno}). No se permiten registros duplicados.`, "error");
-                    return; 
-                }
-            }
-            
-            if (!isSilent) {
-                document.getElementById('savingSpinner').classList.remove('hidden');
-                document.getElementById('modalSaving').classList.remove('hidden');
-                
-                appData.isSaved = true;
-            } else {
-                updateCloudStatus('syncing');
-            }
-
-            const index = reportsDatabase.findIndex(r => r.id === appData.id);
-            if (index !== -1) {
-                reportsDatabase[index] = appData;
-            } else {
-                reportsDatabase.push(appData);
-            }
+            if (!googleSheetsUrl) return;
+            if (!isSilent) showToast("Sincronizando con Google Sheets...", "info");
+            updateCloudStatus('saving');
 
             try {
                 const res = await fetch(googleSheetsUrl, {
                     method: 'POST',
                     body: JSON.stringify(appData)
                 });
-                const data = await res.json();
-                
-                if (data.status === "success") {
-                    updateCloudStatus();
-                    applyDirectorFieldsLock(); 
-                    
-                    if (!isSilent) {
-                        closeSavingModal();
-                        showToast("¡Guardado exitoso! El reporte de asistencia ha sido sincronizado correctamente con Google Sheets.", "success");
-                    }
-                    updateEditorButtons(); // Actualiza dinámicamente los botones tras el guardado
+                const responseData = await res.json();
+                if (responseData.status === "success") {
+                    updateCloudStatus('synced');
+                    if (!isSilent) showToast("¡Sincronización Exitosa!", "success");
                 } else {
-                    updateCloudStatus();
-                    if (!isSilent) {
-                        appData.isSaved = false;
-                        applyDirectorFieldsLock();
-                        closeSavingModal();
-                        showToast("Error al guardar: La hoja de cálculo devolvió una respuesta inesperada.", "error");
-                    }
+                    updateCloudStatus('error');
+                    if (!isSilent) showToast("Error al guardar en la nube", "error");
                 }
-            } catch (err) {
-                updateCloudStatus();
-                if (!isSilent) {
-                    appData.isSaved = false;
-                    applyDirectorFieldsLock();
-                    closeSavingModal();
-                    showToast("Error de conexión: No se pudo establecer conexión con Google Sheets.", "error");
-                }
+            } catch (e) {
+                updateCloudStatus('error');
+                if (!isSilent) showToast("No se pudo conectar con Google Sheets", "error");
             }
         }
 
-        let isLoadingReports = false;
+        function updateCloudStatus(status = 'default') {
+            const badge = document.getElementById('cloud-status');
+            if (status === 'saving') {
+                badge.innerHTML = `<i class="fa-solid fa-arrows-rotate fa-spin text-blue-600"></i> <span class="text-blue-600">Guardando...</span>`;
+            } else if (status === 'synced' || googleSheetsUrl) {
+                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> <span class="text-green-600">Sincronizado</span>`;
+            } else {
+                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> <span class="text-red-600">Local (Sin Vincular)</span>`;
+            }
+        }
 
-        async function loadFromSheets(isSilent = false) {
-            if (!googleSheetsUrl) {
-                if(!isSilent) toggleModal('modalConfig');
-                renderDashboard();
+        // --- EXPORTAR A EXCEL (EXCLUSIVO ADMINISTRADOR UGEL) ---
+        function exportToExcel() {
+            if (appData.empleados.length === 0) {
+                showToast("No hay datos para exportar.", "error");
                 return;
             }
             
-            isLoadingReports = true;
-            document.getElementById('loadingOverlay').classList.remove('hidden');
-
-            if (!isSilent) showToast("Descargando base de datos...", "info");
-            try {
-                const res = await fetch(googleSheetsUrl);
-                const data = await res.json();
-                
-                if (data && Array.isArray(data.reports)) {
-                    reportsDatabase = data.reports;
-                    updateCloudStatus();
-                    if (!isSilent) showToast("Base de datos sincronizada", "success");
-                } else {
-                    reportsDatabase = [];
-                    if (!isSilent) showToast("La base de datos está vacía", "info");
-                }
-            } catch (err) {
-                if (!isSilent) showToast("Error de conexión al descargar", "error");
-            }
-            
-            isLoadingReports = false;
-            document.getElementById('loadingOverlay').classList.add('hidden');
-            renderDashboard(); 
-        }
-
-        // --- EXPORTAR EXCEL ---
-        function exportSingleReport(reportId) {
-            const report = reportsDatabase.find(r => r.id === reportId);
-            if (!report) return;
-            
             let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
-            csvContent += `DRE/UGEL:,${report.dreUgel || ''},,MES Y AÑO:,${report.mesAno || ''}\n`;
-            csvContent += `INSTITUCION EDUCATIVA:,${report.ie || ''},,LUGAR:,${report.lugar || ''}\n`;
-            csvContent += `CODIGO MODULAR:,${report.codigoModular || ''},,NIVEL:,${report.nivel || ''}\n\n`;
+            csvContent += `DRE/UGEL:,${appData.dreUgel},,MES Y AÑO:,${appData.mesAno}\n`;
+            csvContent += `INSTITUCION EDUCATIVA:,${appData.ie},,LUGAR:,${appData.lugar}\n`;
+            csvContent += `CODIGO MODULAR:,${appData.codigoModular},,NIVEL:,${appData.nivel}\n\n`;
             csvContent += "N°,DNI,APELLIDOS Y NOMBRES,CARGO,CONDICIÓN,Jor. Lab.,Inasistencias (Dias),Tardanzas (Horas),Tardanzas (Minutos),Permisos SG (Horas),Permisos SG (Minutos),Permisos SG (Dias),Huelga/Paro (Dias),Observaciones\n";
             
-            if (report.empleados) {
-                report.empleados.forEach((emp, index) => {
-                    let inasist = 0; let permisos = 0; let huelga = 0;
-                    if(emp.asistencia) {
-                        Object.values(emp.asistencia).forEach(v => {
-                            if(v==='I' || v==='3T') inasist++;
-                            if(v==='LS' || v==='PS') permisos++;
-                            if(v==='H') huelga++;
-                        });
-                    }
-                    
-                    const totalTardanzasMins = parseInt(emp.tardanzasM) || 0;
-                    const tardanzasH = Math.floor(totalTardanzasMins / 60);
-                    const tardanzasM = totalTardanzasMins % 60;
-                    
-                    csvContent += `${index + 1},${emp.dni},"${emp.nombres}","${emp.cargo}","${emp.condicion}",${emp.jornada},${inasist},${totalTardanzasMins > 0 ? tardanzasH : 0},${totalTardanzasMins > 0 ? tardanzasM : 0},0,0,${permisos},${huelga},"${emp.observaciones || ''}"\n`;
+            appData.empleados.forEach((emp, index) => {
+                let inasistenciasDias = 0;
+                let permisosSGDias = 0;
+                Object.values(emp.asistencia).forEach(val => {
+                    if (val === 'I' || val === '3T') inasistenciasDias++;
+                    if (val === 'LS') permisosSGDias++;
                 });
-            }
 
-            const encodedUri = encodeURI(csvContent);
+                csvContent += `${index + 1},${emp.dni},"${emp.nombres}",${emp.cargo},${emp.condicion},${emp.jornada},${inasistenciasDias},${emp.tardanzasH || 0},${emp.tardanzasM || 0},${emp.permisosSGH || 0},${emp.permisosSGM || 0},${permisosSGDias},${emp.huelgaParoDias || 0},"${emp.observaciones || ''}"\n`;
+            });
+
             const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `Consolidado_UGEL_${(report.ie || 'IE').replace(new RegExp(' ', 'g'), '_')}_${report.mesAno}.csv`);
+            link.setAttribute("href", encodeURI(csvContent));
+            link.setAttribute("download", `Reporte_UGEL_${(appData.ie || 'IE').replace(/ /g, "_")}_${appData.mesAno}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             showToast("Reporte exportado correctamente", "success");
         }
 
-        function exportarExcel() {
-            if (appData && appData.id) {
-                exportSingleReport(appData.id);
-            }
-        }
-
-        function showToast(msg, type) {
+        // --- BANNER DE NOTIFICACIÓN TIPO TOAST (MANDATORIO: SIN ALERTS) ---
+        function showToast(msg, type = 'success') {
             const toast = document.getElementById('toast');
             const iconContainer = document.getElementById('toastIconContainer');
             const icon = document.getElementById('toastIcon');
             const messageEl = document.getElementById('toastMessage');
-            if (!toast || !messageEl || !iconContainer || !icon) return;
 
             messageEl.innerText = msg;
             
             if (type === 'error') {
-                iconContainer.className = "flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-600 shrink-0";
+                iconContainer.className = "flex items-center justify-center w-5.5 h-5.5 rounded-full bg-red-100 text-red-600 shrink-0 p-1";
                 icon.className = "fa-solid fa-circle-xmark";
             } else if (type === 'success') {
-                iconContainer.className = "flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-600 shrink-0";
+                iconContainer.className = "flex items-center justify-center w-5.5 h-5.5 rounded-full bg-green-100 text-green-600 shrink-0 p-1";
                 icon.className = "fa-solid fa-circle-check";
             } else {
-                iconContainer.className = "flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 shrink-0";
+                iconContainer.className = "flex items-center justify-center w-5.5 h-5.5 rounded-full bg-blue-100 text-blue-600 shrink-0 p-1";
                 icon.className = "fa-solid fa-circle-info";
             }
 
@@ -1705,21 +832,11 @@
             toast.classList.add('translate-y-0', 'opacity-100');
 
             if (window.toastTimeout) clearTimeout(window.toastTimeout);
-
             window.toastTimeout = setTimeout(() => {
                 toast.classList.remove('translate-y-0', 'opacity-100');
                 toast.classList.add('-translate-y-20', 'opacity-0');
-            }, 3000);
+            }, 3500);
         }
-
-        // Asignación de carga inicial y eventos diferidos tras la declaración completa de funciones
-        window.onload = () => {
-            initMesAno();
-            document.getElementById('inputSheetsUrl').value = googleSheetsUrl;
-            document.getElementById('inputCsvIe').value = csvIeUrl;
-            document.getElementById('inputCsvPersonal').value = csvPersonalUrl;
-            loadCsvDbs(); 
-        };
     </script>
 </body>
 </html>
