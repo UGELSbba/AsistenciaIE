@@ -196,9 +196,9 @@
                             <button id="btnExport" onclick="exportarExcel()" class="hidden bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold px-4 py-2.5 rounded-lg text-xs flex items-center gap-2 hover:bg-emerald-100 transition" title="Descargar en Excel">
                                 <i class="fa-solid fa-file-csv"></i> Excel
                             </button>
-                            <button id="btnSaveCloud" onclick="saveToSheets(false)" class="bg-blue-600 text-white font-black px-6 py-2.5 rounded-lg text-xs flex items-center gap-2 hover:bg-blue-700 transition shadow-md">
-                                <i class="fa-solid fa-cloud-arrow-up"></i> Guardar en Nube
-                            </button>
+                            
+                            <!-- CONTENEDOR DINÁMICO DE BOTONES DE ACCIÓN -->
+                            <div id="editorButtonsContainer" class="flex gap-2"></div>
                         </div>
                     </div>
 
@@ -244,7 +244,7 @@
                         </div>
                     </div>
 
-                    <!-- CONTENEDOR DE TABLAR (ANEXOS) -->
+                    <!-- CONTENEDOR DE TABLAS (ANEXOS) -->
                     <div id="viewAnexo3" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                         <div class="p-4 bg-gray-50 border-b border-gray-200 flex flex-wrap justify-between items-center gap-2 no-print">
                             <div>
@@ -323,7 +323,7 @@
                         </div>
 
                         <div class="overflow-x-auto custom-scrollbar p-4">
-                            <!-- Tabla de consolidado estrictamente estática y de solo lectura -->
+                            <!-- Agregado border-slate-400 para que se dibuje la grilla del Anexo 4 -->
                             <table class="w-full text-xs border border-slate-400 border-collapse text-center print-table table-auto whitespace-nowrap">
                                 <thead>
                                     <tr class="bg-blue-50 text-blue-900 font-bold">
@@ -422,7 +422,22 @@
         </div>
     </div>
 
-    <!-- MODAL GUARDANDO EN NUBE -->
+    <!-- MODAL CONFIRMACION ENVIAR A UGEL (SI/NO DE BLOQUEO) -->
+    <div id="modalConfirmSend" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4 z-[115] hidden animate-fade-in">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-150 flex flex-col gap-4 text-center">
+            <div class="text-red-700 text-4xl mb-2">
+                <i class="fa-solid fa-circle-exclamation animate-pulse"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-800">¿Desea enviar este reporte a la UGEL?</h3>
+            <p class="text-xs text-gray-500 font-medium">Una vez enviado oficialmente, el reporte se bloqueará y no podrá editarse.</p>
+            <div class="flex justify-center gap-3 mt-2">
+                <button onclick="closeSendModal(false)" class="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-lg text-xs transition">NO</button>
+                <button onclick="closeSendModal(true)" class="px-5 py-2 bg-red-700 hover:bg-red-800 text-white font-bold rounded-lg text-xs transition shadow-md">SÍ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL GUARDANDO EN NUBE (SOLO CON CARGADOR CIRCULAR, SE CIERRA AUTOMÁTICAMENTE AL TERMINAR) -->
     <div id="modalSaving" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4 z-[120] hidden animate-fade-in">
         <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-150 flex flex-col gap-4 text-center">
             <div id="savingSpinner" class="text-blue-600 text-4xl mb-2">
@@ -433,7 +448,7 @@
         </div>
     </div>
 
-    <!-- OVERLAY CARGADOR FLOTANTE -->
+    <!-- OVERLAY CARGADOR FLOTANTE DE HISTÓRICOS -->
     <div id="loadingOverlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-[130] hidden">
         <div class="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center gap-3 border border-gray-150 animate-fade-in">
             <div class="text-blue-600 text-4xl animate-spin">
@@ -443,7 +458,7 @@
         </div>
     </div>
 
-    <!-- TOAST NOTIFICATION -->
+    <!-- TOAST NOTIFICATION CENTRADA EN LA PARTE SUPERIOR (CIERRE AUTOMÁTICO, SIN BOTONES) -->
     <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 bg-white text-slate-800 border border-slate-200 py-3 px-6 rounded-full shadow-2xl flex items-center gap-3 text-xs font-semibold transition-all duration-300 transform -translate-y-24 opacity-0 z-[250] pointer-events-none">
         <div id="toastIconContainer" class="flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-600 shrink-0">
             <i id="toastIcon" class="fa-solid fa-circle-check"></i>
@@ -504,7 +519,8 @@
             codigoModular: '', dreUgel: 'UGEL 03', mesAno: '2026-05',
             ie: '', lugar: '', nivel: '', distrito: '',
             empleados: [],
-            isSaved: false 
+            isSaved: false,
+            isSent: false // Estado de envío a UGEL
         };
         let activeTab = 'ANEXO3';
         let activeTimePickerCell = { empId: null, day: null, type: '' };
@@ -513,14 +529,6 @@
         let googleSheetsUrl = localStorage.getItem('minedu_sheets_db_url') || "";
         let csvIeUrl = localStorage.getItem('minedu_csv_ie') || "";
         let csvPersonalUrl = localStorage.getItem('minedu_csv_personal') || "";
-
-        window.onload = () => {
-            initMesAno();
-            document.getElementById('inputSheetsUrl').value = googleSheetsUrl;
-            document.getElementById('inputCsvIe').value = csvIeUrl;
-            document.getElementById('inputCsvPersonal').value = csvPersonalUrl;
-            loadCsvDbs(); 
-        };
 
         // --- PARSER Y CARGA DE CSVS ---
         function parseCSV(text) {
@@ -592,7 +600,7 @@
                                 if(rows[i][iDni]) {
                                     dbPersonal[rows[i][iDni].trim()] = {
                                         nombres: iNom!==-1 ? rows[i][iNom] : '',
-                                        cargo: iCargo!==-1 ? rows[i][iCargo] : '', 
+                                        cargo: iCargo!==-1 ? rows[i][iNom] : '', 
                                         condicion: iCond!==-1 ? rows[i][iCond] : '',
                                         jornada: iJor!==-1 ? rows[i][iJor] : ''
                                     };
@@ -661,6 +669,13 @@
             document.getElementById('editorSection').classList.add('hidden');
 
             let filteredReports = reportsDatabase;
+            
+            // FILTRADO ESTRICTO DE SEGURIDAD:
+            // El Administrador de la UGEL solo puede ver reportes que hayan sido oficialmente ENVIADOS (isSent === true)
+            if (currentRole === 'ADMIN') {
+                filteredReports = filteredReports.filter(rep => rep.isSent === true);
+            }
+            
             if (filterCodQuery) filteredReports = filteredReports.filter(rep => rep.codigoModular && rep.codigoModular.includes(filterCodQuery));
             if (filterMonthQuery) filteredReports = filteredReports.filter(rep => rep.mesAno && rep.mesAno === filterMonthQuery);
 
@@ -671,8 +686,19 @@
 
             let html = '';
             filteredReports.forEach((rep, idx) => {
-                const btnText = currentRole === 'ADMIN' ? 'Visualizar Anexos' : 'Editar';
-                const btnColor = currentRole === 'ADMIN' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-blue-600 hover:bg-blue-700';
+                // Si el reporte ya fue enviado, la acción del director pasa de ser "Editar" a "Ver reporte"
+                const isSent = rep.isSent === true;
+                const btnText = currentRole === 'ADMIN' ? 'Visualizar Anexos' : (isSent ? 'Ver reporte' : 'Editar');
+                const btnColor = currentRole === 'ADMIN' ? 'bg-indigo-600 hover:bg-indigo-700' : (isSent ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700');
+
+                let adminButtons = '';
+                if (currentRole === 'ADMIN') {
+                    adminButtons = `
+                        <button onclick="exportSingleReport('${rep.id}')" class="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-emerald-700 transition" title="Exportar a Excel">Excel</button>
+                        <button onclick="printReportFromDashboard('${rep.id}', 'ANEXO3')" class="bg-blue-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-blue-700 transition" title="Imprimir Anexo 03"><i class="fa-solid fa-print"></i> A3</button>
+                        <button onclick="printReportFromDashboard('${rep.id}', 'ANEXO4')" class="bg-red-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-red-700 transition" title="Imprimir Anexo 04"><i class="fa-solid fa-print"></i> A4</button>
+                    `;
+                }
 
                 html += `<tr class="border-b border-gray-150 hover:bg-slate-50 transition">
                     <td class="p-4">
@@ -684,11 +710,7 @@
                     <td class="p-4 text-center">
                         <div class="flex justify-center gap-2">
                             <button onclick="openReport('${rep.id}')" class="${btnColor} text-white font-bold px-3.5 py-1.5 rounded-lg text-xs transition">${btnText}</button>
-                            ${currentRole === 'ADMIN' ? `
-                            <button onclick="exportSingleReport('${rep.id}')" class="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-emerald-700 transition" title="Exportar a Excel">Excel</button>
-                            <button onclick="printReportFromDashboard('${rep.id}', 'ANEXO3')" class="bg-blue-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-blue-700 transition" title="Imprimir Anexo 03"><i class="fa-solid fa-print"></i> A3</button>
-                            <button onclick="printReportFromDashboard('${rep.id}', 'ANEXO4')" class="bg-red-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-red-700 transition" title="Imprimir Anexo 04"><i class="fa-solid fa-print"></i> A4</button>
-                            ` : ''}
+                            ${adminButtons}
                         </div>
                     </td>
                 </tr>`;
@@ -750,16 +772,23 @@
             if (currentRole !== 'DIRECTOR') return;
 
             const isSaved = appData.isSaved === true;
+            const isSent = appData.isSent === true;
             const codInput = document.getElementById('meta-cod');
             const mesInput = document.getElementById('meta-mes');
 
-            if (isSaved) {
+            if (isSaved || isSent) {
                 codInput.readOnly = true;
                 codInput.className = 'border border-gray-300 rounded-lg px-3 py-1.5 outline-none bg-gray-100 text-gray-500 cursor-not-allowed w-44 font-bold uppercase';
                 mesInput.readOnly = true;
                 mesInput.className = 'border border-blue-300 rounded-lg px-3 py-2 bg-gray-100 text-gray-500 cursor-not-allowed outline-none font-bold w-full';
                 const hint = document.getElementById('hintCodModular');
-                if(hint) hint.innerHTML = `<i class="fa-solid fa-lock text-red-600"></i> Código Modular y Mes Bloqueados. El reporte ya ha sido guardado en la nube.`;
+                if(hint) {
+                    if (isSent) {
+                        hint.innerHTML = `<i class="fa-solid fa-lock text-red-600"></i> Reporte ENVIADO a la UGEL. Bloqueado de forma permanente.`;
+                    } else {
+                        hint.innerHTML = `<i class="fa-solid fa-lock text-red-600"></i> Código Modular y Mes Bloqueados. El reporte ya ha sido guardado en la nube.`;
+                    }
+                }
             } else {
                 codInput.readOnly = false;
                 codInput.className = 'border border-gray-300 rounded-lg px-3 py-1.5 outline-none focus:border-red-500 w-44 bg-white font-bold text-red-900 uppercase';
@@ -785,7 +814,7 @@
             appData = {
                 id: 'REP_' + Date.now(),
                 codigoModular: '', dreUgel: '', mesAno: `${today.getFullYear()}-${month}`,
-                ie: '', lugar: '', nivel: '', distrito: '', empleados: [], isSaved: false 
+                ie: '', lugar: '', nivel: '', distrito: '', empleados: [], isSaved: false, isSent: false
             };
             document.getElementById('meta-cod').value = '';
             document.getElementById('meta-dre').value = '';
@@ -883,10 +912,6 @@
             document.getElementById('modalConfirmDelete').classList.add('hidden');
         }
 
-        window.confirmRemoveEmployee = confirmRemoveEmployee;
-        window.executeDelete = executeDelete;
-        window.closeDeleteModal = closeDeleteModal;
-
         function updateEmp(id, field, value) {
             if (currentRole === 'ADMIN') return;
             const emp = appData.empleados.find(e => e.id === id);
@@ -925,16 +950,16 @@
             if (emp) {
                 if (save) {
                     const horas = document.getElementById('timePickerHoras').value.trim();
-                    const minutos = document.getElementById('timePickerMinutos').value.trim();
+                    const minutes = document.getElementById('timePickerMinutos').value.trim();
                     
                     if (!emp.asistenciaDetalle) emp.asistenciaDetalle = {};
                     
                     emp.asistenciaDetalle[day] = { 
                         horas: parseInt(horas) || 0, 
-                        minutos: parseInt(minutos) || 0 
+                        minutos: parseInt(minutes) || 0 
                     };
                     emp.asistencia[day] = type;
-                    showToast(`Tiempo guardado para el día ${day}: ${horas || 0}h ${minutos || 0}m`, "success");
+                    showToast(`Tiempo guardado para el día ${day}: ${horas || 0}h ${minutes || 0}m`, "success");
                 } else {
                     if (!emp.asistenciaDetalle || !emp.asistenciaDetalle[day]) {
                         emp.asistencia[day] = '';
@@ -1011,7 +1036,6 @@
             }
         }
 
-        // --- BÚSQUEDA DE DNI ---
         function handleDniLookup(id, val) {
             if (currentRole === 'ADMIN') return;
             updateEmp(id, 'dni', val);
@@ -1037,6 +1061,7 @@
             input.setAttribute('size', calculatedSize);
         }
 
+        // Autoajusta fuente y scroll de Textareas para observaciones en la grilla
         function adjustObsWidthAndHeight(textarea) {
             if (!textarea) return;
             textarea.value = textarea.value.toUpperCase();
@@ -1092,8 +1117,19 @@
             const days = getMonthDays();
             const thead = document.getElementById('headAnexo3');
             const tbody = document.getElementById('bodyAnexo3');
-            const isReadonly = currentRole === 'ADMIN' ? 'readonly' : '';
+            const isReadonly = currentRole === 'ADMIN' || appData.isSent === true ? 'readonly' : '';
             
+            // Ocultar botón de agregar personal en modo de solo lectura / enviado
+            const btnAddStaff = document.getElementById('btnAddStaff');
+            if (btnAddStaff) {
+                if (isReadonly) btnAddStaff.classList.add('hidden');
+                else btnAddStaff.classList.remove('hidden');
+            }
+
+            const deleteHeaderHtml = (currentRole === 'DIRECTOR' && appData.isSent !== true) 
+                ? '<th rowspan="2" class="p-1 no-print border border-slate-400 text-center align-middle">X</th>' 
+                : '';
+
             let headHTML = `
                 <tr class="bg-blue-50 text-blue-900 font-bold border border-slate-400">
                     <th rowspan="2" style="border: 1px solid #94a3b8; min-width: 24px; max-width: 24px;" class="p-1 bg-blue-50 text-center align-middle">N°</th>
@@ -1104,7 +1140,7 @@
                     <th rowspan="2" class="p-1 border border-slate-400 text-center align-middle leading-tight">Jor.<br/>Lab.</th>
                     <th colSpan="${days.length}" class="p-1 border border-slate-400 text-center tracking-widest bg-red-50 text-red-900 align-middle">DÍAS CALENDARIOS</th>
                     <th rowspan="2" class="p-1 border border-slate-400 bg-gray-100 text-left align-middle">OBSERVACIONES</th>
-                    ${currentRole === 'DIRECTOR' ? `<th rowspan="2" class="p-1 no-print border border-slate-400 text-center align-middle">X</th>` : ''}
+                    ${deleteHeaderHtml}
                 </tr>
                 <tr class="bg-white text-[9px] border border-slate-400">
             `;
@@ -1118,7 +1154,7 @@
             if (!tbody) return;
 
             if (appData.empleados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${days.length + (currentRole === 'DIRECTOR' ? 8 : 7)}" class="p-8 text-center text-slate-400 italic">No hay personal registrado en este formato.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${days.length + (currentRole === 'DIRECTOR' && appData.isSent !== true ? 8 : 7)}" class="p-8 text-center text-slate-400 italic">No hay personal registrado en este formato.</td></tr>`;
                 return;
             }
 
@@ -1129,6 +1165,16 @@
                 const sizeCargo = Math.max(5, emp.cargo ? emp.cargo.length : 0);
                 const sizeCondicion = Math.max(9, emp.condicion ? emp.condicion.length : 0);
                 const sizeJornada = Math.max(4, emp.jornada ? emp.jornada.length : 0);
+
+                let actionCellHtml = '';
+                if (currentRole === 'DIRECTOR' && appData.isSent !== true) {
+                    actionCellHtml = `
+                    <td class="border border-slate-400 p-0.5 no-print align-middle text-center w-8">
+                        <button onclick="confirmRemoveEmployee('${emp.id}')" class="text-red-500 hover:text-red-700 bg-red-50 p-1 rounded transition" title="Eliminar Personal">
+                            <i class="fa-solid fa-trash-can text-[10px]"></i>
+                        </button>
+                    </td>`;
+                }
 
                 bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400 text-[10px]">
                     <td style="border: 1px solid #94a3b8; min-width: 24px; max-width: 24px;" class="p-1 bg-white text-center align-middle font-bold">${index + 1}</td>
@@ -1182,13 +1228,7 @@
                     <td class="border border-slate-400 p-0.5 align-middle">
                         <textarea ${isReadonly} class="bg-transparent outline-none text-[10px] py-0.5 whitespace-normal uppercase leading-tight resize-none overflow-y-auto text-left border-0" style="height: 32px; text-transform: uppercase; font-size: 10px; width: 100%; display: block;" oninput="updateEmp('${emp.id}', 'observaciones', this.value); adjustObsWidthAndHeight(this);" placeholder="Observaciones" data-id="${emp.id}">${emp.observaciones || ''}</textarea>
                     </td>
-                    
-                    ${currentRole === 'DIRECTOR' ? `
-                    <td class="border border-slate-400 p-0.5 no-print align-middle text-center w-8">
-                        <button onclick="confirmRemoveEmployee('${emp.id}')" class="text-red-500 hover:text-red-700 bg-red-50 p-1 rounded transition" title="Eliminar Personal">
-                            <i class="fa-solid fa-trash-can text-[10px]"></i>
-                        </button>
-                    </td>` : ''}
+                    ${actionCellHtml}
                 </tr>`;
             });
             tbody.innerHTML = bodyHTML;
@@ -1239,7 +1279,7 @@
                 });
             }
 
-            // Aplicar la regla: cada 3 Tardanzas (T) acumuladas se convierten en 1 Falta
+            // Aplicar la regla de negocio: cada 3 Tardanzas (T) acumuladas se convierten en 1 Falta
             const numTardanzas = tardanzasList.length;
             const extraFaltas = Math.floor(numTardanzas / 3);
             inasistenciasDias += extraFaltas;
@@ -1283,7 +1323,7 @@
             appData.empleados.forEach((emp, index) => {
                 const calcs = calculateAnexo4(emp);
 
-                // El Anexo 4 es de solo lectura. Arrastra las observaciones del Anexo 3.
+                // El Anexo 4 es puramente estático y de solo lectura (No interactivo)
                 bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400 bg-slate-100/50">
                     <td class="border border-slate-400 p-2 font-bold text-center align-middle bg-slate-200/55">${index + 1}</td>
                     <td class="border border-slate-400 p-2 font-bold text-blue-900 text-center align-middle uppercase">${emp.dni}</td>
@@ -1294,11 +1334,11 @@
                     
                     <td class="border border-slate-400 p-2 bg-red-100 font-bold text-red-700 text-center align-middle">${calcs.inasistenciasDias || '0'}</td>
                     
-                    <td class="border border-slate-400 p-2 bg-amber-50 font-bold text-amber-900 text-center align-middle">${calcs.tardanzasH}</td>
-                    <td class="border border-slate-400 p-2 bg-amber-50 font-bold text-amber-900 text-center align-middle">${calcs.tardanzasM}</td>
+                    <td class="border border-slate-400 p-2 bg-amber-50 font-bold text-amber-900 text-center align-middle">${String(calcs.tardanzasH).padStart(2, '0')}</td>
+                    <td class="border border-slate-400 p-2 bg-amber-50 font-bold text-amber-900 text-center align-middle">${String(calcs.tardanzasM).padStart(2, '0')}</td>
                     
-                    <td class="border border-slate-400 p-2 bg-blue-50 font-semibold text-blue-900 text-center align-middle">${calcs.permisosSGH}</td>
-                    <td class="border border-slate-400 p-2 bg-blue-50 font-semibold text-blue-900 text-center align-middle">${calcs.permisosSGM}</td>
+                    <td class="border border-slate-400 p-2 bg-blue-50 font-semibold text-blue-900 text-center align-middle">${String(calcs.permisosSGH).padStart(2, '0')}</td>
+                    <td class="border border-slate-400 p-2 bg-blue-50 font-semibold text-blue-900 text-center align-middle">${String(calcs.permisosSGM).padStart(2, '0')}</td>
                     <td class="border border-slate-400 p-2 bg-blue-100 font-bold text-blue-700 text-center align-middle">${calcs.permisosSGDias || '0'}</td>
                     
                     <td class="border border-slate-400 p-2 bg-red-50 font-bold text-red-700 text-center align-middle">${calcs.huelgaDias}</td>
@@ -1306,6 +1346,122 @@
                 </tr>`;
             });
             tbody.innerHTML = bodyHTML;
+        }
+
+        // --- SISTEMAS DE COPIA DEL REPORTE PARA EL SIGUIENTE MES ---
+        function getNextMonth(mesAnoStr) {
+            if (!mesAnoStr) return "";
+            let [year, month] = mesAnoStr.split('-').map(Number);
+            month++;
+            if (month > 12) {
+                month = 1;
+                year++;
+            }
+            return `${year}-${String(month).padStart(2, '0')}`;
+        }
+
+        function copyReportForNextMonth() {
+            const nextMonth = getNextMonth(appData.mesAno);
+            
+            // Conservar información de filiación del personal pero limpiar marcas, acumulados y observaciones
+            const copiedEmployees = appData.empleados.map(emp => ({
+                id: generateId(),
+                dni: emp.dni || '',
+                nombres: emp.nombres || '',
+                cargo: emp.cargo || '',
+                condicion: emp.condicion || '',
+                jornada: emp.jornada || '',
+                asistencia: {},
+                asistenciaDetalle: {},
+                tardanzasH: '',
+                tardanzasM: '',
+                permisosSGH: '',
+                permisosSGM: '',
+                huelgaParoDias: '',
+                observaciones: ''
+            }));
+
+            // Generar nueva estructura de reporte de borrador para el siguiente mes
+            appData = {
+                id: 'REP_' + Date.now(),
+                codigoModular: appData.codigoModular || '',
+                dreUgel: appData.dreUgel || '',
+                mesAno: nextMonth,
+                ie: appData.ie || '',
+                lugar: appData.lugar || '',
+                nivel: appData.nivel || '',
+                distrito: appData.distrito || '',
+                empleados: copiedEmployees,
+                isSaved: false,
+                isSent: false
+            };
+
+            // Forzar actualización visual de cabeceras en el DOM
+            document.getElementById('meta-cod').value = appData.codigoModular;
+            document.getElementById('meta-dre').value = appData.dreUgel;
+            document.getElementById('meta-mes').value = appData.mesAno;
+            document.getElementById('meta-ie').value = appData.ie;
+            document.getElementById('meta-lugar').value = appData.lugar;
+            document.getElementById('meta-nivel').value = appData.nivel;
+            document.getElementById('meta-distrito').value = appData.distrito;
+
+            applyDirectorFieldsLock();
+            renderTables();
+            updateEditorButtons();
+            showToast(`Copia creada con éxito para el mes de ${nextMonth}. El registro se encuentra vacío y listo para rellenar.`, "success");
+        }
+
+        // --- GESTIÓN DINÁMICA DE BOTONES EN EL EDITOR ---
+        function updateEditorButtons() {
+            const container = document.getElementById('editorButtonsContainer');
+            if (!container) return;
+
+            let html = '';
+            
+            if (currentRole === 'DIRECTOR') {
+                if (appData.isSent !== true) {
+                    // Botón Guardar en Nube (Siempre visible si no ha sido enviado)
+                    html += `
+                        <button id="btnSaveCloud" onclick="saveToSheets(false)" class="bg-blue-600 text-white font-black px-6 py-2.5 rounded-lg text-xs flex items-center gap-2 hover:bg-blue-700 transition shadow-md">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> Guardar en Nube
+                        </button>
+                    `;
+                    // Botón Enviar a UGEL (Solo habilitado si ya se guardó al menos una vez en borrador)
+                    if (appData.isSaved === true) {
+                        html += `
+                            <button id="btnSendUgel" onclick="confirmSendToUgel()" class="bg-red-700 text-white font-black px-6 py-2.5 rounded-lg text-xs flex items-center gap-2 hover:bg-red-800 transition shadow-md">
+                                <i class="fa-solid fa-paper-plane"></i> Enviar a UGEL
+                            </button>
+                        `;
+                    }
+                } else {
+                    // Si ya fue enviado, mostramos el botón Copia de Anexo 3 y 4
+                    html += `
+                        <button id="btnCopyReport" onclick="copyReportForNextMonth()" class="bg-indigo-600 text-white font-black px-6 py-2.5 rounded-lg text-xs flex items-center gap-2 hover:bg-indigo-700 transition shadow-md">
+                            <i class="fa-solid fa-copy"></i> Copia de Anexo 3 y 4
+                        </button>
+                    `;
+                }
+            }
+            container.innerHTML = html;
+        }
+
+        // --- SISTEMA DE DIÁLOGO DE ENVÍO A UGEL ---
+        function confirmSendToUgel() {
+            document.getElementById('modalConfirmSend').classList.remove('hidden');
+        }
+
+        async function closeSendModal(confirm) {
+            document.getElementById('modalConfirmSend').classList.add('hidden');
+            if (confirm) {
+                appData.isSent = true;
+                appData.isSaved = true;
+                await saveToSheets(false);
+                applyDirectorFieldsLock();
+                renderTables();
+                updateEditorButtons();
+                showToast("¡Enviado con éxito! El reporte ha sido recibido por la UGEL y bloqueado para edición.", "success");
+            }
         }
 
         // --- GOOGLE SHEETS API Y CONFIGURACIÓN ---
@@ -1413,6 +1569,7 @@
                         closeSavingModal();
                         showToast("¡Guardado exitoso! El reporte de asistencia ha sido sincronizado correctamente con Google Sheets.", "success");
                     }
+                    updateEditorButtons(); // Actualiza dinámicamente los botones tras el guardado
                 } else {
                     updateCloudStatus();
                     if (!isSilent) {
@@ -1543,6 +1700,15 @@
                 toast.classList.add('-translate-y-20', 'opacity-0');
             }, 3000);
         }
+
+        // Asignación de carga inicial y eventos diferidos tras la declaración completa de funciones
+        window.onload = () => {
+            initMesAno();
+            document.getElementById('inputSheetsUrl').value = googleSheetsUrl;
+            document.getElementById('inputCsvIe').value = csvIeUrl;
+            document.getElementById('inputCsvPersonal').value = csvPersonalUrl;
+            loadCsvDbs(); 
+        };
     </script>
 </body>
 </html>
