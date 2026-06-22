@@ -600,7 +600,7 @@
                                 if(rows[i][iDni]) {
                                     dbPersonal[rows[i][iDni].trim()] = {
                                         nombres: iNom!==-1 ? rows[i][iNom] : '',
-                                        cargo: iCargo!==-1 ? rows[i][iCargo] : '', 
+                                        cargo: iCargo!==-1 ? rows[i][iCargo] : '',
                                         condicion: iCond!==-1 ? rows[i][iCond] : '',
                                         jornada: iJor!==-1 ? rows[i][iJor] : ''
                                     };
@@ -1135,12 +1135,12 @@
                 <tr class="bg-blue-50 text-blue-900 font-bold border border-slate-400">
                     <th rowspan="2" style="border: 1px solid #94a3b8; min-width: 24px; max-width: 24px;" class="p-1 bg-blue-50 text-center align-middle">N°</th>
                     <th rowspan="2" style="border: 1px solid #94a3b8; border-right: 2px solid #64748b; min-width: 65px; max-width: 65px;" class="p-1 bg-blue-50 text-center align-middle">DNI</th>
-                    <th rowspan="2" style="border: 1px solid #94a3b8; min-width: 150px;" class="p-1 bg-blue-50 text-left align-middle">APELLIDOS Y NOMBRES</th>
-                    <th rowspan="2" class="p-1 border border-slate-400 text-left align-middle">CARGO</th>
-                    <th rowspan="2" class="p-1 border border-slate-400 text-center align-middle">CONDICIÓN</th>
-                    <th rowspan="2" class="p-1 border border-slate-400 text-center align-middle leading-tight">Jor.<br/>Lab.</th>
-                    <th colSpan="${days.length}" class="p-1 border border-slate-400 text-center tracking-widest bg-red-50 text-red-900 align-middle">DÍAS CALENDARIOS</th>
-                    <th rowspan="2" class="p-1 border border-slate-400 bg-gray-100 text-left align-middle">OBSERVACIONES</th>
+                    <th rowspan="2" style="border: 1px solid #94a3b8; min-width: 150px;" class="p-1 bg-blue-50 text-center align-middle font-bold">APELLIDOS Y NOMBRES</th>
+                    <th rowspan="2" class="p-1 border border-slate-400 text-center align-middle font-bold">CARGO</th>
+                    <th rowspan="2" class="p-1 border border-slate-400 text-center align-middle font-bold">CONDICIÓN</th>
+                    <th rowspan="2" class="p-1 border border-slate-400 text-center align-middle leading-tight font-bold">Jor.<br/>Lab.</th>
+                    <th colSpan="${days.length}" class="p-1 border border-slate-400 text-center tracking-widest bg-red-50 text-red-900 align-middle font-bold">DÍAS CALENDARIOS</th>
+                    <th rowspan="2" class="p-1 border border-slate-400 bg-gray-100 text-center align-middle font-bold">OBSERVACIONES</th>
                     ${deleteHeaderHtml}
                 </tr>
                 <tr class="bg-white text-[9px] border border-slate-400">
