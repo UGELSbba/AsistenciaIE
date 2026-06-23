@@ -293,9 +293,8 @@
 
                             <!-- Firmas -->
                             <div class="mt-8 no-print print:block">
-                                <div class="flex justify-start px-4 mb-16">
-                                    <label class="text-xs font-bold text-gray-700">Lugar y fecha: </label>
-                                    <input type="text" class="ml-2 border-b border-gray-400 outline-none w-64 text-xs bg-transparent focus:border-blue-600 text-gray-800" placeholder="................................................................">
+                                <div class="flex justify-end px-4 mb-16">
+                                    <span class="text-xs font-bold text-gray-700">Lugar y fecha: <span id="printLugarFechaA3" class="font-bold text-gray-950 uppercase"></span></span>
                                 </div>
                                 <div class="grid grid-cols-2 gap-8 text-center text-xs pb-8">
                                     <div><div class="border-t border-black pt-2 mx-12"></div><p class="font-bold text-blue-900">DIRECTOR(A) DE LA I.E.</p><p class="text-gray-500 mt-1 italic no-print">Firma Digital / Sello</p></div>
@@ -327,26 +326,26 @@
                             <table class="w-full text-xs border border-slate-400 border-collapse text-center print-table table-auto whitespace-nowrap">
                                 <thead>
                                     <tr class="bg-blue-50 text-blue-900 font-bold">
-                                        <th rowspan="2" class="border border-slate-400 p-2 w-8">N°</th>
-                                        <th rowspan="2" class="border border-slate-400 p-2">DNI</th>
-                                        <th rowspan="2" class="border border-slate-400 p-2 text-left">APELLIDOS Y NOMBRES</th>
-                                        <th rowspan="2" class="border border-slate-400 p-2 text-left">CARGO</th>
-                                        <th rowspan="2" class="border border-slate-400 p-2">CONDICIÓN</th>
-                                        <th rowspan="2" class="border border-slate-400 p-2">Jor. Lab.</th>
-                                        <th class="border border-slate-400 bg-red-100 p-1 text-red-900 font-bold">Inasistencias</th>
-                                        <th colspan="2" class="border border-slate-400 bg-amber-50 p-1 text-amber-900 font-bold">Tardanzas</th>
-                                        <th colspan="3" class="border border-slate-400 bg-blue-100 p-1 text-blue-900 font-bold">Permisos SG</th>
-                                        <th class="border border-slate-400 bg-red-50 p-1 text-red-900 font-bold">Huelga/Paro</th>
-                                        <th rowspan="2" class="border border-slate-400 p-2 text-left">Observaciones</th>
+                                        <th rowspan="2" class="border border-slate-400 p-2 w-8 text-center align-middle">N°</th>
+                                        <th rowspan="2" class="border border-slate-400 p-2 text-center align-middle">DNI</th>
+                                        <th rowspan="2" class="border border-slate-400 p-2 text-center align-middle">APELLIDOS Y NOMBRES</th>
+                                        <th rowspan="2" class="border border-slate-400 p-2 text-center align-middle">CARGO</th>
+                                        <th rowspan="2" class="border border-slate-400 p-2 text-center align-middle">CONDICIÓN</th>
+                                        <th rowspan="2" class="border border-slate-400 p-2 text-center align-middle">Jor. Lab.</th>
+                                        <th class="border border-slate-400 bg-red-100 p-1 text-red-900 font-bold text-center align-middle">Inasistencias</th>
+                                        <th colspan="2" class="border border-slate-400 bg-amber-50 p-1 text-amber-900 font-bold text-center align-middle">Tardanzas</th>
+                                        <th colspan="3" class="border border-slate-400 bg-blue-100 p-1 text-blue-900 font-bold text-center align-middle">Permisos SG</th>
+                                        <th class="border border-slate-400 bg-red-50 p-1 text-red-900 font-bold text-center align-middle">Huelga/Paro</th>
+                                        <th rowspan="2" class="border border-slate-400 p-2 text-center align-middle">Observaciones</th>
                                     </tr>
                                     <tr class="bg-white text-[10px]">
-                                        <th class="border border-slate-400 bg-red-50 p-1 font-bold text-red-700">Días</th>
-                                        <th class="border border-slate-400 bg-amber-50 text-amber-700 p-1">Horas</th>
-                                        <th class="border border-slate-400 bg-amber-50 text-amber-700 p-1">Minutos</th>
-                                        <th class="border border-slate-400 bg-blue-50 text-blue-700 p-1">Horas</th>
-                                        <th class="border border-slate-400 bg-blue-50 text-blue-700 p-1">Minutos</th>
-                                        <th class="border border-slate-400 bg-blue-50 text-blue-700 p-1 font-bold">Días</th>
-                                        <th class="border border-slate-400 bg-red-50 p-1 text-red-700">Días</th>
+                                        <th class="border border-slate-400 bg-red-50 p-1 font-bold text-red-700 text-center align-middle">Días</th>
+                                        <th class="border border-slate-400 bg-amber-50 text-amber-700 p-1 text-center align-middle">Horas</th>
+                                        <th class="border border-slate-400 bg-amber-50 text-amber-700 p-1 text-center align-middle">Minutos</th>
+                                        <th class="border border-slate-400 bg-blue-50 text-blue-700 p-1 text-center align-middle">Horas</th>
+                                        <th class="border border-slate-400 bg-blue-50 text-blue-700 p-1 text-center align-middle">Minutos</th>
+                                        <th class="border border-slate-400 bg-blue-50 text-blue-700 p-1 font-bold text-center align-middle">Días</th>
+                                        <th class="border border-slate-400 bg-red-50 p-1 text-red-700 text-center align-middle">Días</th>
                                     </tr>
                                 </thead>
                                 <tbody id="bodyAnexo4"></tbody>
@@ -354,9 +353,8 @@
                             
                             <!-- Firmas -->
                             <div class="mt-8 no-print print:block">
-                                <div class="flex justify-start px-4 mb-16">
-                                    <label class="text-xs font-bold text-gray-700">Lugar y fecha: </label>
-                                    <input type="text" class="ml-2 border-b border-gray-400 outline-none w-64 text-xs bg-transparent focus:border-blue-600 text-gray-800" placeholder="................................................................">
+                                <div class="flex justify-end px-4 mb-16">
+                                    <span class="text-xs font-bold text-gray-700">Lugar y fecha: <span id="printLugarFechaA4" class="font-bold text-gray-950 uppercase"></span></span>
                                 </div>
                                 <div class="grid grid-cols-2 gap-8 text-center text-xs pb-8">
                                     <div><div class="border-t border-black pt-2 mx-12"></div><p class="font-bold text-blue-900">DIRECTOR(A) DE LA I.E.</p><p class="text-gray-500 mt-1 italic no-print">Firma Digital / Sello</p></div>
@@ -502,8 +500,8 @@
             '0987654': { dreUgel: 'UGEL 03 - BREÑA', ie: '10 DE OCTUBRE', lugar: 'LIMA', nivel: 'PRIMARIA', distrito: 'BREÑA' }
         };
         let dbPersonal = {
-            '40001122': { nombres: 'QUISPE MENDOZA, JUAN', cargo: 'PROFESOR', condicion: 'NOMBRADO', jornada: '30' },
-            '40003344': { nombres: 'RODRIGUEZ FLORES, MARIA', cargo: 'PROFESOR F.F.', condicion: 'CONTRATADO', jornada: '30' }
+            '40001122': { nombres: 'QUISPE MENDOZA, JUAN', cargo: 'PROFESOR', condicion: 'NOMBRADO', jor: '30' },
+            '40003344': { nombres: 'RODRIGUEZ FLORES, MARIA', cargo: 'PROFESOR F.F.', condicion: 'CONTRATADO', jor: '30' }
         };
 
         const CODIGOS_VALIDOS = ['A', 'I', '3T', 'J', 'LS', 'PS', 'T', 'H', 'F'];
@@ -600,9 +598,9 @@
                                 if(rows[i][iDni]) {
                                     dbPersonal[rows[i][iDni].trim()] = {
                                         nombres: iNom!==-1 ? rows[i][iNom] : '',
-                                        cargo: iCargo!==-1 ? rows[i][iCargo] : '',
+                                        cargo: iCargo!==-1 ? rows[i][iCargo] : '', // Corregido: iNom cambiado por iCargo
                                         condicion: iCond!==-1 ? rows[i][iCond] : '',
-                                        jornada: iJor!==-1 ? rows[i][iJor] : ''
+                                        jor: iJor!==-1 ? rows[i][iJor] : ''
                                     };
                                 }
                             }
@@ -883,6 +881,7 @@
 
         function generateId() { return Date.now().toString() + Math.floor(Math.random()*1000); }
 
+        // --- MANEJO DE PERSONAL ---
         function addEmployee() {
             if (currentRole === 'ADMIN') return;
             appData.empleados.push({
@@ -1038,6 +1037,18 @@
 
         function handleDniLookup(id, val) {
             if (currentRole === 'ADMIN') return;
+            val = val.trim();
+            if (val.length > 0) {
+                // Validación para evitar registrar el mismo DNI más de una vez en el mismo reporte
+                const duplicate = appData.empleados.find(e => e.id !== id && e.dni && e.dni.trim() === val);
+                if (duplicate) {
+                    showToast(`El DNI ${val} ya se encuentra registrado en este reporte de asistencia.`, "error");
+                    const emp = appData.empleados.find(e => e.id === id);
+                    if (emp) emp.dni = '';
+                    renderTables();
+                    return;
+                }
+            }
             updateEmp(id, 'dni', val);
             if (val.trim().length === 8) {
                 const data = dbPersonal[val.trim()];
@@ -1047,7 +1058,7 @@
                         emp.nombres = data.nombres || '';
                         emp.cargo = data.cargo || '';
                         emp.condicion = data.condicion || '';
-                        emp.jornada = data.jornada || '';
+                        emp.jornada = data.jor || data.jornada || '';
                         renderTables(); 
                         showToast("Personal autocompletado", "success");
                     }
@@ -1112,6 +1123,16 @@
             const elA4 = document.getElementById('metaPrintA4');
             if (elA3) elA3.innerHTML = metaHtml;
             if (elA4) elA4.innerHTML = metaHtml;
+
+            // Actualización dinámica de Lugar y Fecha
+            const lugar = (appData.lugar || "").trim().toUpperCase();
+            const mesAno = (appData.mesAno || "").trim();
+            const textLugarFecha = lugar ? `${lugar}, ${mesAno}` : mesAno;
+            
+            const printLF3 = document.getElementById('printLugarFechaA3');
+            const printLF4 = document.getElementById('printLugarFechaA4');
+            if (printLF3) printLF3.innerText = textLugarFecha;
+            if (printLF4) printLF4.innerText = textLugarFecha;
         }
 
         function renderAnexo3() {
@@ -1147,7 +1168,7 @@
             `;
             days.forEach(d => {
                 const bg = d.isWeekend ? 'bg-red-100 text-red-800' : 'bg-blue-50 text-blue-800';
-                headHTML += `<th class="border border-slate-400 p-0.5 w-5 font-bold ${bg}">${d.day}<br/><span class="text-[6px] font-normal">${d.dayName}</span></th>`;
+                headHTML += `<th class="border border-slate-400 p-0.5 w-5 font-bold text-center ${bg}">${d.day}<br/><span class="text-[6px] font-normal">${d.dayName}</span></th>`;
             });
             headHTML += `</tr>`;
             if (thead) thead.innerHTML = headHTML;
@@ -1184,16 +1205,16 @@
                         <input type="text" maxlength="8" size="${sizeDni}" style="text-transform: uppercase;" ${isReadonly} class="text-center bg-transparent outline-none font-bold text-blue-900 text-[10px] w-full whitespace-nowrap uppercase" value="${emp.dni}" oninput="handleDniLookup('${emp.id}', this.value); adjustInputWidth(this, 3);" />
                     </td>
                     
-                    <td style="border: 1px solid #94a3b8; min-width: 150px;" class="p-0.5 bg-white text-left align-middle">
-                        <input type="text" size="${sizeNombres}" style="text-transform: uppercase;" ${isReadonly} class="bg-transparent outline-none font-bold text-slate-800 text-[10px] w-full whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-0.5 truncate uppercase" value="${emp.nombres}" oninput="updateEmp('${emp.id}', 'nombres', this.value); adjustInputWidth(this, 19);" placeholder="Apellidos y Nombres" />
-                    </td>
-                    
-                    <td class="border border-slate-400 p-0.5 text-left align-middle">
-                        <input type="text" size="${sizeCargo}" style="text-transform: uppercase;" ${isReadonly} class="bg-transparent outline-none text-[10px] w-full whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-0.5 truncate uppercase" value="${emp.cargo}" oninput="updateEmp('${emp.id}', 'cargo', this.value); adjustInputWidth(this, 5);" placeholder="Cargo de Función" />
+                    <td style="border: 1px solid #94a3b8; min-width: 150px;" class="p-0.5 bg-white text-center align-middle">
+                        <input type="text" size="${sizeNombres}" style="text-transform: uppercase;" ${isReadonly} class="bg-transparent outline-none font-bold text-slate-800 text-[10px] w-full whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-0.5 truncate text-center uppercase" value="${emp.nombres}" oninput="updateEmp('${emp.id}', 'nombres', this.value); adjustInputWidth(this, 19);" placeholder="Apellidos y Nombres" />
                     </td>
                     
                     <td class="border border-slate-400 p-0.5 text-center align-middle">
-                        <input type="text" size="${sizeCondicion}" style="text-transform: uppercase;" ${isReadonly} class="bg-transparent outline-none text-[10px] text-center w-full whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-0.5 truncate uppercase" value="${emp.condicion}" oninput="updateEmp('${emp.id}', 'condicion', this.value); adjustInputWidth(this, 9);" placeholder="Condición" />
+                        <input type="text" size="${sizeCargo}" style="text-transform: uppercase;" ${isReadonly} class="bg-transparent outline-none text-[10px] w-full whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-0.5 truncate text-center uppercase" value="${emp.cargo}" oninput="updateEmp('${emp.id}', 'cargo', this.value); adjustInputWidth(this, 5);" placeholder="Cargo de Función" />
+                    </td>
+                    
+                    <td class="border border-slate-400 p-0.5 text-center align-middle">
+                        <input type="text" size="${sizeCondicion}" style="text-transform: uppercase;" ${isReadonly} class="bg-transparent outline-none text-[10px] text-center w-full whitespace-nowrap focus:ring-1 focus:ring-blue-200 rounded px-0.5 truncate text-center uppercase" value="${emp.condicion}" oninput="updateEmp('${emp.id}', 'condicion', this.value); adjustInputWidth(this, 9);" placeholder="Condición" />
                     </td>
                     
                     <td class="border border-slate-400 p-0.5 text-center align-middle">
@@ -1325,11 +1346,11 @@
                 const calcs = calculateAnexo4(emp);
 
                 // El Anexo 4 es puramente estático y de solo lectura (No interactivo)
-                bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400 bg-slate-100/50">
+                bodyHTML += `<tr class="hover:bg-blue-50/30 transition-colors border border-slate-400 bg-slate-100/50 text-[10px] sm:text-xs">
                     <td class="border border-slate-400 p-2 font-bold text-center align-middle bg-slate-200/55">${index + 1}</td>
                     <td class="border border-slate-400 p-2 font-bold text-blue-900 text-center align-middle uppercase">${emp.dni}</td>
-                    <td class="border border-slate-400 p-2 text-left font-bold text-slate-800 align-middle leading-normal text-nowrap uppercase">${emp.nombres}</td>
-                    <td class="border border-slate-400 p-2 text-left text-xs align-middle leading-normal text-nowrap uppercase">${emp.cargo}</td>
+                    <td class="border border-slate-400 p-2 text-center font-bold text-slate-800 align-middle leading-normal text-nowrap uppercase">${emp.nombres}</td>
+                    <td class="border border-slate-400 p-2 text-center text-xs align-middle leading-normal text-nowrap uppercase">${emp.cargo}</td>
                     <td class="border border-slate-400 p-2 text-center text-xs align-middle leading-normal text-nowrap uppercase">${emp.condicion}</td>
                     <td class="border border-slate-400 p-2 font-bold text-center align-middle uppercase">${emp.jornada}</td>
                     
