@@ -294,7 +294,7 @@
                             <!-- Firmas -->
                             <div class="mt-8 no-print print:block">
                                 <div class="flex justify-end px-4 mb-16">
-                                    <span class="text-xs font-bold text-gray-700">Lugar y fecha: <span id="printLugarFechaA3" class="font-bold text-gray-950 uppercase"></span></span>
+                                    <span class="text-xs font-bold text-gray-950">Lugar y Fecha: <span id="printLugarFechaA3" class="font-bold text-gray-950"></span></span>
                                 </div>
                                 <div class="grid grid-cols-2 gap-8 text-center text-xs pb-8">
                                     <div><div class="border-t border-black pt-2 mx-12"></div><p class="font-bold text-blue-900">DIRECTOR(A) DE LA I.E.</p><p class="text-gray-500 mt-1 italic no-print">Firma Digital / Sello</p></div>
@@ -354,7 +354,7 @@
                             <!-- Firmas -->
                             <div class="mt-8 no-print print:block">
                                 <div class="flex justify-end px-4 mb-16">
-                                    <span class="text-xs font-bold text-gray-700">Lugar y fecha: <span id="printLugarFechaA4" class="font-bold text-gray-950 uppercase"></span></span>
+                                    <span class="text-xs font-bold text-gray-950">Lugar y Fecha: <span id="printLugarFechaA4" class="font-bold text-gray-950"></span></span>
                                 </div>
                                 <div class="grid grid-cols-2 gap-8 text-center text-xs pb-8">
                                     <div><div class="border-t border-black pt-2 mx-12"></div><p class="font-bold text-blue-900">DIRECTOR(A) DE LA I.E.</p><p class="text-gray-500 mt-1 italic no-print">Firma Digital / Sello</p></div>
@@ -598,7 +598,7 @@
                                 if(rows[i][iDni]) {
                                     dbPersonal[rows[i][iDni].trim()] = {
                                         nombres: iNom!==-1 ? rows[i][iNom] : '',
-                                        cargo: iCargo!==-1 ? rows[i][iCargo] : '', // Corregido: iNom cambiado por iCargo
+                                        cargo: iCargo!==-1 ? rows[i][iCargo] : '', 
                                         condicion: iCond!==-1 ? rows[i][iCond] : '',
                                         jor: iJor!==-1 ? rows[i][iJor] : ''
                                     };
@@ -881,7 +881,6 @@
 
         function generateId() { return Date.now().toString() + Math.floor(Math.random()*1000); }
 
-        // --- MANEJO DE PERSONAL ---
         function addEmployee() {
             if (currentRole === 'ADMIN') return;
             appData.empleados.push({
@@ -895,28 +894,6 @@
             if (currentRole === 'ADMIN') return;
             employeeIdToDelete = id;
             document.getElementById('modalConfirmDelete').classList.remove('hidden');
-        }
-
-        function executeDelete() {
-            if (employeeIdToDelete) {
-                appData.empleados = appData.empleados.filter(e => e.id !== employeeIdToDelete);
-                renderTables();
-                showToast("Personal eliminado de la tabla", "success");
-            }
-            closeDeleteModal();
-        }
-
-        function closeDeleteModal() {
-            employeeIdToDelete = null;
-            document.getElementById('modalConfirmDelete').classList.add('hidden');
-        }
-
-        function updateEmp(id, field, value) {
-            if (currentRole === 'ADMIN') return;
-            const emp = appData.empleados.find(e => e.id === id);
-            if (emp) { 
-                emp[field] = value.toUpperCase(); 
-            }
         }
 
         // --- SISTEMA DEL TIME PICKER FLOTANTE ---
@@ -1039,7 +1016,7 @@
             if (currentRole === 'ADMIN') return;
             val = val.trim();
             if (val.length > 0) {
-                // Validación para evitar registrar el mismo DNI más de una vez en el mismo reporte
+                // Validación estricta para evitar registrar el mismo DNI más de una vez en el mismo reporte (Anexo 03)
                 const duplicate = appData.empleados.find(e => e.id !== id && e.dni && e.dni.trim() === val);
                 if (duplicate) {
                     showToast(`El DNI ${val} ya se encuentra registrado en este reporte de asistencia.`, "error");
@@ -1102,6 +1079,29 @@
             renderTables();
         }
 
+        // --- UTILIDAD PARA FORMATEAR LUGAR Y FECHA DE FORMA DETERMINISTA ---
+        function formatLugarFecha(lugar, mesAno) {
+            if (!mesAno) return lugar ? lugar.toUpperCase() : "";
+            const parts = mesAno.split('-');
+            if (parts.length !== 2) return (lugar ? lugar.trim() + ", " : "") + mesAno;
+            
+            const year = parts[0];
+            const monthNum = parseInt(parts[1], 10);
+            const months = [
+                'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+                'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+            ];
+            const monthName = months[monthNum - 1] || "";
+            const dateStr = `${monthName} de ${year}`;
+            
+            if (lugar && lugar.trim()) {
+                const cleanLugar = lugar.trim();
+                const formattedLugar = cleanLugar.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+                return `${formattedLugar}, ${dateStr}`;
+            }
+            return dateStr;
+        }
+
         function renderTables() {
             updateMetaPrint();
             if (activeTab === 'ANEXO3') renderAnexo3();
@@ -1124,10 +1124,8 @@
             if (elA3) elA3.innerHTML = metaHtml;
             if (elA4) elA4.innerHTML = metaHtml;
 
-            // Actualización dinámica de Lugar y Fecha
-            const lugar = (appData.lugar || "").trim().toUpperCase();
-            const mesAno = (appData.mesAno || "").trim();
-            const textLugarFecha = lugar ? `${lugar}, ${mesAno}` : mesAno;
+            // Actualización dinámica de Lugar y Fecha con formato legible requerido
+            const textLugarFecha = formatLugarFecha(appData.lugar || "", appData.mesAno || "");
             
             const printLF3 = document.getElementById('printLugarFechaA3');
             const printLF4 = document.getElementById('printLugarFechaA4');
