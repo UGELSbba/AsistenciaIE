@@ -896,6 +896,28 @@
             document.getElementById('modalConfirmDelete').classList.remove('hidden');
         }
 
+        function executeDelete() {
+            if (employeeIdToDelete) {
+                appData.empleados = appData.empleados.filter(e => e.id !== employeeIdToDelete);
+                renderTables();
+                showToast("Personal eliminado de la tabla", "success");
+            }
+            closeDeleteModal();
+        }
+
+        function closeDeleteModal() {
+            employeeIdToDelete = null;
+            document.getElementById('modalConfirmDelete').classList.add('hidden');
+        }
+
+        function updateEmp(id, field, value) {
+            if (currentRole === 'ADMIN') return;
+            const emp = appData.empleados.find(e => e.id === id);
+            if (emp) { 
+                emp[field] = value.toUpperCase(); 
+            }
+        }
+
         // --- SISTEMA DEL TIME PICKER FLOTANTE ---
         function openTimePicker(empId, day, type) {
             activeTimePickerCell = { empId, day, type };
