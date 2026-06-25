@@ -268,6 +268,7 @@
                         </div>
 
                         <div class="overflow-x-auto custom-scrollbar p-4">
+                            <!-- table-auto permite que las columnas crezcan de forma fluida lineal -->
                             <table class="w-full text-[10px] sm:text-xs border-collapse text-center print-table table-auto whitespace-nowrap">
                                 <thead id="headAnexo3"></thead>
                                 <tbody id="bodyAnexo3"></tbody>
@@ -292,13 +293,21 @@
                             </div>
 
                             <!-- Firmas -->
-                            <div class="mt-8 no-print print:block">
-                                <div class="flex justify-end px-4 mb-16 font-bold text-gray-950">
-                                    <span>Lugar y Fecha: <span id="printLugarFechaA3"></span></span>
+                            <div class="mt-8 hidden print:block">
+                                <div class="flex justify-end px-4 mb-8">
+                                    <span class="text-xs font-bold text-gray-950 uppercase">Lugar y Fecha: <span id="printLugarFechaA3" class="font-bold text-gray-950"></span></span>
                                 </div>
                                 <div class="grid grid-cols-2 gap-8 text-center text-xs pb-8">
-                                    <div><div class="border-t border-black pt-2 mx-12"></div><p class="font-bold text-blue-900">DIRECTOR(A) DE LA I.E.</p><p class="text-gray-500 mt-1 italic no-print">Firma Digital / Sello</p></div>
-                                    <div><div class="border-t border-black pt-2 mx-12"></div><p class="font-bold text-blue-900">CONEI / APAFA</p><p class="text-gray-500 mt-1 italic no-print">Visto Bueno (V°B°)</p></div>
+                                    <div>
+                                        <div class="border-t border-black pt-2 mx-12"></div>
+                                        <p class="font-bold text-blue-900 uppercase">Director(a) de la I.E.</p>
+                                        <p class="text-gray-500 mt-1 italic">Firma Digital / Sello</p>
+                                    </div>
+                                    <div>
+                                        <div class="border-t border-black pt-2 mx-12"></div>
+                                        <p class="font-bold text-blue-900 uppercase">CONEI / APAFA</p>
+                                        <p class="text-gray-500 mt-1 italic">Visto Bueno (V°B°)</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -352,13 +361,21 @@
                             </table>
                             
                             <!-- Firmas -->
-                            <div class="mt-8 no-print print:block">
-                                <div class="flex justify-end px-4 mb-16 font-bold text-gray-950">
-                                    <span>Lugar y Fecha: <span id="printLugarFechaA4"></span></span>
+                            <div class="mt-8 hidden print:block">
+                                <div class="flex justify-end px-4 mb-8">
+                                    <span class="text-xs font-bold text-gray-950 uppercase">Lugar y Fecha: <span id="printLugarFechaA4" class="font-bold text-gray-950"></span></span>
                                 </div>
                                 <div class="grid grid-cols-2 gap-8 text-center text-xs pb-8">
-                                    <div><div class="border-t border-black pt-2 mx-12"></div><p class="font-bold text-blue-900">DIRECTOR(A) DE LA I.E.</p><p class="text-gray-500 mt-1 italic no-print">Firma Digital / Sello</p></div>
-                                    <div><div class="border-t border-black pt-2 mx-12"></div><p class="font-bold text-blue-900">CONEI / APAFA</p><p class="text-gray-500 mt-1 italic no-print">Visto Bueno (V°B°)</p></div>
+                                    <div>
+                                        <div class="border-t border-black pt-2 mx-12"></div>
+                                        <p class="font-bold text-blue-900 uppercase">Director(a) de la I.E.</p>
+                                        <p class="text-gray-500 mt-1 italic">Firma Digital / Sello</p>
+                                    </div>
+                                    <div>
+                                        <div class="border-t border-black pt-2 mx-12"></div>
+                                        <p class="font-bold text-blue-900 uppercase">CONEI / APAFA</p>
+                                        <p class="text-gray-500 mt-1 italic">Visto Bueno (V°B°)</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -901,7 +918,7 @@
             if (employeeIdToDelete) {
                 appData.empleados = appData.empleados.filter(e => e.id !== employeeIdToDelete);
                 renderTables();
-                showToast("Personal eliminado de la tabla", "success");
+                showToast("Personal de asistencia eliminado", "success");
             }
             closeDeleteModal();
         }
@@ -928,7 +945,7 @@
             let minutos = "";
             
             if (emp && emp.asistenciaDetalle && emp.asistenciaDetalle[day]) {
-                horas = emp.asistenciaDetalle[day].horas || "";
+                horas = emp.asistenciaDetalle[day].text_hours || "";
                 minutos = emp.asistenciaDetalle[day].minutos || "";
             }
             
@@ -1104,9 +1121,9 @@
 
         // --- UTILIDAD PARA FORMATEAR LUGAR Y FECHA DE FORMA DETERMINISTA ---
         function formatLugarFecha(lugar, mesAno) {
-            if (!mesAno) return lugar ? lugar.toUpperCase() : "";
+            if (!mesAno) return lugar ? "Lugar y Fecha: " + lugar.toUpperCase() : "Lugar y Fecha: ";
             const parts = mesAno.split('-');
-            if (parts.length !== 2) return (lugar ? lugar.trim() + ", " : "") + mesAno;
+            if (parts.length !== 2) return "Lugar y Fecha: " + (lugar ? lugar.trim() + ", " : "") + mesAno;
             
             const year = parts[0];
             const monthNum = parseInt(parts[1], 10);
@@ -1120,9 +1137,9 @@
             if (lugar && lugar.trim()) {
                 const cleanLugar = lugar.trim();
                 const formattedLugar = cleanLugar.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-                return `${formattedLugar}, ${dateStr}`;
+                return `Lugar y Fecha: ${formattedLugar}, ${dateStr}`;
             }
-            return dateStr;
+            return `Lugar y Fecha: ${dateStr}`;
         }
 
         function renderTables() {
