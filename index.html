@@ -884,6 +884,7 @@
             const month = String(today.getMonth() + 1).padStart(2, '0');
             appData.mesAno = `${today.getFullYear()}-${month}`;
             document.getElementById('meta-mes').value = appData.mesAno;
+            document.getElementById('inputSheetsUrl').value = googleSheetsUrl;
         }
 
         function getMonthDays() {
@@ -1416,6 +1417,89 @@
             document.querySelectorAll('#bodyAnexo4 textarea').forEach(textarea => {
                 adjustObsWidthAndHeight(textarea);
             });
+        }
+
+        // --- SISTEMAS DE COPIA DEL REPORTE PARA EL SIGUIENTE MES ---
+        function getNextMonth(mesAnoStr) {
+            // Manejar nulos o formatos no válidos de forma robusta con fallback al mes actual
+            if (!mesAnoStr || typeof mesAnoStr !== 'string') {
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                return `${year}-${month}`;
+            }
+            let parts = mesAnoStr.split('-');
+            if (parts.length !== 2) {
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                return `${year}-${month}`;
+            }
+            let year = parseInt(parts[0], 10);
+            let month = parseInt(parts[1], 10);
+            month++;
+            if (month > 12) {
+                month = 1;
+                year++;
+            }
+            return `${year}-${String(month).padStart(2, '0')}`;
+        }
+
+        function copyReportForNextMonth() {
+            try {
+                const nextMonth = getNextMonth(appData.mesAno);
+                
+                // Conservar información de filiación del personal pero limpiar marcas, acumulados y observaciones de forma segura
+                const employees = Array.isArray(appData.empleados) ? appData.empleados : [];
+                const copiedEmployees = employees.map(emp => ({
+                    id: generateId(),
+                    dni: emp.dni || '',
+                    nombres: emp.nombres || '',
+                    cargo: emp.cargo || '',
+                    condicion: emp.condicion || '',
+                    jornada: emp.jornada || '',
+                    asistencia: {},
+                    asistenciaDetalle: {},
+                    tardanzasH: '',
+                    tardanzasM: '',
+                    permisosSGH: '',
+                    permisosSGM: '',
+                    huelgaParoDias: '',
+                    observaciones: ''
+                }));
+
+                // Generar nueva estructura de reporte de borrador para el siguiente mes
+                appData = {
+                    id: 'REP_' + Date.now(),
+                    codigoModular: appData.codigoModular || '',
+                    dreUgel: appData.dreUgel || '',
+                    mesAno: nextMonth,
+                    ie: appData.ie || '',
+                    lugar: appData.lugar || '',
+                    nivel: appData.nivel || '',
+                    distrito: appData.distrito || '',
+                    empleados: copiedEmployees,
+                    isSaved: false,
+                    isSent: false
+                };
+
+                // Forzar actualización visual de cabeceras en el DOM
+                document.getElementById('meta-cod').value = appData.codigoModular;
+                document.getElementById('meta-dre').value = appData.dreUgel;
+                document.getElementById('meta-mes').value = appData.mesAno;
+                document.getElementById('meta-ie').value = appData.ie;
+                document.getElementById('meta-lugar').value = appData.lugar;
+                document.getElementById('meta-nivel').value = appData.nivel;
+                document.getElementById('meta-distrito').value = appData.distrito;
+
+                applyDirectorFieldsLock();
+                renderTables();
+                updateEditorButtons();
+                showToast(`Copia creada con éxito para el mes de ${nextMonth}. El registro se encuentra vacío y listo para rellenar.`, "success");
+            } catch (err) {
+                console.error("Error al clonar reporte mensual:", err);
+                showToast("Fallo crítico al intentar generar la copia para el siguiente mes.", "error");
+            }
         }
 
         // --- GESTIÓN DINÁMICA DE BOTONES EN EL EDITOR ---
