@@ -52,7 +52,7 @@
     <div id="loginView" class="flex flex-col items-center justify-center h-full w-full absolute inset-0 z-50 bg-slate-50">
         <div class="bg-white p-8 rounded-2xl shadow-xl max-w-lg w-full text-center border border-gray-100 relative overflow-hidden animate-fade-in">
             <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-red-600 to-blue-700"></div>
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Escudo_nacional_del_Per%C3%BA.svg/150px-Escudo_nacional_del_Per%C3%BA.svg.png" alt="Escudo de Perú" class="h-20 mx-auto mb-4 opacity-90" />
+            <img src="https://drive.google.com/uc?export=view&id=1YFSQiQ9sNjnxEAmY8_L7gVPqiv2-urrE" alt="Logo Institucional" class="h-20 mx-auto mb-4 object-contain opacity-90" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Escudo_nacional_del_Per%C3%BA.svg/150px-Escudo_nacional_del_Per%C3%BA.svg.png'" />
             <h1 class="text-2xl font-black text-slate-800 mb-1">Mesa de Asistencia Digital</h1>
             <p class="text-red-600 font-bold text-xs uppercase tracking-wider mb-4">MINEDU - UGEL</p>
             <p class="text-gray-500 mb-6 text-sm leading-relaxed">
@@ -80,6 +80,7 @@
         <!-- CABECERA -->
         <header class="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-40 no-print shadow-sm shrink-0">
             <div class="flex items-center gap-3">
+                <img src="https://drive.google.com/uc?export=view&id=1YFSQiQ9sNjnxEAmY8_L7gVPqiv2-urrE" alt="Logo Institucional" class="h-8 object-contain" onerror="this.style.display='none'" />
                 <div class="bg-red-700 text-white font-black p-2 rounded-lg text-sm uppercase flex items-center gap-1.5 shadow-md">
                     <i class="fa-solid fa-file-signature"></i> MINEDU
                 </div>
@@ -252,7 +253,7 @@
                                 <p class="text-[10px] text-gray-500 font-bold uppercase">FORMATO 01: REPORTE DE ASISTENCIA DETALLADO</p>
                             </div>
                             <div class="flex gap-2">
-                                <button id="btnAddStaff" onclick="addEmployee()" class="px-4 py-1.5 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition">
+                                <button id="btnAddStaff" onclick="addEmployee()" class="px-4 py-1.5 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition shadow-sm">
                                     <i class="fa-solid fa-plus"></i> Agregar Personal
                                 </button>
                                 <button onclick="window.print()" class="px-4 py-1.5 bg-blue-100 text-blue-800 text-xs font-bold rounded-lg hover:bg-blue-200 transition">
@@ -261,9 +262,14 @@
                             </div>
                         </div>
 
-                        <div id="printHeaderA3" class="hidden print:block text-center mb-6 pt-4">
-                            <h2 class="font-black text-xl uppercase tracking-wider text-red-800">ANEXO 03</h2>
-                            <p class="text-xs font-bold text-gray-600 uppercase">FORMATO 01: REPORTE DE ASISTENCIA DETALLADO</p>
+                        <div id="printHeaderA3" class="hidden print:block mb-6 pt-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <img src="https://drive.google.com/uc?export=view&id=1YFSQiQ9sNjnxEAmY8_L7gVPqiv2-urrE" alt="Logo Institucional" class="h-16 object-contain" onerror="this.style.display='none'" />
+                                <div class="text-right">
+                                    <h2 class="font-black text-xl uppercase tracking-wider text-red-800">ANEXO 03</h2>
+                                    <p class="text-xs font-bold text-gray-600 uppercase">FORMATO 01: REPORTE DE ASISTENCIA DETALLADO</p>
+                                </div>
+                            </div>
                             <div class="grid grid-cols-4 text-left mt-4 text-[10px] border border-slate-400 p-3 rounded" id="metaPrintA3"></div>
                         </div>
 
@@ -325,9 +331,14 @@
                             </button>
                         </div>
 
-                        <div id="printHeaderA4" class="hidden print:block text-center mb-6 pt-4">
-                            <h2 class="font-black text-xl uppercase tracking-wider text-red-800">ANEXO 04</h2>
-                            <p class="text-xs font-bold text-gray-600 uppercase">FORMATO 02: REPORTE DE INASISTENCIAS, TARDANZAS Y PERMISOS</p>
+                        <div id="printHeaderA4" class="hidden print:block mb-6 pt-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <img src="https://drive.google.com/uc?export=view&id=1YFSQiQ9sNjnxEAmY8_L7gVPqiv2-urrE" alt="Logo Institucional" class="h-16 object-contain" onerror="this.style.display='none'" />
+                                <div class="text-right">
+                                    <h2 class="font-black text-xl uppercase tracking-wider text-red-800">ANEXO 04</h2>
+                                    <p class="text-xs font-bold text-gray-600 uppercase">FORMATO 02: REPORTE DE INASISTENCIAS, TARDANZAS Y PERMISOS</p>
+                                </div>
+                            </div>
                             <div class="grid grid-cols-4 text-left mt-4 text-[10px] border border-slate-400 p-3 rounded" id="metaPrintA4"></div>
                         </div>
 
